@@ -109,15 +109,28 @@ function checkboxChangeHandler() {
 }
 
 function addSelectedCategory(category, value) {
-    const container = document.querySelector(`#selected-${category}s .selected-tags`);
+    // Fix: Ensure we're using the correct selector for the container
+    let containerSelector;
+    if (category === 'country') {
+        containerSelector = '#selected-countries .selected-tags';
+    } else if (category === 'domain') {
+        containerSelector = '#selected-domains .selected-tags';
+    } else if (category === 'resource-type') {
+        containerSelector = '#selected-resource-types .selected-tags';
+    } else {
+        console.error(`Unknown category: ${category}`);
+        return;
+    }
+    
+    const container = document.querySelector(containerSelector);
     
     if (!container) {
-        console.error(`Container not found for category: ${category}`);
+        console.error(`Container not found for selector: ${containerSelector}`);
         return;
     }
     
     // Check if this category is already selected
-    if (document.querySelector(`#selected-${category}s .selected-tag[data-value="${value}"]`)) {
+    if (document.querySelector(`${containerSelector} .selected-tag[data-value="${value}"]`)) {
         return;
     }
     
@@ -1251,7 +1264,6 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             behavior: 'smooth'
         });
     });
-});
 
 // Add this after the setupClickableRows function
 function setupNetworkVisualization() {
