@@ -25,13 +25,71 @@
     <header class="hero">
         <div class="hero-content">
             <h1>Nordic Efforts Against Antimicrobial Resistance</h1>
-            <p>A platform for AMR data sharing, research collaboration, and resource access across Nordic countries</p>
+            <p>A collaborative research consortium funded by NordForsk, bringing together researchers from Finland, Norway, Sweden, and Denmark to combat antimicrobial resistance through interdisciplinary One Health approaches.</p>
             <div class="hero-buttons">
                 <a href="#browse-section" class="primary-btn">Explore resources</a>
                 <a href="#learn" class="secondary-btn">Learn More</a>
             </div>
         </div>
     </header>
+
+    <section id="about" class="about-section">
+        <div class="container">
+            <h2>About NoMoReAMR</h2>
+            <p>The Nordic Mobilization against Resistance to Antimicrobials (NoMoReAMR) is a research consortium launched with funding from NordForsk to address the growing threat of antimicrobial resistance.</p>
+            
+            <div class="about-grid">
+                <div class="about-card">
+                    <h3>Our Mission</h3>
+                    <p>To create truly interdisciplinary One Health research applications to address the antimicrobial resistance epidemic through collaborative efforts across Nordic countries.</p>
+                </div>
+                
+                <div class="about-card">
+                    <h3>Collaborative Approach</h3>
+                    <p>Researchers from Finland, Norway, Sweden, and Denmark participate in workshops and writing camps to develop innovative research strategies and applications.</p>
+                </div>
+                
+                <div class="about-card">
+                    <h3>One Health Perspective</h3>
+                    <p>We recognize that human, animal, and environmental health are interconnected, and our research reflects this holistic approach to combating antimicrobial resistance.</p>
+                </div>
+            </div>
+            
+            <h3>Participating Institutions</h3>
+            <div class="institutions-grid">
+                <div class="country-group">
+                    <h4>Finland</h4>
+                    <ul>
+                        <li>University of Turku</li>
+                        <li>University of Helsinki</li>
+                    </ul>
+                </div>
+                
+                <div class="country-group">
+                    <h4>Norway</h4>
+                    <ul>
+                        <li>UiT The Arctic University of Norway (Tromsø)</li>
+                        <li>Norwegian University of Life Sciences (Ås)</li>
+                    </ul>
+                </div>
+                
+                <div class="country-group">
+                    <h4>Sweden</h4>
+                    <ul>
+                        <li>University of Gothenburg (Göteborg)</li>
+                    </ul>
+                </div>
+                
+                <div class="country-group">
+                    <h4>Denmark</h4>
+                    <ul>
+                        <li>University of Copenhagen</li>
+                        <li>Technical University of Denmark (Lyngby)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <main>
         <!-- Browse Section -->
@@ -175,6 +233,7 @@
                             data-resource-type="{{ point.resource_type }}"
                             data-category="{{ point.category }}"
                             data-subcategory="{{ point.subcategory }}"
+                            data-data-type="{{ point.data_type }}"
                             data-tags="{{ point.keywords }}"
                             data-year="{{ point.metadata_obj.version|default('N/A') }}"
                             data-title="{{ point.metadata_obj.title|default(point.data_source_id) }}"
@@ -212,7 +271,16 @@
         <div class="footer-content">
             <div class="footer-section">
                 <h4>NoMoReAMR</h4>
-                <p>A collaborative initiative to combat antimicrobial resistance in Nordic countries</p>
+                <p>A collaborative initiative funded by NordForsk to combat antimicrobial resistance through interdisciplinary One Health research across Nordic countries.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Participating Institutions</h4>
+                <ul>
+                    <li>University of Turku & University of Helsinki (Finland)</li>
+                    <li>UiT The Arctic University of Norway & Norwegian University of Life Sciences (Norway)</li>
+                    <li>University of Gothenburg (Sweden)</li>
+                    <li>University of Copenhagen & Technical University of Denmark (Denmark)</li>
+                </ul>
             </div>
             <div class="footer-section">
                 <h4>Quick Links</h4>
@@ -221,8 +289,6 @@
                     <li><a href="#data">Data</a></li>
                     <li><a href="#contact">Contact</a></li>
                 </ul>
-            </div>
-            <div class="footer-section">
             </div>
         </div>
     </footer>

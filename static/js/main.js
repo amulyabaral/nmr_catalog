@@ -321,6 +321,11 @@ function createResultsTable(dataPoints, title, container) {
         tr.setAttribute('data-category', point.getAttribute('data-category'));
         tr.setAttribute('data-subcategory', point.getAttribute('data-subcategory'));
         
+        // Add data-type attribute if available
+        if (point.hasAttribute('data-data-type')) {
+            tr.setAttribute('data-data-type', point.getAttribute('data-data-type'));
+        }
+        
         // Title with link
         const titleCell = document.createElement('td');
         const titleLink = document.createElement('a');
@@ -405,11 +410,13 @@ function renderHierarchyTree(hierarchy, selectedResourceTypes) {
     }
 }
 
-function createHierarchyNode(name, details, selectedResourceTypes) {
+function createHierarchyNode(name, details, selectedResourceTypes, parentPath = []) {
     const isSelected = selectedResourceTypes.includes(name);
+    const currentPath = [...parentPath, name];
     
     const node = document.createElement('div');
     node.className = `hierarchy-node ${isSelected ? 'selected' : ''}`;
+    node.setAttribute('data-path', currentPath.join('/'));
     
     const nodeHeader = document.createElement('div');
     nodeHeader.className = 'node-header';
@@ -417,7 +424,7 @@ function createHierarchyNode(name, details, selectedResourceTypes) {
     
     // Make node header clickable to filter results
     nodeHeader.addEventListener('click', function() {
-        filterAndHighlightCategory(name);
+        filterAndHighlightCategory(name, currentPath);
     });
     
     node.appendChild(nodeHeader);
@@ -428,19 +435,60 @@ function createHierarchyNode(name, details, selectedResourceTypes) {
         childrenContainer.className = 'node-children';
         
         for (const [subName, subDetails] of Object.entries(details.sub_categories)) {
+            // Create subcategory node
+            const subPath = [...currentPath, subName];
             const subNode = document.createElement('div');
             subNode.className = 'hierarchy-subnode';
+            subNode.setAttribute('data-path', subPath.join('/'));
             
             const subHeader = document.createElement('div');
             subHeader.className = 'subnode-header';
             subHeader.textContent = subName;
             
             // Make subnode header clickable to filter results
-            subHeader.addEventListener('click', function() {
-                filterAndHighlightSubcategory(name, subName);
+            subHeader.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent parent node click
+                filterAndHighlightSubcategory(name, subName, subPath);
             });
             
             subNode.appendChild(subHeader);
+            
+            // If this subcategory has further children, recursively add them
+            if (Array.isArray(subDetails)) {
+                const subChildrenContainer = document.createElement('div');
+                subChildrenContainer.className = 'node-children';
+                
+                // Process array of subcategories
+                subDetails.forEach(item => {
+                    if (typeof item === 'object') {
+                        // Handle nested objects
+                        for (const [deepName, deepDetails] of Object.entries(item)) {
+                            const deepPath = [...subPath, deepName];
+                            const deepNode = createDeepNode(deepName, deepDetails, deepPath);
+                            subChildrenContainer.appendChild(deepNode);
+                        }
+                    } else if (typeof item === 'string') {
+                        // Handle string items
+                        const leafPath = [...subPath, item];
+                        const leafNode = createLeafNode(item, leafPath);
+                        subChildrenContainer.appendChild(leafNode);
+                    }
+                });
+                
+                subNode.appendChild(subChildrenContainer);
+            } else if (typeof subDetails === 'object' && !Array.isArray(subDetails)) {
+                // Handle direct object subcategories
+                const subChildrenContainer = document.createElement('div');
+                subChildrenContainer.className = 'node-children';
+                
+                for (const [deepName, deepDetails] of Object.entries(subDetails)) {
+                    const deepPath = [...subPath, deepName];
+                    const deepNode = createDeepNode(deepName, deepDetails, deepPath);
+                    subChildrenContainer.appendChild(deepNode);
+                }
+                
+                subNode.appendChild(subChildrenContainer);
+            }
             
             // Add to container
             childrenContainer.appendChild(subNode);
@@ -452,15 +500,76 @@ function createHierarchyNode(name, details, selectedResourceTypes) {
     return node;
 }
 
-function filterAndHighlightCategory(category) {
-    // Highlight the selected category in the hierarchy
-    document.querySelectorAll('.hierarchy-node').forEach(node => {
-        if (node.querySelector('.node-header').textContent === category) {
-            node.classList.add('selected');
-        } else {
-            node.classList.remove('selected');
-        }
+function createDeepNode(name, details, path) {
+    const node = document.createElement('div');
+    node.className = 'hierarchy-deepnode';
+    node.setAttribute('data-path', path.join('/'));
+    
+    const nodeHeader = document.createElement('div');
+    nodeHeader.className = 'deepnode-header';
+    nodeHeader.textContent = name;
+    
+    // Make deep node header clickable
+    nodeHeader.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent parent clicks
+        filterByDeepCategory(path);
     });
+    
+    node.appendChild(nodeHeader);
+    
+    // If there are further children
+    if (Array.isArray(details)) {
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'node-children';
+        
+        details.forEach(item => {
+            if (typeof item === 'string') {
+                const leafPath = [...path, item];
+                const leafNode = createLeafNode(item, leafPath);
+                childrenContainer.appendChild(leafNode);
+            } else if (typeof item === 'object') {
+                for (const [leafName, leafDetails] of Object.entries(item)) {
+                    const leafPath = [...path, leafName];
+                    const leafNode = createLeafNode(leafName, leafPath);
+                    childrenContainer.appendChild(leafNode);
+                }
+            }
+        });
+        
+        node.appendChild(childrenContainer);
+    }
+    
+    return node;
+}
+
+function createLeafNode(name, path) {
+    const node = document.createElement('div');
+    node.className = 'hierarchy-leafnode';
+    node.setAttribute('data-path', path.join('/'));
+    
+    const nodeHeader = document.createElement('div');
+    nodeHeader.className = 'leafnode-header';
+    nodeHeader.textContent = name;
+    
+    // Make leaf node header clickable
+    nodeHeader.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent parent clicks
+        filterByLeafCategory(path);
+    });
+    
+    node.appendChild(nodeHeader);
+    return node;
+}
+
+function filterAndHighlightCategory(category, path) {
+    // Reset all selections
+    resetAllSelections();
+    
+    // Highlight the selected category in the hierarchy
+    const selectedNode = document.querySelector(`.hierarchy-node[data-path="${path.join('/')}"]`);
+    if (selectedNode) {
+        selectedNode.classList.add('selected');
+    }
     
     // Filter results to show only this category
     const resourceTypeSections = document.querySelectorAll('.resource-type-section');
@@ -474,17 +583,27 @@ function filterAndHighlightCategory(category) {
             section.style.display = 'none';
         }
     });
+    
+    // Update active filters display
+    updateActiveFilters([{ type: 'category', value: category }]);
 }
 
-function filterAndHighlightSubcategory(resourceType, subcategory) {
+function filterAndHighlightSubcategory(resourceType, subcategory, path) {
+    // Reset all selections
+    resetAllSelections();
+    
     // Highlight the selected subcategory in the hierarchy
-    document.querySelectorAll('.subnode-header').forEach(header => {
-        if (header.textContent === subcategory) {
-            header.classList.add('selected');
-        } else {
-            header.classList.remove('selected');
+    const selectedNode = document.querySelector(`.hierarchy-subnode[data-path="${path.join('/')}"]`);
+    if (selectedNode) {
+        selectedNode.classList.add('selected');
+        
+        // Also highlight parent
+        const parentPath = path.slice(0, -1).join('/');
+        const parentNode = document.querySelector(`.hierarchy-node[data-path="${parentPath}"]`);
+        if (parentNode) {
+            parentNode.classList.add('selected');
         }
-    });
+    }
     
     // Filter results to show only this subcategory
     const tableId = `results-table-${resourceType.replace(/\s+/g, '-').toLowerCase()}`;
@@ -497,6 +616,127 @@ function filterAndHighlightSubcategory(resourceType, subcategory) {
             row.style.display = 'none';
         }
     });
+    
+    // Update active filters display
+    updateActiveFilters([
+        { type: 'category', value: resourceType },
+        { type: 'subcategory', value: subcategory }
+    ]);
+}
+
+function filterByDeepCategory(path) {
+    // Reset all selections
+    resetAllSelections();
+    
+    // Get the resource type (first element in path)
+    const resourceType = path[0];
+    // Get the category (second element in path)
+    const category = path[1];
+    // Get the subcategory (third element in path)
+    const subcategory = path[2];
+    // Get the deep category (last element in path)
+    const deepCategory = path[path.length - 1];
+    
+    // Highlight the selected node in the hierarchy
+    const selectedNode = document.querySelector(`[data-path="${path.join('/')}"]`);
+    if (selectedNode) {
+        selectedNode.classList.add('selected');
+        
+        // Also highlight parents
+        for (let i = 1; i < path.length; i++) {
+            const parentPath = path.slice(0, i).join('/');
+            const parentNode = document.querySelector(`[data-path="${parentPath}"]`);
+            if (parentNode) {
+                parentNode.classList.add('selected');
+            }
+        }
+    }
+    
+    // Filter results
+    const tableId = `results-table-${resourceType.replace(/\s+/g, '-').toLowerCase()}`;
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+    
+    rows.forEach(row => {
+        // Check if the row matches all criteria in the path
+        const rowCategory = row.getAttribute('data-category');
+        const rowSubcategory = row.getAttribute('data-subcategory');
+        const rowDataType = row.getAttribute('data-data-type');
+        
+        // Match based on available data attributes
+        if (rowCategory === category && 
+            (subcategory === undefined || rowSubcategory === subcategory) &&
+            (rowDataType && rowDataType.includes(deepCategory))) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update active filters
+    const filters = path.map((item, index) => {
+        let type;
+        if (index === 0) type = 'category';
+        else if (index === 1) type = 'subcategory';
+        else if (index === 2) type = 'data-type';
+        else type = 'deep-filter';
+        
+        return { type, value: item };
+    });
+    
+    updateActiveFilters(filters);
+}
+
+function filterByLeafCategory(path) {
+    // Similar to filterByDeepCategory but for leaf nodes
+    filterByDeepCategory(path); // Reuse the same logic
+}
+
+function resetAllSelections() {
+    // Remove selected class from all nodes
+    document.querySelectorAll('.hierarchy-node, .hierarchy-subnode, .hierarchy-deepnode, .hierarchy-leafnode').forEach(node => {
+        node.classList.remove('selected');
+    });
+    
+    document.querySelectorAll('.node-header, .subnode-header, .deepnode-header, .leafnode-header').forEach(header => {
+        header.classList.remove('selected');
+    });
+}
+
+function updateActiveFilters(filters) {
+    const activeFiltersContainer = document.getElementById('active-filter-tags');
+    activeFiltersContainer.innerHTML = '';
+    
+    filters.forEach(filter => {
+        const filterTag = document.createElement('div');
+        filterTag.className = 'filter-tag';
+        filterTag.innerHTML = `
+            <span class="filter-type">${filter.type}:</span> ${filter.value}
+            <span class="remove-filter" data-type="${filter.type}" data-value="${filter.value}">&times;</span>
+        `;
+        
+        // Add click handler to remove filter
+        filterTag.querySelector('.remove-filter').addEventListener('click', function() {
+            // Clear this filter
+            resetAllSelections();
+            
+            // Refresh results
+            const selectedResourceTypes = Array.from(document.querySelectorAll('#selected-resource-types .selected-tag'))
+                .map(tag => tag.getAttribute('data-value'));
+            
+            filterAndStratifyResults(
+                Array.from(document.querySelectorAll('#selected-countries .selected-tag'))
+                    .map(tag => tag.getAttribute('data-value')),
+                Array.from(document.querySelectorAll('#selected-domains .selected-tag'))
+                    .map(tag => tag.getAttribute('data-value')),
+                selectedResourceTypes
+            );
+        });
+        
+        activeFiltersContainer.appendChild(filterTag);
+    });
+    
+    // Show active filters container if there are filters
+    document.querySelector('.active-filters').style.display = filters.length > 0 ? 'flex' : 'none';
 }
 
 function setupViewButtons() {

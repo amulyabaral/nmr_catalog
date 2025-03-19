@@ -30,13 +30,13 @@ Resource_type_hierarchy:
               - host_associated_metagenomes
           - transcriptomic:
               - host_response_profiling
-        population_data:
-          - population_density
-          - human_mobility
-          - antimicrobial_consumption
-          - disease_incidence:
-              - vector-borne
-              - sexually_transmitted
+      population_data:
+        - population_density
+        - human_mobility
+        - antimicrobial_consumption
+        - disease_incidence:
+            - vector-borne
+            - sexually_transmitted
       environmental_data:
         - air_quality:
             - particulate_matter
