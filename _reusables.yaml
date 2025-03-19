@@ -111,39 +111,26 @@ data_types:
           - BUSCO summary (TXT)
     metagenomic:
       soil:
-        <<: *common_data_formats
+        formats:
+          <<: *common_data_formats
         specific:
           taxonomic_profiles:
             - TSV
             - CSV
             - Kraken output
             - MetaPhlAn output (TXT)
-          functional_profiles:
-            - TSV
-            - CSV
-            - HUMAnN output
-            - KEGG mappings (JSON)
-          resistance_gene_profiles:
-            - ARG-ANNOT output (TXT)
-            - CARD output (CSV)
       water:
-        <<: *common_data_formats
+        formats:
+          <<: *common_data_formats
         specific:
           taxonomic_profiles:
             - TSV
             - CSV
             - Kraken output
             - Bracken output (TXT)
-          functional_profiles:
-            - TSV
-            - CSV
-            - HUMAnN output
-          eDNA_sequences:
-            <<: *raw_reads_formats
-          resistance_gene_profiles:
-            - ShortBRED output (CSV)
       earth:   # General environmental metagenomics
-        <<: *common_data_formats
+        formats:
+          <<: *common_data_formats
         specific:
           taxonomic_profiles:
             - TSV
@@ -158,7 +145,8 @@ data_types:
             - Custom Database Matches (JSON)
     transcriptomic:
       rna_seq:
-        <<: *transcript_data_formats
+        formats:
+          <<: *transcript_data_formats
         specific:
           differential_expression_results:
             - TSV
