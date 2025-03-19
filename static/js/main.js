@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, setting up functionality');
+    
+    // Log all category checkboxes to verify they exist
+    const checkboxes = document.querySelectorAll('.category-checkbox');
+    console.log('Found checkboxes:', checkboxes.length);
+    
     // Setup core functionality
     setupBrowseTabs();
     setupCategoryCheckboxes();
@@ -105,15 +111,30 @@ function removeSelectedCategory(category, value) {
 
 function updateCategoryCount(category) {
     const count = document.querySelectorAll(`#selected-${category}s .selected-tag`).length;
-    document.querySelector(`#selected-${category}s .count`).textContent = `(${count})`;
+    const countElement = document.querySelector(`#selected-${category}s .count`);
+    if (countElement) {
+        countElement.textContent = `(${count})`;
+    }
 }
 
 function updateExploreButtonState() {
     const exploreButton = document.getElementById('explore-button');
-    const hasSelection = ['countries', 'domains', 'resource-types'].some(category => 
-        document.querySelectorAll(`#selected-${category} .selected-tag`).length > 0
-    );
+    if (!exploreButton) return; // Add safety check
+    
+    const hasSelection = ['countries', 'domains', 'resource-types'].some(category => {
+        const container = document.querySelector(`#selected-${category} .selected-tags`);
+        return container && container.children.length > 0;
+    });
+    
     exploreButton.disabled = !hasSelection;
+    
+    // For debugging
+    console.log('Selection state:', {
+        countries: document.querySelectorAll('#selected-countries .selected-tag').length,
+        domains: document.querySelectorAll('#selected-domains .selected-tag').length,
+        resourceTypes: document.querySelectorAll('#selected-resource-types .selected-tag').length,
+        buttonDisabled: exploreButton.disabled
+    });
 }
 
 function setupExploreButton() {
@@ -234,92 +255,5 @@ function createResourceCard(resource) {
                 View Details
             </button>
         </div>
-    `;
+    `
 }
-
-function groupByResourceType(data) {
-    return data.reduce((acc, item) => {
-        const resourceType = item.resource_type;
-        if (!acc[resourceType]) {
-            acc[resourceType] = [];
-        }
-        acc[resourceType].push(item);
-        return acc;
-    }, {});
-}
-
-function updateResultsCount(data) {
-    const count = data.length;
-    document.getElementById('results-count').textContent = count;
-}
-
-function displayActiveFilters(selectedCategories) {
-    const filterTags = document.getElementById('active-filter-tags');
-    filterTags.innerHTML = '';
-
-    Object.entries(selectedCategories).forEach(([category, values]) => {
-        values.forEach(value => {
-            const tag = document.createElement('span');
-            tag.className = 'filter-tag';
-            tag.innerHTML = `
-                ${value}
-                <span class="remove-filter" onclick="removeFilter('${category}', '${value}')">&times;</span>
-            `;
-            filterTags.appendChild(tag);
-        });
-    });
-}
-
-function showResourceDetails(resourceId) {
-    fetch(`/api/resource/${resourceId}`)
-        .then(response => response.json())
-        .then(resource => {
-            const modal = document.getElementById('resource-modal');
-            const modalTitle = document.getElementById('modal-title');
-            const modalDetails = document.getElementById('modal-details');
-            const resourceLink = document.getElementById('resource-link');
-
-            modalTitle.textContent = resource.data_source_id;
-            modalDetails.innerHTML = `
-                <p><strong>Description:</strong> ${resource.data_description}</p>
-                <p><strong>Category:</strong> ${resource.category} / ${resource.subcategory}</p>
-                <p><strong>Type:</strong> ${resource.data_type}</p>
-                <p><strong>Format:</strong> ${resource.data_format}</p>
-                <p><strong>Country:</strong> ${resource.country}</p>
-                <p><strong>Domain:</strong> ${resource.domain}</p>
-                <p><strong>Last Updated:</strong> ${resource.last_updated}</p>
-                <p><strong>Contact:</strong> ${resource.contact_information}</p>
-            `;
-            resourceLink.href = resource.repository_url;
-
-            modal.style.display = 'block';
-        })
-        .catch(error => console.error('Error:', error));
-}
-
-function removeFilter(category, value) {
-    // Convert singular category name to plural for selector
-    const pluralCategory = category === 'resourceTypes' ? 'resource-types' : `${category}s`;
-    
-    // Uncheck corresponding checkbox
-    const singularCategory = category === 'resourceTypes' ? 'resource-type' : 
-                            (category === 'countries' ? 'country' : 'domain');
-    
-    const checkbox = document.querySelector(`.category-checkbox[data-category="${singularCategory}"][value="${value}"]`);
-    if (checkbox) {
-        checkbox.checked = false;
-    }
-    
-    // Remove selected tag
-    removeSelectedCategory(singularCategory, value);
-    
-    // Update explore button state
-    updateExploreButtonState();
-    
-    // Re-filter results if there are still active filters
-    if (document.querySelectorAll('.selected-tag').length > 0) {
-        document.getElementById('explore-button').click();
-    } else {
-        document.querySelector('.results-section').style.display = 'none';
-    }
-} 
