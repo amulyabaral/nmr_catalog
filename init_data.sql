@@ -58,10 +58,10 @@ INSERT INTO data_points (
 'epidemiology, outbreaks, Norway, surveillance', '2023-12-01', 'outbreak@fhi.no',
 '{"title": "Norwegian AMR Outbreak Database", "creator": "Norwegian Institute of Public Health", "institution": "FHI", "geographic_coverage": "Norway", "license": "CC BY 4.0", "version": "3.0", "documentation_link": "https://fhi.no/amr", "research_area": "Epidemiology"}'),
 
-('SEPROF23', 'amr_specific', 'phenotypic', 'resistance_profiles', 'CSV', 'comprehensive', 'CARD',
-'https://card.mcmaster.ca/SE2023', 'Swedish national AMR profiling database',
-'resistance profiles, Sweden, surveillance', '2023-11-25', 'profiles@folkhalsomyndigheten.se',
-'{"title": "Swedish AMR Profile Database", "creator": "Public Health Agency of Sweden", "institution": "FOHM", "geographic_coverage": "Sweden", "license": "CC BY-NC 4.0", "version": "2.1", "documentation_link": "https://folkhalsomyndigheten.se/amr", "research_area": "Clinical Surveillance"}'),
+('SEPROF23', 'amr_specific', 'phenotypic', 'resistance_profiles', 'CSV', 'comprehensive', 'Svebar',
+'https://www.folkhalsomyndigheten.se/svebar/data/2023', 'Swedish national AMR profiling database',
+'resistance profiles, Sweden, surveillance, Svebar', '2023-11-25', 'profiles@folkhalsomyndigheten.se',
+'{"title": "Swedish AMR Profile Database", "creator": "Public Health Agency of Sweden", "institution": "FOHM", "geographic_coverage": "Sweden", "license": "CC BY-NC 4.0", "version": "2.1", "documentation_link": "https://folkhalsomyndigheten.se/svebar", "research_area": "Clinical Surveillance"}'),
 
 ('DKVET2023', 'amr_specific', 'phenotypic', 'mic_data', 'XLSX', 'comprehensive', 'Local Database',
 'https://www.food.dtu.dk/amr/vet2023', 'Danish veterinary AMR surveillance data',

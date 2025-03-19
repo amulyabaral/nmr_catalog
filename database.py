@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 
 # Define database path
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'amr.db')
@@ -53,8 +54,73 @@ def load_initial_data():
     
     conn.close()
 
-# Update other functions to use DB_PATH
+def generate_data_source_id(data):
+    """
+    Generate a unique ID based on the data fields.
+    Format: {CATEGORY}-{INSTITUTION}-{YEAR}
+    Example: CLIN-NIPH-2023
+    """
+    # Extract category prefix (first 4 letters uppercase)
+    category_prefix = data[1][:4].upper()
+    
+    # Extract year from last_updated
+    year = data[10].split('-')[0]
+    
+    # Extract institution from metadata
+    metadata = json.loads(data[12])
+    institution = metadata.get('institution', '').upper()
+    
+    # Generate ID
+    data_source_id = f"{category_prefix}-{institution}-{year}"
+    
+    # Check if ID exists, append number if needed
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    base_id = data_source_id
+    counter = 1
+    while True:
+        c.execute('SELECT 1 FROM data_points WHERE data_source_id = ?', (data_source_id,))
+        if not c.fetchone():
+            break
+        data_source_id = f"{base_id}-{counter}"
+        counter += 1
+    
+    conn.close()
+    return data_source_id
+
+def check_duplicate_entry(data):
+    """
+    Check if a similar entry already exists based on key fields
+    """
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Check for duplicate based on category, subcategory, repository_url, and last_updated
+    c.execute('''
+        SELECT 1 FROM data_points 
+        WHERE category = ? 
+        AND subcategory = ? 
+        AND repository_url = ? 
+        AND last_updated = ?
+    ''', (data[1], data[2], data[7], data[10]))
+    
+    exists = c.fetchone() is not None
+    conn.close()
+    return exists
+
 def add_data_point(data):
+    """Add a new data point with auto-generated ID"""
+    # Check for duplicates first
+    if check_duplicate_entry(data):
+        raise ValueError("A similar entry already exists in the database")
+    
+    # Generate unique ID
+    data_source_id = generate_data_source_id(data)
+    
+    # Create new data tuple with generated ID
+    new_data = (data_source_id,) + data[1:]
+    
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO data_points (
@@ -71,9 +137,10 @@ def add_data_point(data):
                     last_updated,
                     contact_information,
                     metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', data)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data)
     conn.commit()
     conn.close()
+    return data_source_id
 
 def get_all_data_points():
     conn = sqlite3.connect(DB_PATH)
