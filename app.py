@@ -5,6 +5,9 @@ from database import init_db, add_data_point, get_all_data_points
 
 app = Flask(__name__)
 
+# Initialize database at startup
+init_db()
+
 # Load controlled vocabularies from _reusables.yaml
 def load_vocabularies():
     with open('_reusables.yaml', 'r') as file:
@@ -38,5 +41,4 @@ def add_data():
     return render_template('add_data.html', vocabularies=vocabularies)
 
 if __name__ == '__main__':
-    init_db()  # Initialize database
     app.run(debug=True)

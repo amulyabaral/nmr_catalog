@@ -1,8 +1,15 @@
 import sqlite3
+import os
+
+# Define database path
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'amr.db')
 
 # Create database and tables
 def init_db():
-    conn = sqlite3.connect('amr.db')
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     # Create data points table
@@ -22,9 +29,9 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Insert a new data point
+# Update other functions to use DB_PATH
 def add_data_point(data):
-    conn = sqlite3.connect('amr.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO data_points (
                     data_source_id,
@@ -40,9 +47,8 @@ def add_data_point(data):
     conn.commit()
     conn.close()
 
-# Fetch all data points
 def get_all_data_points():
-    conn = sqlite3.connect('amr.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT * FROM data_points')
     data_points = c.fetchall()
