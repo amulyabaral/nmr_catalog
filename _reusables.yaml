@@ -11,11 +11,9 @@ data_formats: &common_data_formats
     - FASTA
     - GFF               # Genome Feature Format
     - GBK               # GenBank format
-    - AGP               # Assembly Golden Path
   mags: &mags_formats
     - FASTA
     - CheckM output
-    - Anvi'o contigs database
   gene_counts: &gene_counts_formats
     - TSV
     - CSV
@@ -102,7 +100,7 @@ data_types:
         read_quality_reports:
           - HTML
           - JSON
-          - PDF          # Detailed report format available too
+          - PDF
         alignment_files:
           - SAM
           - CRAM
