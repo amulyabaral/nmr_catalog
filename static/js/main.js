@@ -502,8 +502,10 @@ function buildResourceHierarchy(data) {
 function addSubcategories(parentNode, subcategories, data, resourceType, category, currentPath = {}) {
     const nodeChildren = parentNode.querySelector('.node-children');
     
+    // Enhanced handling of subcategories to better process nested structures
     if (Array.isArray(subcategories)) {
         subcategories.forEach(item => {
+            // Check if item is a string (simple subcategory) or object (complex nested structure)
             if (typeof item === 'string') {
                 // Count resources with this subcategory
                 const resourcesInSubcategory = data.filter(r => {
@@ -552,7 +554,7 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                 
                 nodeChildren.appendChild(leaf);
             } else if (typeof item === 'object') {
-                // Handle nested subcategories
+                // Handle complex nested structures (like genomic->whole_genome_sequencing->clinical_isolates)
                 for (const [subcat, deepItems] of Object.entries(item)) {
                     // Count resources with this subcategory
                     const resourcesInSubcategory = data.filter(r => {
@@ -586,16 +588,54 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                     
                     nodeChildren.appendChild(deepNode);
                     
-                    // Add even deeper items if needed
+                    // Recursively add deeper items (like clinical_isolates, bacterial_genomes)
                     if (Array.isArray(deepItems)) {
-                        // Pass current path information to next level
+                        // Just pass the array directly
                         const newPath = {
                             ...currentPath,
                             subcategory: subcat
                         };
-                        
-                        // Recursively add deeper subcategories
                         addSubcategories(deepNode, deepItems, data, resourceType, category, newPath);
+                    } else if (typeof deepItems === 'object') {
+                        // For even deeper nesting like in genomic data
+                        for (const [deepSubcat, deepestItems] of Object.entries(deepItems)) {
+                            // Create a node for this deep subcategory
+                            const deepestNode = document.createElement('div');
+                            deepestNode.className = 'hierarchy-deepestnode';
+                            deepestNode.dataset.type = 'deep_subcategory';
+                            deepestNode.dataset.value = deepSubcat;
+                            deepestNode.dataset.subcategory = subcat;
+                            deepestNode.dataset.category = category;
+                            deepestNode.dataset.resourceType = resourceType;
+                            
+                            // Count resources with this deep subcategory
+                            const resourcesInDeepestSubcategory = data.filter(r => 
+                                r.resource_type === resourceType && 
+                                r.category === category && 
+                                r.subcategory === subcat &&
+                                r.data_type === deepSubcat
+                            ).length;
+                            
+                            if (resourcesInDeepestSubcategory === 0) continue; // Skip if no resources
+                            
+                            deepestNode.innerHTML = `
+                                <div class="deepestnode-header" data-type="deep_subcategory" data-value="${deepSubcat}">
+                                    ${deepSubcat.replace(/_/g, ' ')} <span class="count">(${resourcesInDeepestSubcategory})</span>
+                                </div>
+                                <div class="node-children"></div>
+                            `;
+                            
+                            deepNode.querySelector('.node-children').appendChild(deepestNode);
+                            
+                            // Add even deeper levels if they exist
+                            if (Array.isArray(deepestItems) && deepestItems.length > 0) {
+                                const deepestPath = {
+                                    ...newPath,
+                                    data_type: deepSubcat
+                                };
+                                addSubcategories(deepestNode, deepestItems, data, resourceType, category, deepestPath);
+                            }
+                        }
                     }
                 }
             }
