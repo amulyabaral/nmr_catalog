@@ -269,8 +269,9 @@ data_types:
           - XML
           - XLSX
         microbial_community_data:
-          formats:
-            <<: *abundance_data_formats
+          - Abundance Profiles
+          - OTU Tables
+          - Feature Tables (e.g., biom format)
         heavy_metal_analysis:
           - PDF
           - CSV
