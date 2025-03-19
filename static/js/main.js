@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
         yearHeader.click();
         yearHeader.click(); // Click twice to sort descending (newest first)
     }
+    
+    console.log('DOM fully loaded and parsed');
 });
 
 function setupBrowseTabs() {
@@ -88,6 +90,11 @@ function setupCategoryCheckboxes() {
 
 function addSelectedCategory(category, value) {
     const container = document.querySelector(`#selected-${category}s .selected-tags`);
+    
+    if (!container) {
+        console.error(`Container not found for category: ${category}`);
+        return;
+    }
     
     // Check if this category is already selected
     if (document.querySelector(`#selected-${category}s .selected-tag[data-value="${value}"]`)) {
@@ -414,15 +421,23 @@ function createResultsTable(dataPoints, title, container) {
         
         // Repository
         const repoCell = document.createElement('td');
-        repoCell.textContent = point.cells[4].textContent;
+        const repoText = point.cells[0].querySelector('a').textContent || 'Repository';
+        repoCell.textContent = repoText;
         tr.appendChild(repoCell);
         
         // Actions
         const actionsCell = document.createElement('td');
         const viewButton = document.createElement('button');
         viewButton.className = 'action-btn view-btn';
-        viewButton.setAttribute('data-id', point.querySelector('.view-btn').getAttribute('data-id'));
+        viewButton.setAttribute('data-id', point.getAttribute('data-id'));
         viewButton.textContent = 'View Details';
+        
+        // Add click event to view button
+        viewButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showResourceDetails(this.getAttribute('data-id'));
+        });
+        
         actionsCell.appendChild(viewButton);
         tr.appendChild(actionsCell);
         
@@ -434,8 +449,13 @@ function createResultsTable(dataPoints, title, container) {
     tableContainer.appendChild(table);
     container.appendChild(tableContainer);
     
-    // Setup view buttons in results
-    setupViewButtons();
+    // Setup clickable rows
+    tbody.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('click', function() {
+            const dataId = this.querySelector('.view-btn').getAttribute('data-id');
+            showResourceDetails(dataId);
+        });
+    });
 }
 
 function filterResourceTypeResults(category, resourceType) {
