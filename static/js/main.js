@@ -274,7 +274,6 @@ function displayResults(data) {
                             <th data-sort="country" class="sortable">Country <span class="sort-icon">↓</span></th>
                             <th data-sort="domain" class="sortable">Domain <span class="sort-icon">↓</span></th>
                             <th data-sort="year" class="sortable">Year <span class="sort-icon">↓</span></th>
-                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -293,7 +292,8 @@ function displayResults(data) {
                             return `
                                 <tr class="data-row" data-id="${resource.data_source_id}" 
                                     data-category="${resource.category}" 
-                                    data-subcategory="${resource.subcategory}">
+                                    data-subcategory="${resource.subcategory}"
+                                    data-data-type="${resource.data_type || ''}">
                                     <td>
                                         <a href="${resource.repository_url}" class="resource-link" target="_blank">
                                             ${metadata.title || resource.data_source_id}
@@ -306,11 +306,6 @@ function displayResults(data) {
                                     <td>${resource.country}</td>
                                     <td>${resource.domain}</td>
                                     <td data-year="${year}">${year}</td>
-                                    <td>
-                                        <button class="view-details-btn" onclick="showResourceDetails('${resource.data_source_id}')">
-                                            Details
-                                        </button>
-                                    </td>
                                 </tr>
                             `;
                         }).join('')}
@@ -452,9 +447,11 @@ function buildResourceHierarchy(data) {
                 
                 const node = document.createElement('div');
                 node.className = 'hierarchy-node';
+                node.dataset.type = 'resource_type';
+                node.dataset.value = resourceType;
                 node.innerHTML = `
                     <div class="node-header" data-type="resource_type" data-value="${resourceType}">
-                        ${resourceType} (${resourcesInType})
+                        ${resourceType} <span class="count">(${resourcesInType})</span>
                     </div>
                     <div class="node-children"></div>
                 `;
@@ -474,9 +471,11 @@ function buildResourceHierarchy(data) {
                         
                         const subnode = document.createElement('div');
                         subnode.className = 'hierarchy-subnode';
+                        subnode.dataset.type = 'category';
+                        subnode.dataset.value = category;
                         subnode.innerHTML = `
                             <div class="subnode-header" data-type="category" data-value="${category}">
-                                ${category.replace(/_/g, ' ')} (${resourcesInCategory})
+                                ${category.replace(/_/g, ' ')} <span class="count">(${resourcesInCategory})</span>
                             </div>
                             <div class="node-children"></div>
                         `;
@@ -491,6 +490,11 @@ function buildResourceHierarchy(data) {
             
             // Add click handlers for hierarchy filtering
             setupHierarchyFiltering(hierarchyTree);
+            
+            // Expand all nodes by default to show full hierarchy
+            document.querySelectorAll('.node-children').forEach(node => {
+                node.style.display = 'block';
+            });
         })
         .catch(error => console.error('Error building resource hierarchy:', error));
 }
@@ -511,9 +515,11 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                 
                 const leaf = document.createElement('div');
                 leaf.className = 'hierarchy-leafnode';
+                leaf.dataset.type = 'subcategory';
+                leaf.dataset.value = item;
                 leaf.innerHTML = `
                     <div class="leafnode-header" data-type="subcategory" data-value="${item}">
-                        ${item.replace(/_/g, ' ')} (${resourcesInSubcategory})
+                        ${item.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
                     </div>
                 `;
                 
@@ -531,9 +537,11 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                     
                     const deepNode = document.createElement('div');
                     deepNode.className = 'hierarchy-deepnode';
+                    deepNode.dataset.type = 'subcategory';
+                    deepNode.dataset.value = subcat;
                     deepNode.innerHTML = `
                         <div class="deepnode-header" data-type="subcategory" data-value="${subcat}">
-                            ${subcat.replace(/_/g, ' ')} (${resourcesInSubcategory})
+                            ${subcat.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
                         </div>
                         <div class="node-children"></div>
                     `;
@@ -545,11 +553,22 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                         const deepChildren = deepNode.querySelector('.node-children');
                         deepItems.forEach(deepItem => {
                             if (typeof deepItem === 'string') {
+                                // Count resources with this deep subcategory
+                                const resourcesInDeepSubcategory = data.filter(r => 
+                                    r.resource_type === resourceType && 
+                                    r.category === category && 
+                                    r.subcategory === subcat &&
+                                    r.data_type === deepItem).length;
+                                
+                                if (resourcesInDeepSubcategory === 0) return; // Skip if no resources
+                                
                                 const leaf = document.createElement('div');
                                 leaf.className = 'hierarchy-leafnode';
+                                leaf.dataset.type = 'deep_subcategory';
+                                leaf.dataset.value = deepItem;
                                 leaf.innerHTML = `
                                     <div class="leafnode-header" data-type="deep_subcategory" data-value="${deepItem}">
-                                        ${deepItem.replace(/_/g, ' ')}
+                                        ${deepItem.replace(/_/g, ' ')} <span class="count">(${resourcesInDeepSubcategory})</span>
                                     </div>
                                 `;
                                 
@@ -564,20 +583,53 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
 }
 
 function setupHierarchyFiltering(hierarchyTree) {
+    // Get all clickable elements in the hierarchy
     const headerElements = hierarchyTree.querySelectorAll('.node-header, .subnode-header, .deepnode-header, .leafnode-header');
     
     headerElements.forEach(header => {
-        header.addEventListener('click', function() {
+        header.addEventListener('click', function(e) {
+            e.preventDefault();
+            
             const filterType = this.getAttribute('data-type');
             const filterValue = this.getAttribute('data-value');
+            const parentElement = this.parentElement;
             
-            // Toggle selection state visually
-            this.closest('.hierarchy-node, .hierarchy-subnode, .hierarchy-deepnode, .hierarchy-leafnode').classList.toggle('selected');
+            // Toggle selection state
+            const isSelected = parentElement.classList.contains('selected');
             
-            // Get all selected filters
-            const selectedFilters = getSelectedHierarchyFilters();
+            // First remove selected class from all nodes at the same level
+            if (filterType === 'resource_type') {
+                hierarchyTree.querySelectorAll('.hierarchy-node').forEach(node => {
+                    node.classList.remove('selected');
+                });
+            } else if (filterType === 'category') {
+                const resourceTypeNode = parentElement.closest('.hierarchy-node');
+                resourceTypeNode.querySelectorAll('.hierarchy-subnode').forEach(node => {
+                    node.classList.remove('selected');
+                });
+            } else if (filterType === 'subcategory') {
+                const categoryNode = parentElement.closest('.hierarchy-subnode');
+                categoryNode.querySelectorAll('.hierarchy-deepnode, .hierarchy-leafnode').forEach(node => {
+                    if (node.dataset.type === 'subcategory') {
+                        node.classList.remove('selected');
+                    }
+                });
+            } else if (filterType === 'deep_subcategory') {
+                const subcategoryNode = parentElement.closest('.hierarchy-deepnode');
+                subcategoryNode.querySelectorAll('.hierarchy-leafnode').forEach(node => {
+                    if (node.dataset.type === 'deep_subcategory') {
+                        node.classList.remove('selected');
+                    }
+                });
+            }
+            
+            // Toggle selection on the clicked element
+            if (!isSelected) {
+                parentElement.classList.add('selected');
+            }
             
             // Apply filtering
+            const selectedFilters = getSelectedHierarchyFilters();
             filterDisplayedResults(selectedFilters);
         });
     });
@@ -591,19 +643,19 @@ function getSelectedHierarchyFilters() {
         deep_subcategory: []
     };
     
-    document.querySelectorAll('.hierarchy-node.selected > .node-header').forEach(header => {
-        selectedFilters.resource_type.push(header.getAttribute('data-value'));
+    document.querySelectorAll('.hierarchy-node.selected').forEach(node => {
+        selectedFilters.resource_type.push(node.dataset.value);
     });
     
-    document.querySelectorAll('.hierarchy-subnode.selected > .subnode-header').forEach(header => {
-        selectedFilters.category.push(header.getAttribute('data-value'));
+    document.querySelectorAll('.hierarchy-subnode.selected').forEach(node => {
+        selectedFilters.category.push(node.dataset.value);
     });
     
-    document.querySelectorAll('.hierarchy-deepnode.selected > .deepnode-header, .hierarchy-leafnode.selected > .leafnode-header').forEach(header => {
-        if (header.getAttribute('data-type') === 'subcategory') {
-            selectedFilters.subcategory.push(header.getAttribute('data-value'));
-        } else if (header.getAttribute('data-type') === 'deep_subcategory') {
-            selectedFilters.deep_subcategory.push(header.getAttribute('data-value'));
+    document.querySelectorAll('.hierarchy-deepnode.selected, .hierarchy-leafnode.selected').forEach(node => {
+        if (node.dataset.type === 'subcategory') {
+            selectedFilters.subcategory.push(node.dataset.value);
+        } else if (node.dataset.type === 'deep_subcategory') {
+            selectedFilters.deep_subcategory.push(node.dataset.value);
         }
     });
     
@@ -611,59 +663,54 @@ function getSelectedHierarchyFilters() {
 }
 
 function filterDisplayedResults(filters) {
-    const resourceSections = document.querySelectorAll('.resource-type-section');
+    // Get all data rows
+    const dataRows = document.querySelectorAll('.data-row');
+    let visibleRowCount = 0;
     
-    resourceSections.forEach(section => {
-        const resourceCards = section.querySelectorAll('.resource-card');
-        let sectionVisible = false;
+    dataRows.forEach(row => {
+        const resourceType = row.closest('.resource-type-section').querySelector('h3').textContent;
+        const category = row.dataset.category || '';
+        const subcategory = row.dataset.subcategory || '';
+        const dataType = row.dataset.dataType || '';
         
-        resourceCards.forEach(card => {
-            let shouldDisplay = true;
-            
-            // Check resource type filter
-            if (filters.resource_type.length > 0) {
-                const sectionTitle = section.querySelector('h3').textContent;
-                if (!filters.resource_type.includes(sectionTitle)) {
-                    shouldDisplay = false;
-                }
-            }
-            
-            // Check category filter
-            if (shouldDisplay && filters.category.length > 0) {
-                const category = card.getAttribute('data-category');
-                if (!filters.category.includes(category)) {
-                    shouldDisplay = false;
-                }
-            }
-            
-            // Check subcategory filter
-            if (shouldDisplay && filters.subcategory.length > 0) {
-                const subcategory = card.getAttribute('data-subcategory');
-                if (!filters.subcategory.includes(subcategory)) {
-                    shouldDisplay = false;
-                }
-            }
-            
-            // Update card visibility
-            card.style.display = shouldDisplay ? 'block' : 'none';
-            
-            // Update section visibility state
-            if (shouldDisplay) {
-                sectionVisible = true;
-            }
-        });
+        let shouldDisplay = true;
         
-        // Update section visibility
-        section.style.display = sectionVisible ? 'block' : 'none';
+        // Apply resource type filter
+        if (filters.resource_type.length > 0 && !filters.resource_type.includes(resourceType)) {
+            shouldDisplay = false;
+        }
+        
+        // Apply category filter
+        if (shouldDisplay && filters.category.length > 0 && !filters.category.includes(category)) {
+            shouldDisplay = false;
+        }
+        
+        // Apply subcategory filter
+        if (shouldDisplay && filters.subcategory.length > 0 && !filters.subcategory.includes(subcategory)) {
+            shouldDisplay = false;
+        }
+        
+        // Apply deep subcategory filter
+        if (shouldDisplay && filters.deep_subcategory.length > 0 && !filters.deep_subcategory.includes(dataType)) {
+            shouldDisplay = false;
+        }
+        
+        // Update row visibility
+        row.style.display = shouldDisplay ? '' : 'none';
+        
+        if (shouldDisplay) {
+            visibleRowCount++;
+        }
     });
     
-    // Update results count
-    updateFilteredResultsCount();
-}
-
-function updateFilteredResultsCount() {
-    const visibleCards = document.querySelectorAll('.resource-card[style="display: block"]').length;
-    document.getElementById('results-count').textContent = visibleCards;
+    // Update section visibility
+    document.querySelectorAll('.resource-type-section').forEach(section => {
+        const visibleRows = section.querySelectorAll('.data-row[style=""]').length;
+        section.style.display = visibleRows > 0 ? '' : 'none';
+    });
+    
+    // Update count display
+    document.getElementById('results-count').textContent = visibleRowCount;
 }
 
 function setupTableSorting() {
