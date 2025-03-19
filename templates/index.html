@@ -66,7 +66,7 @@
             <h2>Nordic Collaboration</h2>
             <div class="country-grid">
                 {% for country in vocabularies.countries %}
-                <div class="country-card">
+                <div class="country-card" data-country="{{ country }}">
                     <span class="country-flag">
                         {% if country == 'Norway' %}🇳🇴
                         {% elif country == 'Sweden' %}🇸🇪
@@ -75,7 +75,7 @@
                         {% endif %}
                     </span>
                     <h3>{{ country }}</h3>
-                    <p>View {{ country }}'s AMR data and initiatives</p>
+                    <p>View {{ country }}'s AMR data</p>
                 </div>
                 {% endfor %}
             </div>
@@ -84,44 +84,51 @@
         <section class="data-browser">
             <h2>Data Explorer</h2>
             <div class="filter-section">
-                <!-- Country filters -->
-                <div class="filter-group">
-                    <h4>Filter by Country</h4>
-                    <div class="country-buttons">
-                        <button class="country-btn active" data-country="all">All Countries</button>
-                        {% for country in vocabularies.countries %}
-                        <button class="country-btn" data-country="{{ country }}">{{ country }}</button>
-                        {% endfor %}
-                    </div>
-                </div>
-                
-                <!-- Data type filters -->
-                <div class="filter-group">
-                    <h4>Filter by Data Type</h4>
-                    <div class="data-type-buttons">
-                        <button class="data-type-btn active" data-type="all">All Types</button>
-                        {% for category in vocabularies.data_types %}
-                        <button class="data-type-btn" data-type="{{ category }}">{{ category|title }}</button>
-                        {% endfor %}
-                    </div>
-                </div>
-                
-                <!-- Tag filters -->
-                <div class="filter-group">
-                    <h4>Filter by Tags</h4>
-                    <div class="tag-filters">
-                        {% for category, tags in vocabularies.tags.items() %}
-                        <div class="tag-group">
-                            <h5>{{ category|title }}</h5>
-                            <div class="tag-buttons">
-                                {% for tag in tags %}
-                                <button class="tag-btn" data-tag="{{ tag }}">{{ tag }}</button>
-                                {% endfor %}
-                            </div>
+                <div class="filter-row">
+                    <!-- Data type filters -->
+                    <div class="filter-group">
+                        <h4>Filter by Data Type</h4>
+                        <div class="data-type-buttons">
+                            <button class="data-type-btn active" data-type="all">All Types</button>
+                            {% for category in vocabularies.data_types %}
+                            <button class="data-type-btn" data-type="{{ category }}">{{ category|title }}</button>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                    </div>
+                    
+                    <!-- Reset filters button -->
+                    <div class="filter-actions">
+                        <button id="reset-filters" class="reset-btn">Reset Filters</button>
                     </div>
                 </div>
+                
+                <!-- Tag filters (collapsible) -->
+                <div class="filter-group collapsible">
+                    <div class="collapsible-header">
+                        <h4>Filter by Tags</h4>
+                        <span class="toggle-icon">+</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="tag-filters">
+                            {% for category, tags in vocabularies.tags.items() %}
+                            <div class="tag-group">
+                                <h5>{{ category|title }}</h5>
+                                <div class="tag-buttons">
+                                    {% for tag in tags %}
+                                    <button class="tag-btn" data-tag="{{ tag }}">{{ tag }}</button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active filters display -->
+            <div class="active-filters">
+                <span class="filter-label">Active filters:</span>
+                <div id="active-filter-tags"></div>
             </div>
 
             <div class="data-table">

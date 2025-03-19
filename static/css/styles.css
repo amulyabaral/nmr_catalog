@@ -251,10 +251,12 @@ footer {
     text-align: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     transition: var(--transition);
+    cursor: pointer;
 }
 
 .country-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
 }
 
 .country-flag {
@@ -271,4 +273,110 @@ footer {
 .country-card p {
     color: var(--text-color);
     font-size: 0.9rem;
+}
+
+/* Filter section improvements */
+.filter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+}
+
+.reset-btn {
+    background: var(--gray-medium);
+    color: var(--text-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.reset-btn:hover {
+    background: #d0d0d0;
+}
+
+/* Collapsible sections */
+.collapsible {
+    border: 1px solid var(--gray-medium);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+.collapsible-header {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: var(--gray-light);
+}
+
+.toggle-icon {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.collapsible-content {
+    padding: 1rem;
+}
+
+/* Active filters display */
+.active-filters {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: var(--gray-light);
+    border-radius: var(--border-radius);
+}
+
+.filter-label {
+    font-weight: 500;
+    margin-right: 0.5rem;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    background: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    border: 1px solid var(--gray-medium);
+}
+
+.remove-filter {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.remove-filter:hover {
+    color: #ff3333;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+    }
+    
+    .filter-actions {
+        margin-top: 1rem;
+    }
+    
+    .data-type-buttons, .tag-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
 } 
