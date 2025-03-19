@@ -89,7 +89,6 @@ data_formats: &common_data_formats
     - Funding Sources
     - Collaborations
 
-────────────────────────────────────────────
 # DATA TYPES (catalog sections)
 
 data_types:
@@ -397,7 +396,6 @@ data_types:
           - PDF
           - DOCX
 
-────────────────────────────────────────────
 # METADATA KEYS (for user selection on data points)
 metadata_keys: &metadata_keys
   - title
@@ -438,17 +436,14 @@ research_group_metadata: &research_group_metadata
   - collaborations
   - funding_sources
 
-────────────────────────────────────────────
 # RESOLUTIONS, REPOSITORIES, ETC.
 # (Assuming these anchors are defined elsewhere or will be extended as needed)
 resolutions: *metadata_keys       # Reusing metadata_keys as a placeholder for resolution options
 repositories: *metadata_keys       # Reusing metadata_keys as a placeholder for repository descriptions
 
-────────────────────────────────────────────
 # This YAML catalog is structured to include high-resolution metadata
 # for AMR-related data, spanning genomic, population, environmental data,
 # and extending to scientific publications, research group profiles, and external resources.
 # Users can select and extend these categories based on their data point submissions.
   
 # End of YAML file.
-────────────────────────────────────────────
