@@ -137,23 +137,23 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="data-table-body">
                         {% for point in data_points %}
                         <tr 
-                            data-metadata='{{ point[12] }}' 
-                            data-category="{{ point[2] }}"
-                            data-subcategory="{{ point[3] }}"
-                            data-tags="{{ point[9] }}"
+                            data-country="{{ point.metadata_obj.geographic_coverage }}"
+                            data-category="{{ point.category }}"
+                            data-subcategory="{{ point.subcategory }}"
+                            data-tags="{{ point.keywords }}"
                         >
-                            <td>{{ point[1] }}</td>
-                            <td>{{ point[2] }}</td>
-                            <td>{{ point[4] }}</td>
-                            <td>{{ point[6] }}</td>
-                            <td>{{ point[7] }}</td>
-                            <td>{{ point[11] }}</td>
+                            <td>{{ point.data_source_id }}</td>
+                            <td>{{ point.category }}</td>
+                            <td>{{ point.data_type }}</td>
+                            <td>{{ point.data_resolution }}</td>
+                            <td>{{ point.repository }}</td>
+                            <td>{{ point.last_updated }}</td>
                             <td>
-                                <button class="action-btn view-btn" data-id="{{ point[0] }}">View</button>
-                                <a href="{{ point[8] }}" class="action-btn" target="_blank">Go to Source</a>
+                                <button class="action-btn view-btn" data-id="{{ point.id }}">View</button>
+                                <a href="{{ point.repository_url }}" class="action-btn" target="_blank">Go to Source</a>
                             </td>
                         </tr>
                         {% endfor %}

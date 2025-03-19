@@ -72,3 +72,25 @@ INSERT INTO data_points (
 'https://www.patricbrc.org/FI2023', 'Proteomic analysis of AMR mechanisms in Finnish clinical isolates',
 'proteomics, mass spec, Finland, resistance mechanisms', '2023-08-15', 'proteomics@utu.fi',
 '{"title": "Finnish AMR Proteome Project", "creator": "University of Turku", "institution": "UTU", "geographic_coverage": "Finland", "license": "CC BY 4.0", "version": "1.0", "documentation_link": "https://utu.fi/amr", "research_area": "Molecular Research"}'); 
+
+-- Update the metadata JSON for each entry to ensure geographic_coverage is properly set
+
+-- For Norwegian entries
+UPDATE data_points 
+SET metadata = json_set(metadata, '$.geographic_coverage', 'Norway') 
+WHERE data_source_id LIKE 'NO%' OR data_source_id LIKE 'NOR%';
+
+-- For Swedish entries
+UPDATE data_points 
+SET metadata = json_set(metadata, '$.geographic_coverage', 'Sweden') 
+WHERE data_source_id LIKE 'SW%' OR data_source_id LIKE 'SE%';
+
+-- For Danish entries
+UPDATE data_points 
+SET metadata = json_set(metadata, '$.geographic_coverage', 'Denmark') 
+WHERE data_source_id LIKE 'DK%';
+
+-- For Finnish entries
+UPDATE data_points 
+SET metadata = json_set(metadata, '$.geographic_coverage', 'Finland') 
+WHERE data_source_id LIKE 'FI%'; 

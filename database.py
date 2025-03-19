@@ -144,8 +144,19 @@ def add_data_point(data):
 
 def get_all_data_points():
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # This allows accessing columns by name
     c = conn.cursor()
     c.execute('SELECT * FROM data_points ORDER BY created_at DESC')
     data_points = c.fetchall()
     conn.close()
-    return data_points
+    
+    # Convert to list of dictionaries for easier access in templates
+    result = []
+    for point in data_points:
+        point_dict = dict(point)
+        # Parse metadata JSON
+        if point_dict['metadata']:
+            point_dict['metadata_obj'] = json.loads(point_dict['metadata'])
+        result.append(point_dict)
+    
+    return result

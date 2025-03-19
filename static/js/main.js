@@ -1,105 +1,111 @@
 // Tag filtering
 document.addEventListener('DOMContentLoaded', function() {
-    // Get all data rows once
-    const dataRows = document.querySelectorAll('.data-table tbody tr');
-    
-    // Active filters state
-    const activeFilters = {
-        country: 'all',
-        dataType: 'all',
-        tags: []
-    };
-    
-    // Apply all filters function
-    function applyFilters() {
-        dataRows.forEach(row => {
-            // Get row data
-            const rowMetadata = JSON.parse(row.getAttribute('data-metadata') || '{}');
-            const rowCountry = rowMetadata.geographic_coverage || '';
-            const rowCategory = row.getAttribute('data-category') || '';
-            const rowTags = (row.getAttribute('data-tags') || '').split(',').map(tag => tag.trim());
-            
-            // Check if row passes all active filters
-            const passesCountryFilter = activeFilters.country === 'all' || 
-                                       rowCountry.includes(activeFilters.country);
-            
-            const passesTypeFilter = activeFilters.dataType === 'all' || 
-                                    rowCategory === activeFilters.dataType;
-            
-            const passesTagFilter = activeFilters.tags.length === 0 || 
-                                   activeFilters.tags.some(tag => rowTags.includes(tag));
-            
-            // Show/hide row based on combined filter result
-            row.style.display = (passesCountryFilter && passesTypeFilter && passesTagFilter) ? '' : 'none';
-        });
-    }
-    
-    // Country filter functionality
-    const countryButtons = document.querySelectorAll('.country-btn');
-    
-    countryButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Update active button
-            countryButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update filter state
-            activeFilters.country = this.getAttribute('data-country');
-            
-            // Apply all filters
-            applyFilters();
-        });
-    });
-    
-    // Data type filter functionality
-    const dataTypeButtons = document.querySelectorAll('.data-type-btn');
-    
-    dataTypeButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Update active button
-            dataTypeButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update filter state
-            activeFilters.dataType = this.getAttribute('data-type');
-            
-            // Apply all filters
-            applyFilters();
-        });
-    });
-    
-    // Tag filter functionality
-    const tagButtons = document.querySelectorAll('.tag-btn');
-    
-    tagButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const tag = this.dataset.tag;
-            this.classList.toggle('active');
-            
-            // Update filter state
-            if (this.classList.contains('active')) {
-                activeFilters.tags.push(tag);
-            } else {
-                activeFilters.tags = activeFilters.tags.filter(t => t !== tag);
-            }
-            
-            // Apply all filters
-            applyFilters();
-        });
-    });
+    // Filter functionality
+    setupFilters();
     
     // View button functionality
-    const viewButtons = document.querySelectorAll('.view-btn');
+    setupViewButtons();
+});
+
+function setupFilters() {
+    // Country filters
+    const countryButtons = document.querySelectorAll('.country-btn');
+    countryButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            countryButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get selected country
+            const selectedCountry = this.getAttribute('data-country');
+            
+            // Filter table rows
+            filterTableRows('country', selectedCountry);
+        });
+    });
     
+    // Data type filters
+    const dataTypeButtons = document.querySelectorAll('.data-type-btn');
+    dataTypeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            dataTypeButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get selected data type
+            const selectedType = this.getAttribute('data-type');
+            
+            // Filter table rows
+            filterTableRows('category', selectedType);
+        });
+    });
+    
+    // Tag filters
+    const tagButtons = document.querySelectorAll('.tag-btn');
+    tagButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            this.classList.toggle('active');
+            
+            // Get all active tags
+            const activeTags = Array.from(document.querySelectorAll('.tag-btn.active'))
+                .map(btn => btn.getAttribute('data-tag'));
+            
+            // Filter table rows by tags
+            filterTableRowsByTags(activeTags);
+        });
+    });
+}
+
+function filterTableRows(attribute, value) {
+    const tableRows = document.querySelectorAll('#data-table-body tr');
+    
+    tableRows.forEach(row => {
+        if (value === 'all' || row.getAttribute(`data-${attribute}`).includes(value)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filterTableRowsByTags(activeTags) {
+    // If no tags are active, show all rows
+    if (activeTags.length === 0) {
+        document.querySelectorAll('#data-table-body tr').forEach(row => {
+            row.style.display = '';
+        });
+        return;
+    }
+    
+    // Filter rows based on active tags
+    const tableRows = document.querySelectorAll('#data-table-body tr');
+    tableRows.forEach(row => {
+        const rowTags = row.getAttribute('data-tags').split(',').map(tag => tag.trim());
+        
+        // Check if any of the active tags match this row's tags
+        const hasMatchingTag = activeTags.some(tag => rowTags.includes(tag));
+        
+        if (hasMatchingTag) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function setupViewButtons() {
+    const viewButtons = document.querySelectorAll('.view-btn');
     viewButtons.forEach(button => {
         button.addEventListener('click', function() {
             const dataId = this.getAttribute('data-id');
-            // Show a modal with detailed information
-            // This would be implemented based on your UI design
-            console.log(`View details for data point ${dataId}`);
+            // Implement view functionality (e.g., modal with details)
+            alert(`View details for data point ${dataId}`);
         });
     });
-});
+}
 
 // Smooth scrolling for anchor links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
