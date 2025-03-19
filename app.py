@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import yaml
 import json
-from database import init_db, add_data_point, get_all_data_points
+from database import init_db, add_data_point, get_all_data_points, load_initial_data
 
 app = Flask(__name__)
 
 # Initialize database at startup
 init_db()
+load_initial_data()
 
 def load_vocabularies():
     with open('_reusables.yaml', 'r') as file:

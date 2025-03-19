@@ -6,6 +6,7 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'amr.db')
 
 # Create database and tables
 def init_db():
+    """Initialize the database with tables"""
     # Ensure the directory exists
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     
@@ -32,6 +33,24 @@ def init_db():
                 )''')
 
     conn.commit()
+    conn.close()
+
+def load_initial_data():
+    """Load initial data from SQL file if database is empty"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Check if database is empty
+    c.execute('SELECT COUNT(*) FROM data_points')
+    count = c.fetchone()[0]
+    
+    if count == 0:
+        # Load and execute initial data SQL file
+        with open('init_data.sql', 'r') as f:
+            sql = f.read()
+            c.executescript(sql)
+            conn.commit()
+    
     conn.close()
 
 # Update other functions to use DB_PATH
