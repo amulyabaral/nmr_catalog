@@ -351,13 +351,37 @@ function createResultsTable(dataPoints, title, container) {
             tr.setAttribute('data-data-type', point.getAttribute('data-data-type'));
         }
         
-        // Title with link
+        // Title with link and metadata
         const titleCell = document.createElement('td');
         const titleLink = document.createElement('a');
         titleLink.href = point.querySelector('a').href;
         titleLink.target = '_blank';
         titleLink.textContent = point.getAttribute('data-title');
+        
+        // Add metadata display
+        const metadataDiv = document.createElement('div');
+        metadataDiv.className = 'resource-metadata';
+        
+        // Add subcategory
+        const subcategory = point.getAttribute('data-subcategory');
+        if (subcategory) {
+            const subcategorySpan = document.createElement('span');
+            subcategorySpan.className = 'metadata-item';
+            subcategorySpan.textContent = subcategory;
+            metadataDiv.appendChild(subcategorySpan);
+        }
+        
+        // Add data type if available
+        const dataType = point.getAttribute('data-data-type');
+        if (dataType) {
+            const dataTypeSpan = document.createElement('span');
+            dataTypeSpan.className = 'metadata-item';
+            dataTypeSpan.textContent = dataType;
+            metadataDiv.appendChild(dataTypeSpan);
+        }
+        
         titleCell.appendChild(titleLink);
+        titleCell.appendChild(metadataDiv);
         tr.appendChild(titleCell);
         
         // Category

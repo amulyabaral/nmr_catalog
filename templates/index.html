@@ -184,6 +184,15 @@
                                 <a href="{{ point.repository_url }}" target="_blank" class="resource-link" onclick="event.stopPropagation();">
                                     {{ point.metadata_obj.title|default(point.data_source_id) }}
                                 </a>
+                                <div class="resource-metadata">
+                                    <span class="metadata-item">{{ point.subcategory }}</span>
+                                    {% if point.data_type %}
+                                    <span class="metadata-item">{{ point.data_type }}</span>
+                                    {% endif %}
+                                    {% if point.data_format %}
+                                    <span class="metadata-item">{{ point.data_format }}</span>
+                                    {% endif %}
+                                </div>
                             </td>
                             <td class="tag-cell">
                                 {% if point.metadata_obj.countries %}

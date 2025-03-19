@@ -1209,4 +1209,26 @@ footer {
 
 .hidden-years-container {
     display: none;
+}
+
+/* Resource metadata styling */
+.resource-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.metadata-item {
+    background-color: #f0f0f0;
+    color: #666;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* Ensure the title cell has enough space for metadata */
+.data-table-grid td:first-child {
+    min-width: 250px;
 } 
