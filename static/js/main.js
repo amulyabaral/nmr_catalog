@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup category checkboxes with a slight delay to ensure DOM is fully ready
     setTimeout(function() {
         setupCategoryCheckboxes();
+        // Add debug call
+        debugCheckboxes();
         console.log('Category checkboxes setup completed');
     }, 100);
     
@@ -81,7 +83,10 @@ function setupCategoryCheckboxes() {
     const checkboxes = document.querySelectorAll('.category-checkbox');
     console.log('Found checkboxes:', checkboxes.length);
     
+    // Debug: Log each checkbox to see what we're working with
     checkboxes.forEach(checkbox => {
+        console.log('Checkbox:', checkbox.value, 'Category:', checkbox.getAttribute('data-category'));
+        
         // Remove any existing event listeners to prevent duplicates
         checkbox.removeEventListener('change', checkboxChangeHandler);
         
@@ -1877,4 +1882,33 @@ function setupViewButtons() {
     // This function can be empty if you don't need view buttons
     // or you can implement functionality for switching between table and network views
     console.log('Setting up view buttons');
+}
+
+// Add this function to help debug the issue
+function debugCheckboxes() {
+    console.log('Debugging checkboxes...');
+    
+    // Check if the checkboxes exist with the expected attributes
+    const countryCheckboxes = document.querySelectorAll('.category-checkbox[data-category="country"]');
+    console.log('Country checkboxes found:', countryCheckboxes.length);
+    
+    // Check if the containers for selected items exist
+    const countriesContainer = document.querySelector('#selected-countries .selected-tags');
+    console.log('Countries container exists:', !!countriesContainer);
+    
+    // Try to manually add a test item to verify the container works
+    if (countriesContainer) {
+        const testTag = document.createElement('div');
+        testTag.className = 'selected-tag';
+        testTag.setAttribute('data-value', 'Test');
+        testTag.innerHTML = `
+            Test
+            <span class="remove-tag" data-category="country" data-value="Test">&times;</span>
+        `;
+        countriesContainer.appendChild(testTag);
+        console.log('Test tag added to countries container');
+        
+        // Update count
+        updateCategoryCount('country');
+    }
 } 
