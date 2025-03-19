@@ -174,4 +174,141 @@ function setupModal() {
             modal.style.display = 'none';
         }
     };
+}
+
+function filterAndDisplayResults(selectedCategories) {
+    // Fetch data from the server
+    fetch('/api/filter-resources', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(selectedCategories)
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayResults(data);
+        updateResultsCount(data);
+        displayActiveFilters(selectedCategories);
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function displayResults(data) {
+    const stratifiedResults = document.getElementById('stratified-results');
+    stratifiedResults.innerHTML = '';
+
+    // Group data by resource type
+    const groupedData = groupByResourceType(data);
+
+    // Create sections for each resource type
+    for (const [resourceType, resources] of Object.entries(groupedData)) {
+        const section = document.createElement('div');
+        section.className = 'resource-type-section';
+        section.innerHTML = `
+            <h3>${resourceType}</h3>
+            <div class="resources-grid">
+                ${resources.map(resource => createResourceCard(resource)).join('')}
+            </div>
+        `;
+        stratifiedResults.appendChild(section);
+    }
+}
+
+function createResourceCard(resource) {
+    return `
+        <div class="resource-card" data-id="${resource.data_source_id}">
+            <h4>${resource.data_source_id}</h4>
+            <p class="resource-category">${resource.category} / ${resource.subcategory}</p>
+            <p class="resource-description">${resource.data_description}</p>
+            <div class="resource-meta">
+                <span class="country">${resource.country}</span>
+                <span class="domain">${resource.domain}</span>
+            </div>
+            <button class="view-details-btn" onclick="showResourceDetails('${resource.data_source_id}')">
+                View Details
+            </button>
+        </div>
+    `;
+}
+
+function groupByResourceType(data) {
+    return data.reduce((acc, item) => {
+        const resourceType = item.resource_type;
+        if (!acc[resourceType]) {
+            acc[resourceType] = [];
+        }
+        acc[resourceType].push(item);
+        return acc;
+    }, {});
+}
+
+function updateResultsCount(data) {
+    const count = data.length;
+    document.getElementById('results-count').textContent = count;
+}
+
+function displayActiveFilters(selectedCategories) {
+    const filterTags = document.getElementById('active-filter-tags');
+    filterTags.innerHTML = '';
+
+    Object.entries(selectedCategories).forEach(([category, values]) => {
+        values.forEach(value => {
+            const tag = document.createElement('span');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `
+                ${value}
+                <span class="remove-filter" onclick="removeFilter('${category}', '${value}')">&times;</span>
+            `;
+            filterTags.appendChild(tag);
+        });
+    });
+}
+
+function showResourceDetails(resourceId) {
+    fetch(`/api/resource/${resourceId}`)
+        .then(response => response.json())
+        .then(resource => {
+            const modal = document.getElementById('resource-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalDetails = document.getElementById('modal-details');
+            const resourceLink = document.getElementById('resource-link');
+
+            modalTitle.textContent = resource.data_source_id;
+            modalDetails.innerHTML = `
+                <p><strong>Description:</strong> ${resource.data_description}</p>
+                <p><strong>Category:</strong> ${resource.category} / ${resource.subcategory}</p>
+                <p><strong>Type:</strong> ${resource.data_type}</p>
+                <p><strong>Format:</strong> ${resource.data_format}</p>
+                <p><strong>Country:</strong> ${resource.country}</p>
+                <p><strong>Domain:</strong> ${resource.domain}</p>
+                <p><strong>Last Updated:</strong> ${resource.last_updated}</p>
+                <p><strong>Contact:</strong> ${resource.contact_information}</p>
+            `;
+            resourceLink.href = resource.repository_url;
+
+            modal.style.display = 'block';
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function removeFilter(category, value) {
+    // Uncheck corresponding checkbox
+    const checkbox = document.querySelector(`.category-checkbox[data-category="${category}"][value="${value}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    
+    // Remove selected tag
+    removeSelectedCategory(category, value);
+    
+    // Update explore button state
+    updateExploreButtonState();
+    
+    // Re-filter results if there are still active filters
+    if (document.querySelectorAll('.selected-tag').length > 0) {
+        document.getElementById('explore-button').click();
+    } else {
+        document.querySelector('.results-section').style.display = 'none';
+    }
 } 

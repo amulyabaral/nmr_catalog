@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import yaml
 import json
-from database import init_db, add_data_point, get_all_data_points, load_initial_data, get_main_categories, get_resource_type_hierarchy, get_data_point_by_id
+from database import init_db, add_data_point, get_all_data_points, load_initial_data, get_main_categories, get_resource_type_hierarchy, get_data_point_by_id, get_db
 
 app = Flask(__name__)
 
@@ -114,6 +114,47 @@ def get_data_point(data_id):
             result['metadata'] = json.loads(result['metadata'])
         return jsonify(result)
     return jsonify({"error": "Data point not found"}), 404
+
+@app.route('/api/filter-resources', methods=['POST'])
+def filter_resources():
+    filters = request.json
+    
+    # Build the SQL query based on filters
+    query = """
+        SELECT * FROM data_points WHERE 1=1
+    """
+    params = []
+    
+    if filters.get('countries'):
+        query += " AND country IN (" + ",".join(["?"] * len(filters['countries'])) + ")"
+        params.extend(filters['countries'])
+        
+    if filters.get('domains'):
+        query += " AND domain IN (" + ",".join(["?"] * len(filters['domains'])) + ")"
+        params.extend(filters['domains'])
+        
+    if filters.get('resourceTypes'):
+        query += " AND resource_type IN (" + ",".join(["?"] * len(filters['resourceTypes'])) + ")"
+        params.extend(filters['resourceTypes'])
+    
+    # Execute query
+    cur = get_db().execute(query, params)
+    results = cur.fetchall()
+    cur.close()
+    
+    # Convert results to list of dictionaries
+    return jsonify([dict(row) for row in results])
+
+@app.route('/api/resource/<resource_id>')
+def get_resource(resource_id):
+    cur = get_db().execute('SELECT * FROM data_points WHERE data_source_id = ?', [resource_id])
+    result = cur.fetchone()
+    cur.close()
+    
+    if result is None:
+        return jsonify({'error': 'Resource not found'}), 404
+        
+    return jsonify(dict(result))
 
 if __name__ == '__main__':
     app.run(debug=True)
