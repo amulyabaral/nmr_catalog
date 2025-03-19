@@ -112,7 +112,10 @@ function addSelectedCategory(category, value) {
         const value = this.getAttribute('data-value');
         
         // Uncheck the corresponding checkbox
-        document.querySelector(`.category-checkbox[data-category="${category}"][value="${value}"]`).checked = false;
+        const checkbox = document.querySelector(`.category-checkbox[data-category="${category}"][value="${value}"]`);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
         
         // Remove the tag
         removeSelectedCategory(category, value);
@@ -144,12 +147,12 @@ function updateCategoryCount(category) {
 function updateExploreButtonState() {
     const exploreButton = document.getElementById('explore-button');
     
-    // Check if at least one category is selected
+    // Check if at least one category is selected from any group
     const hasCountry = document.querySelectorAll('#selected-countries .selected-tag').length > 0;
     const hasDomain = document.querySelectorAll('#selected-domains .selected-tag').length > 0;
     const hasResourceType = document.querySelectorAll('#selected-resource-types .selected-tag').length > 0;
     
-    // Enable button if at least one category is selected
+    // Enable button if at least one category is selected from any group
     exploreButton.disabled = !(hasCountry || hasDomain || hasResourceType);
 }
 
@@ -216,18 +219,33 @@ function filterAndStratifyResults(countries, domains, resourceTypes) {
     
     // Filter based on selections
     const filteredPoints = dataPoints.filter(point => {
+        // For countries, check both the primary country and countries in metadata
         const pointCountry = point.getAttribute('data-country');
+        const countryTags = Array.from(point.querySelectorAll('.country-tag')).map(tag => 
+            tag.getAttribute('data-value')
+        );
+        
+        // For domains, check both the primary domain and domains in metadata
         const pointDomain = point.getAttribute('data-domain');
+        const domainTags = Array.from(point.querySelectorAll('.domain-tag')).map(tag => 
+            tag.getAttribute('data-value')
+        );
+        
         const pointResourceType = point.getAttribute('data-resource-type');
         
         // If no countries selected, don't filter by country
-        const countryMatch = countries.length === 0 || countries.includes(pointCountry);
+        const countryMatch = countries.length === 0 || 
+                            countries.includes(pointCountry) || 
+                            countries.some(c => countryTags.includes(c));
         
         // If no domains selected, don't filter by domain
-        const domainMatch = domains.length === 0 || domains.includes(pointDomain);
+        const domainMatch = domains.length === 0 || 
+                           domains.includes(pointDomain) || 
+                           domains.some(d => domainTags.includes(d));
         
         // If no resource types selected, don't filter by resource type
-        const resourceTypeMatch = resourceTypes.length === 0 || resourceTypes.includes(pointResourceType);
+        const resourceTypeMatch = resourceTypes.length === 0 || 
+                                 resourceTypes.includes(pointResourceType);
         
         return countryMatch && domainMatch && resourceTypeMatch;
     });
@@ -255,7 +273,7 @@ function filterAndStratifyResults(countries, domains, resourceTypes) {
     });
     
     // Create a section for each resource type
-    for (const resourceType of resourceTypes) {
+    for (const resourceType in groupedResults) {
         if (groupedResults[resourceType] && groupedResults[resourceType].length > 0) {
             const resourceTypeSection = document.createElement('div');
             resourceTypeSection.className = 'resource-type-section';

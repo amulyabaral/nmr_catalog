@@ -423,6 +423,50 @@ add_data.html -->
             alert('Please select at least one year.');
         }
     });
+
+    // Handle year range selection
+    document.getElementById('apply-years').addEventListener('click', function() {
+        const startYear = parseInt(document.getElementById('start-year').value);
+        const endYear = parseInt(document.getElementById('end-year').value);
+        
+        if (startYear > endYear) {
+            alert('Start year cannot be greater than end year');
+            return;
+        }
+        
+        // Clear existing selected years
+        document.getElementById('selected-years').innerHTML = '';
+        document.querySelector('.hidden-years-container').innerHTML = '';
+        
+        // Create year range tag
+        const yearRangeTag = document.createElement('div');
+        yearRangeTag.className = 'selected-tag year-range-tag';
+        yearRangeTag.innerHTML = `
+            ${startYear} - ${endYear}
+            <span class="remove-tag">&times;</span>
+        `;
+        
+        // Add to selected years
+        document.getElementById('selected-years').appendChild(yearRangeTag);
+        
+        // Add hidden checkboxes for each year in the range
+        for (let year = startYear; year <= endYear; year++) {
+            const hiddenCheckbox = document.createElement('input');
+            hiddenCheckbox.type = 'checkbox';
+            hiddenCheckbox.name = 'years';
+            hiddenCheckbox.value = year.toString();
+            hiddenCheckbox.checked = true;
+            hiddenCheckbox.style.display = 'none';
+            
+            document.querySelector('.hidden-years-container').appendChild(hiddenCheckbox);
+        }
+        
+        // Add click handler to remove tag
+        yearRangeTag.querySelector('.remove-tag').addEventListener('click', function() {
+            document.getElementById('selected-years').innerHTML = '';
+            document.querySelector('.hidden-years-container').innerHTML = '';
+        });
+    });
     </script>
 </body>
 </html>
