@@ -6,13 +6,19 @@ import yaml
 # Define database path
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'amr.db')
 
+def get_db():
+    """Get a database connection"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+    return conn
+
 # Create database and tables
 def init_db():
     """Initialize the database with tables"""
     # Ensure the directory exists
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     c = conn.cursor()
 
     # Create enhanced data points table
@@ -42,7 +48,7 @@ def init_db():
 
 def load_initial_data():
     """Load initial data from SQL file if database is empty"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     c = conn.cursor()
     
     # Check if database is empty
@@ -78,7 +84,7 @@ def generate_data_source_id(data):
     data_source_id = f"{category_prefix}-{institution}-{year}"
     
     # Check if ID exists, append number if needed
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     c = conn.cursor()
     
     base_id = data_source_id
@@ -97,7 +103,7 @@ def check_duplicate_entry(data):
     """
     Check if a similar entry already exists based on key fields
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     c = conn.cursor()
     
     # Check for duplicate based on category, subcategory, repository_url, and last_updated
@@ -125,7 +131,7 @@ def add_data_point(data):
     # Create new data tuple with generated ID
     new_data = (data_source_id,) + data[1:]
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db()
     c = conn.cursor()
     c.execute('''INSERT INTO data_points (
                     data_source_id,
@@ -150,8 +156,7 @@ def add_data_point(data):
     return data_source_id
 
 def get_all_data_points():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+    conn = get_db()
     c = conn.cursor()
     c.execute('SELECT * FROM data_points ORDER BY created_at DESC')
     data_points = c.fetchall()
@@ -182,8 +187,7 @@ def get_resource_type_hierarchy():
 
 def get_data_point_by_id(data_id):
     """Get a single data point by ID"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+    conn = get_db()
     c = conn.cursor()
     c.execute('SELECT * FROM data_points WHERE id = ?', (data_id,))
     data_point = c.fetchone()
