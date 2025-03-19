@@ -46,6 +46,34 @@ add_data.html -->
             </select>
         </div>
 
+        <!-- Add specific fields for different data types -->
+        <div id="genomic-fields" class="conditional-fields" style="display: none;">
+            <div class="form-group">
+                <label for="organism">Organism/Sample Type:</label>
+                <input type="text" id="organism" name="organism">
+            </div>
+            <div class="form-group">
+                <label for="sequencing_platform">Sequencing Platform:</label>
+                <input type="text" id="sequencing_platform" name="sequencing_platform">
+            </div>
+        </div>
+
+        <div id="surveillance-fields" class="conditional-fields" style="display: none;">
+            <div class="form-group">
+                <label for="surveillance_type">Surveillance Type:</label>
+                <select id="surveillance_type" name="surveillance_type">
+                    <option value="national">National</option>
+                    <option value="regional">Regional</option>
+                    <option value="hospital">Hospital</option>
+                    <option value="community">Community</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="time_period">Time Period:</label>
+                <input type="text" id="time_period" name="time_period" placeholder="e.g., 2020-2023">
+            </div>
+        </div>
+
         <div class="form-group">
             <label for="data_resolution">Data Resolution:</label>
             <select id="data_resolution" name="data_resolution" required>
@@ -102,7 +130,27 @@ add_data.html -->
 
         <div class="form-group">
             <label for="data_format">Data Format:</label>
-            <input type="text" id="data_format" name="data_format" required>
+            <input type="text" id="data_format" name="data_format" list="format-suggestions" required>
+            <datalist id="format-suggestions"></datalist>
+        </div>
+
+        <div class="form-group">
+            <label for="tags">Tags:</label>
+            <div class="tag-selector">
+                {% for category, tags in vocabularies.tags.items() %}
+                    <div class="tag-category">
+                        <h4>{{ category|title }}</h4>
+                        <div class="tag-options">
+                            {% for tag in tags %}
+                                <label>
+                                    <input type="checkbox" name="selected_tags" value="{{ tag }}">
+                                    {{ tag }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
 
         <button type="submit">Add Data Point</button>
@@ -116,23 +164,46 @@ add_data.html -->
         const parts = e.target.value.split(' - ');
         const category = parts[0];
         const subcategory = parts[1];
+        const specificType = parts.length > 2 ? parts[2] : '';
         const formatInput = document.getElementById('data_format');
+        const datalist = document.getElementById('format-suggestions');
         
+        // Clear existing options
+        datalist.innerHTML = '';
+        
+        // Get formats from data types hierarchy
         let formats = [];
         if (dataTypes[category] && 
-            dataTypes[category][subcategory] && 
-            dataTypes[category][subcategory].formats) {
-            formats = dataTypes[category][subcategory].formats;
+            dataTypes[category][subcategory]) {
+            
+            if (dataTypes[category][subcategory].formats) {
+                formats = formats.concat(dataTypes[category][subcategory].formats);
+            }
+            
+            // If there's a specific type selected, add its formats too
+            if (specificType && 
+                dataTypes[category][subcategory].specific && 
+                dataTypes[category][subcategory].specific[specificType]) {
+                formats = formats.concat(dataTypes[category][subcategory].specific[specificType]);
+            }
         }
         
-        // Add suggestion list for formats
-        const datalist = document.createElement('datalist');
-        datalist.id = 'format-suggestions';
-        datalist.innerHTML = formats.map(format => `<option value="${format}">`).join('');
+        // Add common formats based on category
+        if (category === 'genomic' && commonFormats.raw_reads) {
+            formats = formats.concat(commonFormats.raw_reads);
+        } else if (category === 'genomic' && commonFormats.assemblies) {
+            formats = formats.concat(commonFormats.assemblies);
+        } else if (category === 'amr_specific' && commonFormats.variant_data) {
+            formats = formats.concat(commonFormats.variant_data);
+        }
         
-        // Update the input
-        formatInput.setAttribute('list', 'format-suggestions');
-        document.body.appendChild(datalist);
+        // Add unique formats to datalist
+        const uniqueFormats = [...new Set(formats)];
+        uniqueFormats.forEach(format => {
+            const option = document.createElement('option');
+            option.value = format;
+            datalist.appendChild(option);
+        });
     });
     </script>
 </body>

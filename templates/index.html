@@ -84,17 +84,43 @@
         <section class="data-browser">
             <h2>Data Explorer</h2>
             <div class="filter-section">
-                <div class="tag-filters">
-                    {% for category, tags in vocabularies.tags.items() %}
-                    <div class="tag-group">
-                        <h4>{{ category|title }}</h4>
-                        <div class="tag-buttons">
-                            {% for tag in tags %}
-                            <button class="tag-btn" data-tag="{{ tag }}">{{ tag }}</button>
-                            {% endfor %}
-                        </div>
+                <!-- Country filters -->
+                <div class="filter-group">
+                    <h4>Filter by Country</h4>
+                    <div class="country-buttons">
+                        <button class="country-btn active" data-country="all">All Countries</button>
+                        {% for country in vocabularies.countries %}
+                        <button class="country-btn" data-country="{{ country }}">{{ country }}</button>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
+                </div>
+                
+                <!-- Data type filters -->
+                <div class="filter-group">
+                    <h4>Filter by Data Type</h4>
+                    <div class="data-type-buttons">
+                        <button class="data-type-btn active" data-type="all">All Types</button>
+                        {% for category in vocabularies.data_types %}
+                        <button class="data-type-btn" data-type="{{ category }}">{{ category|title }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Tag filters -->
+                <div class="filter-group">
+                    <h4>Filter by Tags</h4>
+                    <div class="tag-filters">
+                        {% for category, tags in vocabularies.tags.items() %}
+                        <div class="tag-group">
+                            <h5>{{ category|title }}</h5>
+                            <div class="tag-buttons">
+                                {% for tag in tags %}
+                                <button class="tag-btn" data-tag="{{ tag }}">{{ tag }}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
 
@@ -113,7 +139,12 @@
                     </thead>
                     <tbody>
                         {% for point in data_points %}
-                        <tr>
+                        <tr 
+                            data-metadata='{{ point[12] }}' 
+                            data-category="{{ point[2] }}"
+                            data-subcategory="{{ point[3] }}"
+                            data-tags="{{ point[9] }}"
+                        >
                             <td>{{ point[1] }}</td>
                             <td>{{ point[2] }}</td>
                             <td>{{ point[4] }}</td>
@@ -121,8 +152,8 @@
                             <td>{{ point[7] }}</td>
                             <td>{{ point[11] }}</td>
                             <td>
-                                <button class="action-btn">View</button>
-                                <button class="action-btn">Download</button>
+                                <button class="action-btn view-btn" data-id="{{ point[0] }}">View</button>
+                                <a href="{{ point[8] }}" class="action-btn" target="_blank">Go to Source</a>
                             </td>
                         </tr>
                         {% endfor %}
