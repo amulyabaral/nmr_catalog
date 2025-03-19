@@ -1,9 +1,18 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, setting up checkboxes');
+    
+    // Debug: Check if checkboxes exist
+    const checkboxes = document.querySelectorAll('.category-checkbox');
+    console.log('Found checkboxes:', checkboxes.length);
+    
     // Setup browse tabs
     setupBrowseTabs();
     
-    // Setup category checkboxes
-    setupCategoryCheckboxes();
+    // Setup category checkboxes with a slight delay to ensure DOM is fully ready
+    setTimeout(function() {
+        setupCategoryCheckboxes();
+        console.log('Category checkboxes setup completed');
+    }, 100);
     
     // Setup explore button
     setupExploreButton();
@@ -67,24 +76,33 @@ function setupBrowseTabs() {
 
 function setupCategoryCheckboxes() {
     const checkboxes = document.querySelectorAll('.category-checkbox');
+    console.log('Found checkboxes:', checkboxes.length);
     
     checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const category = this.getAttribute('data-category');
-            const value = this.value;
-            
-            if (this.checked) {
-                // Add to selected categories
-                addSelectedCategory(category, value);
-            } else {
-                // Remove from selected categories
-                removeSelectedCategory(category, value);
-            }
-            
-            // Update the explore button state
-            updateExploreButtonState();
-        });
+        // Remove any existing event listeners to prevent duplicates
+        checkbox.removeEventListener('change', checkboxChangeHandler);
+        
+        // Add the event listener
+        checkbox.addEventListener('change', checkboxChangeHandler);
     });
+}
+
+function checkboxChangeHandler() {
+    console.log('Checkbox changed:', this.value, 'Checked:', this.checked);
+    
+    const category = this.getAttribute('data-category');
+    const value = this.value;
+    
+    if (this.checked) {
+        // Add to selected categories
+        addSelectedCategory(category, value);
+    } else {
+        // Remove from selected categories
+        removeSelectedCategory(category, value);
+    }
+    
+    // Update the explore button state
+    updateExploreButtonState();
 }
 
 function addSelectedCategory(category, value) {
