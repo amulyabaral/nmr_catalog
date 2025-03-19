@@ -14,12 +14,7 @@ def load_vocabularies():
         data = yaml.safe_load(file)
         return {
             'main_categories': data.get('main_categories', {}),
-            'resource_type_hierarchy': data.get('Resource_type_hierarchy', {}),
-            'data_types': data.get('data_types', {}),
-            'metadata_keys': data.get('metadata_keys', []),
-            'resolutions': data.get('resolutions', []),
-            'repositories': data.get('repositories', []),
-            'common_formats': data.get('common_formats', {})
+            'resource_type_hierarchy': data.get('Resource_type_hierarchy', {})
         }
 
 # Cache vocabularies at startup
@@ -34,11 +29,10 @@ def index():
 def add_data():
     if request.method == 'POST':
         try:
-            # Parse the hierarchical data type selection
-            data_type_parts = request.form['data_type'].split(' - ')
-            category = data_type_parts[0]
-            subcategory = data_type_parts[1] if len(data_type_parts) > 1 else ''
-            specific_type = data_type_parts[2] if len(data_type_parts) > 2 else ''
+            # Get category, subcategory, and data_type from form
+            category = request.form.get('category', '')
+            subcategory = request.form.get('subcategory', '')
+            data_type = request.form.get('data_type', '')
 
             # Get main category selections
             country = request.form['country']
@@ -62,9 +56,9 @@ def add_data():
                 None,  # Placeholder for data_source_id
                 category,
                 subcategory,
-                specific_type,
+                data_type,
                 request.form.get('data_format', ''),
-                request.form['data_resolution'],
+                request.form.get('data_resolution', 'standard'),
                 request.form['repository'],
                 request.form['repository_url'],
                 request.form['data_description'],

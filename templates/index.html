@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NoMoReAMR - Nordic AMR Data Platform</title>
+    <title>NoMoReAMR - Nordic AMR Data</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
@@ -15,8 +15,6 @@
             </div>
             <div class="nav-links">
                 <a href="#about">About</a>
-                <a href="#data">Data</a>
-                <a href="#resources">Resources</a>
                 <a href="#publications">Publications</a>
                 <a href="#contact">Contact</a>
                 <a href="{{ url_for('add_data') }}" class="submit-btn">Submit Data</a>
@@ -26,8 +24,8 @@
 
     <header class="hero">
         <div class="hero-content">
-            <h1>Unifying Nordic Efforts Against Antimicrobial Resistance</h1>
-            <p>A comprehensive platform for AMR data sharing, research collaboration, and resource access across Nordic countries</p>
+            <h1>Nordic Efforts Against Antimicrobial Resistance</h1>
+            <p>A platform for AMR data sharing, research collaboration, and resource access across Nordic countries</p>
             <div class="hero-buttons">
                 <a href="#browse-section" class="primary-btn">Explore Data</a>
                 <a href="#learn" class="secondary-btn">Learn More</a>
@@ -164,83 +162,10 @@
             </div>
         </section>
 
-        <!-- Original sections can remain but will be shown after the browse section -->
-        <section class="data-categories">
-            <h2>Browse by Category</h2>
-            <div class="category-grid">
-                <div class="category-card genomic">
-                    <h3>Genomic Data</h3>
-                    <p>WGS, Metagenomics, Transcriptomics</p>
-                    <a href="#genomic" class="card-link"></a>
-                </div>
-                <div class="category-card clinical">
-                    <h3>Clinical Data</h3>
-                    <p>Resistance Profiles, Patient Data</p>
-                    <a href="#clinical" class="card-link"></a>
-                </div>
-                <div class="category-card surveillance">
-                    <h3>Surveillance</h3>
-                    <p>National & Regional Monitoring</p>
-                    <a href="#surveillance" class="card-link"></a>
-                </div>
-                <div class="category-card environmental">
-                    <h3>Environmental</h3>
-                    <p>Water, Soil, Agriculture</p>
-                    <a href="#environmental" class="card-link"></a>
-                </div>
-            </div>
-        </section>
-
+        <!-- Data Browser Section -->
         <section class="data-browser">
             <h2>Data Explorer</h2>
-            <div class="filter-section">
-                <div class="filter-row">
-                    <!-- Data type filters -->
-                    <div class="filter-group">
-                        <h4>Filter by Data Type</h4>
-                        <div class="data-type-buttons">
-                            <button class="data-type-btn active" data-type="all">All Types</button>
-                            {% for category in vocabularies.data_types %}
-                            <button class="data-type-btn" data-type="{{ category }}">{{ category|title }}</button>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <!-- Reset filters button -->
-                    <div class="filter-actions">
-                        <button id="reset-filters" class="reset-btn">Reset Filters</button>
-                    </div>
-                </div>
-                
-                <!-- Tag filters (collapsible) -->
-                <div class="filter-group collapsible">
-                    <div class="collapsible-header">
-                        <h4>Filter by Tags</h4>
-                        <span class="toggle-icon">+</span>
-                    </div>
-                    <div class="collapsible-content">
-                        <div class="tag-filters">
-                            {% for category, tags in vocabularies.tags.items() %}
-                            <div class="tag-group">
-                                <h5>{{ category|title }}</h5>
-                                <div class="tag-buttons">
-                                    {% for tag in tags %}
-                                    <button class="tag-btn" data-tag="{{ tag }}">{{ tag }}</button>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Active filters display -->
-            <div class="active-filters">
-                <span class="filter-label">Active filters:</span>
-                <div id="active-filter-tags"></div>
-            </div>
-
+            
             <div class="data-table">
                 <table>
                     <thead>
