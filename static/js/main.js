@@ -1,4 +1,3 @@
-// Tag filtering
 document.addEventListener('DOMContentLoaded', function() {
     // Setup browse tabs
     setupBrowseTabs();
@@ -214,6 +213,18 @@ function setupExploreButton() {
         
         // Hide results section
         document.querySelector('.results-section').style.display = 'none';
+        
+        // Clear active filters
+        document.querySelector('.active-filters').style.display = 'none';
+        document.getElementById('active-filter-tags').innerHTML = '';
+        
+        // Reset all selections in the hierarchy tree
+        resetAllSelections();
+        
+        // Show all rows in the data table
+        document.querySelectorAll('#data-table-body tr').forEach(row => {
+            row.style.display = '';
+        });
     });
 }
 
@@ -803,8 +814,20 @@ function updateActiveFilters(filters) {
         
         // Add click handler to remove filter
         filterTag.querySelector('.remove-filter').addEventListener('click', function() {
+            // Get the filter type and value
+            const filterType = this.getAttribute('data-type');
+            const filterValue = this.getAttribute('data-value');
+            
             // Clear this filter
             resetAllSelections();
+            
+            // Remove this specific filter tag
+            this.parentElement.remove();
+            
+            // Check if there are any filters left
+            if (document.querySelectorAll('#active-filter-tags .filter-tag').length === 0) {
+                document.querySelector('.active-filters').style.display = 'none';
+            }
             
             // Refresh results
             const selectedResourceTypes = Array.from(document.querySelectorAll('#selected-resource-types .selected-tag'))
@@ -817,6 +840,9 @@ function updateActiveFilters(filters) {
                     .map(tag => tag.getAttribute('data-value')),
                 selectedResourceTypes
             );
+            
+            // Show all rows in the data table that match the remaining filters
+            refreshDataTableFilters();
         });
         
         activeFiltersContainer.appendChild(filterTag);
@@ -826,10 +852,176 @@ function updateActiveFilters(filters) {
     document.querySelector('.active-filters').style.display = filters.length > 0 ? 'flex' : 'none';
 }
 
-function setupViewButtons() {
-    const viewButtons = document.querySelectorAll('.view-btn');
-    viewButtons.forEach(button => {
-        button.addEventListener('click', function() {
+// Function to refresh data table filters based on active filters
+function refreshDataTableFilters() {
+    // Get all active filters
+    const activeFilters = Array.from(document.querySelectorAll('#active-filter-tags .filter-tag'))
+        .map(tag => {
+            const type = tag.querySelector('.filter-type').textContent.replace(':', '');
+            const value = tag.textContent.trim().split(':')[1].trim().replace('×', '').trim();
+            return { type, value };
+        });
+    
+    // Show all rows first
+    const rows = document.querySelectorAll('#data-table-body tr');
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+    
+    // Apply each filter
+    if (activeFilters.length > 0) {
+        rows.forEach(row => {
+            let showRow = true;
+            
+            activeFilters.forEach(filter => {
+                const rowValue = row.getAttribute(`data-${filter.type.toLowerCase()}`);
+                const tags = Array.from(row.querySelectorAll(`.${filter.type.toLowerCase()}-tag`))
+                    .map(tag => tag.getAttribute('data-value'));
+                
+                // Check if row matches this filter
+                const matches = rowValue === filter.value || tags.includes(filter.value);
+                
+                if (!matches) {
+                    showRow = false;
+                }
+            });
+            
+            row.style.display = showRow ? '' : 'none';
+        });
+    }
+}
+
+// Function to filter the data table
+function filterDataTable(filterType, filterValue) {
+    const rows = document.querySelectorAll('#data-table-body tr');
+    
+    rows.forEach(row => {
+        const rowValue = row.getAttribute(`data-${filterType}`);
+        
+        // For countries and domains, check if they're in the metadata
+        if (filterType === 'country' || filterType === 'domain') {
+            const tags = row.querySelectorAll(`.${filterType}-tag`);
+            let hasMatch = false;
+            
+            tags.forEach(tag => {
+                if (tag.getAttribute('data-value') === filterValue) {
+                    hasMatch = true;
+                }
+            });
+            
+            if (hasMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        } 
+        // For other filters, check the data attribute directly
+        else if (rowValue === filterValue) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Show active filter
+    const activeFiltersContainer = document.createElement('div');
+    activeFiltersContainer.className = 'active-filters';
+    activeFiltersContainer.innerHTML = `
+        <span class="filter-label">Active filter:</span>
+        <div class="filter-tag">
+            <span class="filter-type">${filterType}:</span> ${filterValue}
+            <span class="remove-filter" id="clear-table-filter">&times;</span>
+        </div>
+    `;
+    
+    // Remove any existing active filters
+    const existingFilters = document.querySelector('.data-browser .active-filters');
+    if (existingFilters) {
+        existingFilters.remove();
+    }
+    
+    // Add the new active filters
+    const dataTable = document.querySelector('.data-table');
+    dataTable.parentNode.insertBefore(activeFiltersContainer, dataTable);
+    
+    // Add click handler to clear filter
+    document.getElementById('clear-table-filter').addEventListener('click', function() {
+        // Show all rows
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Remove active filters
+        activeFiltersContainer.remove();
+    });
+}
+
+// Setup sortable columns
+function setupSortableColumns() {
+    const headers = document.querySelectorAll('.sortable');
+    
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortField = this.getAttribute('data-sort');
+            const isAscending = !this.classList.contains('asc');
+            
+            // Remove active class and sort direction from all headers
+            headers.forEach(h => {
+                h.classList.remove('active', 'asc', 'desc');
+                h.querySelector('.sort-icon').textContent = '';
+            });
+            
+            // Add active class and sort direction to clicked header
+            this.classList.add('active');
+            if (isAscending) {
+                this.classList.add('asc');
+                this.querySelector('.sort-icon').textContent = '↑';
+            } else {
+                this.classList.add('desc');
+                this.querySelector('.sort-icon').textContent = '↓';
+            }
+            
+            // Sort the table
+            sortTable(sortField, isAscending);
+        });
+    });
+}
+
+// Sort table function
+function sortTable(field, ascending) {
+    const tbody = document.getElementById('data-table-body');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Sort the rows
+    rows.sort((a, b) => {
+        let valueA = a.getAttribute(`data-${field}`).toLowerCase();
+        let valueB = b.getAttribute(`data-${field}`).toLowerCase();
+        
+        // Special handling for year field to ensure numeric sorting
+        if (field === 'year') {
+            valueA = parseInt(valueA) || 0;
+            valueB = parseInt(valueB) || 0;
+            return ascending ? valueA - valueB : valueB - valueA;
+        }
+        
+        // Default string comparison
+        if (valueA < valueB) return ascending ? -1 : 1;
+        if (valueA > valueB) return ascending ? 1 : -1;
+        return 0;
+    });
+    
+    // Reorder the rows in the DOM
+    rows.forEach(row => {
+        tbody.appendChild(row);
+    });
+}
+
+// Setup clickable rows
+function setupClickableRows() {
+    const rows = document.querySelectorAll('.data-row');
+    
+    rows.forEach(row => {
+        row.addEventListener('click', function() {
             const dataId = this.getAttribute('data-id');
             showResourceDetails(dataId);
         });
@@ -1038,141 +1230,4 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             behavior: 'smooth'
         });
     });
-});
-
-// Function to filter the data table
-function filterDataTable(filterType, filterValue) {
-    const rows = document.querySelectorAll('#data-table-body tr');
-    
-    rows.forEach(row => {
-        const rowValue = row.getAttribute(`data-${filterType}`);
-        
-        // For countries and domains, check if they're in the metadata
-        if (filterType === 'country' || filterType === 'domain') {
-            const tags = row.querySelectorAll(`.${filterType}-tag`);
-            let hasMatch = false;
-            
-            tags.forEach(tag => {
-                if (tag.getAttribute('data-value') === filterValue) {
-                    hasMatch = true;
-                }
-            });
-            
-            if (hasMatch) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        } 
-        // For other filters, check the data attribute directly
-        else if (rowValue === filterValue) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-    
-    // Show active filter
-    const activeFiltersContainer = document.createElement('div');
-    activeFiltersContainer.className = 'active-filters';
-    activeFiltersContainer.innerHTML = `
-        <span class="filter-label">Active filter:</span>
-        <div class="filter-tag">
-            <span class="filter-type">${filterType}:</span> ${filterValue}
-            <span class="remove-filter" id="clear-table-filter">&times;</span>
-        </div>
-    `;
-    
-    // Remove any existing active filters
-    const existingFilters = document.querySelector('.data-browser .active-filters');
-    if (existingFilters) {
-        existingFilters.remove();
-    }
-    
-    // Add the new active filters
-    const dataTable = document.querySelector('.data-table');
-    dataTable.parentNode.insertBefore(activeFiltersContainer, dataTable);
-    
-    // Add click handler to clear filter
-    document.getElementById('clear-table-filter').addEventListener('click', function() {
-        // Show all rows
-        rows.forEach(row => {
-            row.style.display = '';
-        });
-        
-        // Remove active filters
-        activeFiltersContainer.remove();
-    });
-}
-
-// Setup sortable columns
-function setupSortableColumns() {
-    const headers = document.querySelectorAll('.sortable');
-    
-    headers.forEach(header => {
-        header.addEventListener('click', function() {
-            const sortField = this.getAttribute('data-sort');
-            const isAscending = !this.classList.contains('asc');
-            
-            // Remove active class and sort direction from all headers
-            headers.forEach(h => {
-                h.classList.remove('active', 'asc', 'desc');
-                h.querySelector('.sort-icon').textContent = '';
-            });
-            
-            // Add active class and sort direction to clicked header
-            this.classList.add('active');
-            if (isAscending) {
-                this.classList.add('asc');
-                this.querySelector('.sort-icon').textContent = '↑';
-            } else {
-                this.classList.add('desc');
-                this.querySelector('.sort-icon').textContent = '↓';
-            }
-            
-            // Sort the table
-            sortTable(sortField, isAscending);
-        });
-    });
-}
-
-// Sort table function
-function sortTable(field, ascending) {
-    const tbody = document.getElementById('data-table-body');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    
-    // Sort the rows
-    rows.sort((a, b) => {
-        let valueA = a.getAttribute(`data-${field}`).toLowerCase();
-        let valueB = b.getAttribute(`data-${field}`).toLowerCase();
-        
-        // Special handling for year field to ensure numeric sorting
-        if (field === 'year') {
-            valueA = parseInt(valueA) || 0;
-            valueB = parseInt(valueB) || 0;
-            return ascending ? valueA - valueB : valueB - valueA;
-        }
-        
-        // Default string comparison
-        if (valueA < valueB) return ascending ? -1 : 1;
-        if (valueA > valueB) return ascending ? 1 : -1;
-        return 0;
-    });
-    
-    // Reorder the rows in the DOM
-    rows.forEach(row => {
-        tbody.appendChild(row);
-    });
-}
-
-// Setup clickable rows
-function setupClickableRows() {
-    const rows = document.querySelectorAll('.data-row');
-    
-    rows.forEach(row => {
-        row.addEventListener('click', function() {
-            const dataId = this.getAttribute('data-id');
-            showResourceDetails(dataId);
-        });
-    });
-} 
+}); 
