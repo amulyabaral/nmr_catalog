@@ -94,7 +94,8 @@ data_formats: &common_data_formats
 data_types:
   genomic:
     wgs:
-      <<: *common_data_formats
+      formats:
+        <<: *common_data_formats
       specific:
         read_quality_reports:
           - HTML
@@ -186,7 +187,8 @@ data_types:
   
   population:
     demographic:
-      <<: *demographic_data_formats
+      formats:
+        <<: *demographic_data_formats
       specific:
         population_pyramids:
           - JSON
@@ -195,7 +197,8 @@ data_types:
           - PDF
           - DOCX
     survey:
-      <<: *survey_data_formats
+      formats:
+        <<: *survey_data_formats
       specific:
         questionnaires:
           - PDF
@@ -206,7 +209,8 @@ data_types:
           - DOCX
           - MP3 (audio)
     epidemiological:
-      <<: *epidemiological_data_formats
+      formats:
+        <<: *epidemiological_data_formats
       specific:
         case_reports:
           - XML
@@ -220,7 +224,8 @@ data_types:
 
   environmental:
     air:
-      <<: *environmental_data_formats
+      formats:
+        <<: *environmental_data_formats
       specific:
         pollutant_concentrations:
           - CSV
@@ -242,7 +247,8 @@ data_types:
           - CSV
           - TXT
     water:
-      <<: *environmental_data_formats
+      formats:
+        <<: *environmental_data_formats
       specific:
         chemical_analysis_reports:
           - PDF
@@ -355,7 +361,6 @@ data_types:
           - CSV
           - JSON
 
-  # A category for curated resources and external repositories maintained
   external_resources:
     databases:
       specific:
