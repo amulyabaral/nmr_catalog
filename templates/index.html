@@ -3,45 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMR Metadata Catalog</title>
+    <title>NoMoReAMR - Nordic AMR Data Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <h1>AMR Metadata Catalog</h1>
-    <a href="{{ url_for('add_data') }}">Add New Data Point</a>
-    <hr>
-    <h2>Data Points</h2>
-    <table border="1">
-        <tr>
-            <th>ID</th>
-            <th>Data Source ID</th>
-            <th>Category</th>
-            <th>Subcategory</th>
-            <th>Data Type</th>
-            <th>Format</th>
-            <th>Resolution</th>
-            <th>Repository</th>
-            <th>Repository URL</th>
-            <th>Description</th>
-            <th>Keywords</th>
-            <th>Last Updated</th>
-            <th>Contact</th>
-        </tr>
-        {% for point in data_points %}
-        <tr>
-            <td>{{ point[0] }}</td>
-            <td>{{ point[1] }}</td>
-            <td>{{ point[2] }}</td>
-            <td>{{ point[3] }}</td>
-            <td>{{ point[4] }}</td>
-            <td>{{ point[5] }}</td>
-            <td>{{ point[6] }}</td>
-            <td>{{ point[7] }}</td>
-            <td>{{ point[8] }}</td>
-            <td>{{ point[9] }}</td>
-            <td>{{ point[10] }}</td>
-            <td>{{ point[11] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <a href="/">NoMoReAMR</a>
+            </div>
+            <div class="nav-links">
+                <a href="#about">About</a>
+                <a href="#data">Data</a>
+                <a href="#resources">Resources</a>
+                <a href="#publications">Publications</a>
+                <a href="#contact">Contact</a>
+                <a href="{{ url_for('add_data') }}" class="submit-btn">Submit Data</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1>Unifying Nordic Efforts Against Antimicrobial Resistance</h1>
+            <p>A comprehensive platform for AMR data sharing, research collaboration, and resource access across Nordic countries</p>
+            <div class="hero-buttons">
+                <a href="#explore" class="primary-btn">Explore Data</a>
+                <a href="#learn" class="secondary-btn">Learn More</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="data-categories">
+            <h2>Browse by Category</h2>
+            <div class="category-grid">
+                <div class="category-card genomic">
+                    <h3>Genomic Data</h3>
+                    <p>WGS, Metagenomics, Transcriptomics</p>
+                    <a href="#genomic" class="card-link"></a>
+                </div>
+                <div class="category-card clinical">
+                    <h3>Clinical Data</h3>
+                    <p>Resistance Profiles, Patient Data</p>
+                    <a href="#clinical" class="card-link"></a>
+                </div>
+                <div class="category-card surveillance">
+                    <h3>Surveillance</h3>
+                    <p>National & Regional Monitoring</p>
+                    <a href="#surveillance" class="card-link"></a>
+                </div>
+                <div class="category-card environmental">
+                    <h3>Environmental</h3>
+                    <p>Water, Soil, Agriculture</p>
+                    <a href="#environmental" class="card-link"></a>
+                </div>
+            </div>
+        </section>
+
+        <section class="countries">
+            <h2>Nordic Collaboration</h2>
+            <div class="country-grid">
+                {% for country in vocabularies.countries %}
+                <div class="country-card">
+                    <span class="country-flag">
+                        {% if country == 'Norway' %}🇳🇴
+                        {% elif country == 'Sweden' %}🇸🇪
+                        {% elif country == 'Denmark' %}🇩🇰
+                        {% elif country == 'Finland' %}🇫🇮
+                        {% endif %}
+                    </span>
+                    <h3>{{ country }}</h3>
+                    <p>View {{ country }}'s AMR data and initiatives</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="data-browser">
+            <h2>Data Explorer</h2>
+            <div class="filter-section">
+                <div class="tag-filters">
+                    {% for category, tags in vocabularies.tags.items() %}
+                    <div class="tag-group">
+                        <h4>{{ category|title }}</h4>
+                        <div class="tag-buttons">
+                            {% for tag in tags %}
+                            <button class="tag-btn" data-tag="{{ tag }}">{{ tag }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Resolution</th>
+                            <th>Repository</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for point in data_points %}
+                        <tr>
+                            <td>{{ point[1] }}</td>
+                            <td>{{ point[2] }}</td>
+                            <td>{{ point[4] }}</td>
+                            <td>{{ point[6] }}</td>
+                            <td>{{ point[7] }}</td>
+                            <td>{{ point[11] }}</td>
+                            <td>
+                                <button class="action-btn">View</button>
+                                <button class="action-btn">Download</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>NoMoReAMR</h4>
+                <p>A collaborative initiative to combat antimicrobial resistance in Nordic countries</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#data">Data</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>Email: contact@nomoreamr.org</p>
+                <p>Phone: +46 123 456 789</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
