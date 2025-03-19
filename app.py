@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import yaml
 import json
-from database import init_db, add_data_point, get_all_data_points, load_initial_data
+from database import init_db, add_data_point, get_all_data_points, load_initial_data, get_main_categories, get_resource_type_hierarchy
 
 app = Flask(__name__)
 
@@ -13,13 +13,13 @@ def load_vocabularies():
     with open('_reusables.yaml', 'r') as file:
         data = yaml.safe_load(file)
         return {
+            'main_categories': data.get('main_categories', {}),
+            'resource_type_hierarchy': data.get('Resource_type_hierarchy', {}),
             'data_types': data.get('data_types', {}),
             'metadata_keys': data.get('metadata_keys', []),
-            'resolutions': data.get('resolutions', []),  # Fixed from using metadata_keys
-            'repositories': data.get('repositories', []),  # Fixed from using metadata_keys
-            'common_formats': data.get('common_formats', {}),
-            'tags': data.get('tags', {}),
-            'countries': data.get('countries', [])
+            'resolutions': data.get('resolutions', []),
+            'repositories': data.get('repositories', []),
+            'common_formats': data.get('common_formats', {})
         }
 
 # Cache vocabularies at startup
@@ -39,6 +39,11 @@ def add_data():
             category = data_type_parts[0]
             subcategory = data_type_parts[1] if len(data_type_parts) > 1 else ''
             specific_type = data_type_parts[2] if len(data_type_parts) > 2 else ''
+
+            # Get main category selections
+            country = request.form['country']
+            domain = request.form['domain']
+            resource_type = request.form['resource_type']
 
             # Create metadata JSON
             metadata = {
@@ -66,7 +71,10 @@ def add_data():
                 request.form['keywords'],
                 request.form['last_updated'],
                 request.form['contact_information'],
-                json.dumps(metadata)
+                json.dumps(metadata),
+                country,
+                domain,
+                resource_type
             )
             
             add_data_point(data)
@@ -79,10 +87,15 @@ def add_data():
     
     return render_template('add_data.html', vocabularies=VOCABULARIES)
 
-@app.route('/api/data-types')
-def get_data_types():
-    """API endpoint to get the hierarchical data types"""
-    return jsonify(VOCABULARIES['data_types'])
+@app.route('/api/resource-hierarchy')
+def get_resource_hierarchy():
+    """API endpoint to get the resource type hierarchy"""
+    return jsonify(VOCABULARIES['resource_type_hierarchy'])
+
+@app.route('/api/main-categories')
+def get_categories():
+    """API endpoint to get the main categories"""
+    return jsonify(VOCABULARIES['main_categories'])
 
 if __name__ == '__main__':
     app.run(debug=True)

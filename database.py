@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import json
+import yaml
 
 # Define database path
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'amr.db')
@@ -30,7 +31,10 @@ def init_db():
                     last_updated DATE NOT NULL,
                     contact_information TEXT NOT NULL,
                     metadata JSON,                    -- Additional metadata as JSON
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    country TEXT NOT NULL,            -- Main category: Country
+                    domain TEXT NOT NULL,             -- Main category: Domain
+                    resource_type TEXT NOT NULL       -- Main category: Resource_type
                 )''')
 
     conn.commit()
@@ -136,8 +140,11 @@ def add_data_point(data):
                     keywords,
                     last_updated,
                     contact_information,
-                    metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data)
+                    metadata,
+                    country,
+                    domain,
+                    resource_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data)
     conn.commit()
     conn.close()
     return data_source_id
@@ -160,3 +167,15 @@ def get_all_data_points():
         result.append(point_dict)
     
     return result
+
+def get_main_categories():
+    """Get the main categories from the _reusables.yaml file"""
+    with open('_reusables.yaml', 'r') as file:
+        data = yaml.safe_load(file)
+        return data.get('main_categories', {})
+        
+def get_resource_type_hierarchy():
+    """Get the resource type hierarchy from the _reusables.yaml file"""
+    with open('_reusables.yaml', 'r') as file:
+        data = yaml.safe_load(file)
+        return data.get('Resource_type_hierarchy', {})

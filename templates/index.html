@@ -29,13 +29,142 @@
             <h1>Unifying Nordic Efforts Against Antimicrobial Resistance</h1>
             <p>A comprehensive platform for AMR data sharing, research collaboration, and resource access across Nordic countries</p>
             <div class="hero-buttons">
-                <a href="#explore" class="primary-btn">Explore Data</a>
+                <a href="#browse-section" class="primary-btn">Explore Data</a>
                 <a href="#learn" class="secondary-btn">Learn More</a>
             </div>
         </div>
     </header>
 
     <main>
+        <!-- Browse Section -->
+        <section id="browse-section" class="browse-section">
+            <h2>Browse Resources</h2>
+            <div class="browse-tabs">
+                <button class="browse-tab active" data-tab="country">By Country</button>
+                <button class="browse-tab" data-tab="domain">By Domain</button>
+                <button class="browse-tab" data-tab="resource-type">By Resource Type</button>
+            </div>
+            
+            <div class="browse-content">
+                <!-- Country Tab -->
+                <div class="tab-content active" id="country-tab">
+                    <div class="category-selection">
+                        <h3>Select Countries</h3>
+                        <div class="selection-grid">
+                            {% for country in vocabularies.main_categories.Country %}
+                            <div class="selection-item">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" class="category-checkbox" data-category="country" value="{{ country }}">
+                                    <span class="checkmark"></span>
+                                    {{ country }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Domain Tab -->
+                <div class="tab-content" id="domain-tab">
+                    <div class="category-selection">
+                        <h3>Select Domains</h3>
+                        <div class="selection-grid">
+                            {% for domain in vocabularies.main_categories.Domain %}
+                            <div class="selection-item">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" class="category-checkbox" data-category="domain" value="{{ domain }}">
+                                    <span class="checkmark"></span>
+                                    {{ domain }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Resource Type Tab -->
+                <div class="tab-content" id="resource-type-tab">
+                    <div class="category-selection">
+                        <h3>Select Resource Types</h3>
+                        <div class="selection-grid">
+                            {% for resource_type in vocabularies.main_categories.Resource_type %}
+                            <div class="selection-item">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" class="category-checkbox" data-category="resource-type" value="{{ resource_type }}">
+                                    <span class="checkmark"></span>
+                                    {{ resource_type }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selected Categories Display -->
+            <div class="selected-categories">
+                <h3>Selected Categories</h3>
+                <div class="selected-items">
+                    <div id="selected-countries" class="selected-group">
+                        <h4>Countries: <span class="count">(0)</span></h4>
+                        <div class="selected-tags"></div>
+                    </div>
+                    <div id="selected-domains" class="selected-group">
+                        <h4>Domains: <span class="count">(0)</span></h4>
+                        <div class="selected-tags"></div>
+                    </div>
+                    <div id="selected-resource-types" class="selected-group">
+                        <h4>Resource Types: <span class="count">(0)</span></h4>
+                        <div class="selected-tags"></div>
+                    </div>
+                </div>
+                <button id="explore-button" class="explore-btn" disabled>Explore Resources</button>
+            </div>
+        </section>
+
+        <!-- Resource Type Hierarchy Visualization -->
+        <section class="resource-hierarchy">
+            <h2>Resource Type Hierarchy</h2>
+            <div class="hierarchy-visualization">
+                <!-- This will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" style="display: none;">
+            <h2>Results</h2>
+            <div class="results-count">
+                <span id="results-count">0</span> resources found
+            </div>
+            
+            <div class="active-filters">
+                <span class="filter-label">Active filters:</span>
+                <div id="active-filter-tags"></div>
+                <button id="clear-filters" class="clear-btn">Clear All</button>
+            </div>
+
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Country</th>
+                            <th>Domain</th>
+                            <th>Resource Type</th>
+                            <th>Category</th>
+                            <th>Repository</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table-body">
+                        <!-- Results will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Original sections can remain but will be shown after the browse section -->
         <section class="data-categories">
             <h2>Browse by Category</h2>
             <div class="category-grid">
@@ -59,25 +188,6 @@
                     <p>Water, Soil, Agriculture</p>
                     <a href="#environmental" class="card-link"></a>
                 </div>
-            </div>
-        </section>
-
-        <section class="countries">
-            <h2>Nordic Collaboration</h2>
-            <div class="country-grid">
-                {% for country in vocabularies.countries %}
-                <div class="country-card" data-country="{{ country }}">
-                    <span class="country-flag">
-                        {% if country == 'Norway' %}🇳🇴
-                        {% elif country == 'Sweden' %}🇸🇪
-                        {% elif country == 'Denmark' %}🇩🇰
-                        {% elif country == 'Finland' %}🇫🇮
-                        {% endif %}
-                    </span>
-                    <h3>{{ country }}</h3>
-                    <p>View {{ country }}'s AMR data</p>
-                </div>
-                {% endfor %}
             </div>
         </section>
 
@@ -147,7 +257,9 @@
                     <tbody id="data-table-body">
                         {% for point in data_points %}
                         <tr 
-                            data-country="{{ point.metadata_obj.geographic_coverage }}"
+                            data-country="{{ point.country }}"
+                            data-domain="{{ point.domain }}"
+                            data-resource-type="{{ point.resource_type }}"
                             data-category="{{ point.category }}"
                             data-subcategory="{{ point.subcategory }}"
                             data-tags="{{ point.keywords }}"

@@ -1,346 +1,82 @@
-# _reusables.yaml
+main_categories:
+  Country:
+    - Sweden
+    - Norway
+    - Denmark
+    - Finland
+  Domain:
+    - Human
+    - Animal
+    - Environment
+  Resource_type:
+    - Data
+    - Systems
+    - Publications
+    - Entities
+    - Utilities
 
-# COMMON DATA FORMATS
-common_formats:
-  raw_reads:
-    - FASTQ
-    - BAM
-    - FAST5             # Detailed raw signal data
-    - SFF               # Standard Flowgram Format (legacy)
-  assemblies:
-    - FASTA
-    - GFF               # Genome Feature Format
-    - GBK               # GenBank format
-  mags:
-    - FASTA
-    - CheckM output
-  gene_counts:
-    - TSV
-    - CSV
-    - TXT
-  gene_annotations:
-    - TSV
-    - GFF
-    - BED
-    - InterProScan output
-    - JSON             # For structured annotation reports
-  abundance_data:
-    - Abundance Profiles
-    - OTU Tables
-    - Feature Tables (e.g., biom format)
-  variant_data:
-    - VCF
-    - BED
-    - SNP Matrices
-    - Core Genome Alignments
-    - MAF
-  phylogenetic_data:
-    - Newick
-    - Nexus
-    - Phylodynamic Data
-    - PhyloXML
-  transcript_data:
-    - RNA-Seq Data
-    - Transcript Counts
-    - TPM values
-    - FPKM values
-  protein_data:
-    - Mass Spectrometry Data
-    - Protein Identifications
-    - Protein Quantification
-  metabolite_data:
-    - Chemical Profiles
-    - Metabolite Identifications
-    - HMDB IDs
-
-# DATA TYPES
-data_types:
-  genomic:
-    wgs:
-      formats:
-        - FASTQ
-        - BAM
-        - FASTA
-        - VCF
-      specific:
-        read_quality_reports:
-          - HTML
-          - JSON
-          - PDF
-        alignment_files:
-          - SAM
-          - CRAM
-        variant_analysis:
-          - VCF
-          - Annotated VCF
-    metagenomic:
-      soil:
-        formats:
-          - FASTQ
-          - BAM
-          - FASTA
-        specific:
-          taxonomic_profiles:
-            - TSV
-            - CSV
-            - Kraken output
-            - MetaPhlAn output
-          functional_profiles:
-            - TSV
-            - CSV
-            - HUMAnN output
-      water:
-        formats:
-          - FASTQ
-          - BAM
-          - FASTA
-        specific:
-          taxonomic_profiles:
-            - TSV
-            - CSV
-            - Kraken output
-          resistance_genes:
-            - FASTA
-            - GFF
-            - JSON
-    transcriptomic:
-      rna_seq:
-        formats:
-          - FASTQ
-          - TPM values
-          - FPKM values
-        specific:
-          differential_expression:
-            - TSV
-            - CSV
-            - DESeq2 output
-          splice_variants:
-            - BED
-            - VCF
-    proteomic:
-      mass_spec:
-        formats:
-          - mzML
-          - mzIdentML
-          - mzQuantML
-        specific:
-          peptide_matches:
-            - mzTab
-            - pepXML
-          protein_quant:
-            - TSV
-            - CSV
-
-  population:
-    demographic:
-      formats:
-        - TSV
-        - CSV
-        - JSON
-        - Shapefile
-      specific:
+Resource_type_hierarchy:
+  Data:
+    sub_categories:
+      omics_data:
+        genomic:
+          - whole_genome_sequencing:
+              - clinical_isolates
+              - bacterial_genomes
+          - metagenomic:
+              - wastewater_metagenomes
+              - human_fecal_metagenomes
+              - environmental_metagenomes
+              - host_associated_metagenomes
+          - transcriptomic:
+              - host_response_profiling
         population_data:
-          - CSV
-          - JSON
-        geographic_data:
-          - GeoJSON
-          - Shapefile
-    epidemiological:
-      formats:
-        - CSV
-        - JSON
-        - Line list
-      specific:
-        case_reports:
-          - XML
-          - PDF
-        outbreak_data:
-          - CSV
-          - JSON
-        surveillance:
-          - TSV
-          - XLSX
+          - population_density
+          - human_mobility
+          - antimicrobial_consumption
+          - disease_incidence:
+              - vector-borne
+              - sexually_transmitted
+      environmental_data:
+        - air_quality:
+            - particulate_matter
+            - bioaerosols
+        - climatological:
+            - wind_patterns
+            - temperature_anomalies
+        - wastewater_infrastructure:
+            - treatment_plant_locations
+            - chemical_monitoring_data
 
-  environmental:
-    water:
-      formats:
-        - CSV
-        - NetCDF
-        - GeoTIFF
-      specific:
-        chemical_analysis:
-          - PDF
-          - CSV
-        biological_data:
-          - TSV
-          - CSV
-        resistance_monitoring:
-          - CSV
-          - JSON
-    soil:
-      formats:
-        - CSV
-        - XML
-      specific:
-        composition_analysis:
-          - CSV
-          - XML
-        microbial_data:
-          - OTU Tables
-          - Feature Tables
-        resistome_data:
-          - FASTA
-          - GFF
-          - JSON
+  Systems:
+    sub_categories:
+      surveillance_network:
+        - pathogen_tracking_systems:
+            - clinical_isolate_registry
+            - wastewater_surveillance
+        - zoonotic_monitoring:
+            - migratory_bird_tracking
+      annotation_platforms:
+        - metadata_curation_tools
+        - geospatial_mapping:
+            - OpenStreetMap_integration
+            - urban_rural_classification
 
-  amr_specific:
-    phenotypic:
-      formats:
-        - CSV
-        - XLSX
-      specific:
-        mic_data:
-          - CSV
-          - XLSX
-        disk_diffusion:
-          - CSV
-          - Images
-        resistance_profiles:
-          - TSV
-          - JSON
-    genotypic:
-      formats:
-        - FASTA
-        - GFF
-      specific:
-        resistance_genes:
-          - TSV
-          - JSON
-        mobile_elements:
-          - GFF
-          - BED
-        mutations:
-          - VCF
-          - TSV
+  Entities:
+    sub_categories:
+      research_consortia:
+        - BY_COVID
+        - VEO
+        - EEA_network
+      data_repositories:
+        - wastewater_portal
+        - antimicrobial_resistance_registry
 
-# METADATA KEYS
-metadata_keys:
-  - title
-  - description
-  - creator
-  - institution
-  - contact_email
-  - funding_source
-  - collection_date
-  - geographic_coverage
-  - keywords
-  - license
-  - version
-  - documentation_link
-  - doi
-  - research_area
-  - update_frequency
-  - status
-  - nordic_countries
-
-# TAGS
-tags:
-  genomic:
-    - AMR genes
-    - Virulence factors
-    - Mobile genetic elements
-    - Plasmids
-    - Chromosomal mutations
-    - Multi-drug resistance
-    - Novel resistance mechanisms
-    - Resistance islands
-    - Core genome
-    - Pan genome
-  
-  clinical:
-    - Hospital-acquired infections
-    - Community-acquired infections
-    - Treatment outcomes
-    - Patient metadata
-    - Clinical interventions
-    - Antimicrobial usage
-    - Treatment failure
-    - Therapeutic success
-    - Drug administration
-    
-  surveillance:
-    - National surveillance
-    - Regional monitoring
-    - Hospital surveillance
-    - Community surveillance
-    - Real-time monitoring
-    - Historical trends
-    - Outbreak tracking
-    - Resistance patterns
-    - Geographic distribution
-
-  environmental:
-    - Wastewater
-    - Soil microbiome
-    - Agricultural impact
-    - Urban environment
-    - Wildlife
-    - Food production
-    - Water systems
-    - Pollution effects
-    - Environmental reservoirs
-
-  population:
-    - Demographics
-    - Public health
-    - Epidemiology
-    - Social factors
-    - Healthcare access
-    - Population density
-    - Migration patterns
-    - Urban vs rural
-    - Socioeconomic factors
-
-  methodological:
-    - High-throughput sequencing
-    - Culture-based methods
-    - Molecular techniques
-    - Bioinformatics
-    - Machine learning
-    - Statistical analysis
-    - Modeling
-    - Meta-analysis
-    - Systematic review
-
-# NORDIC COUNTRIES
-countries:
-  - Norway
-  - Sweden
-  - Denmark
-  - Finland
-
-# RESOLUTIONS
-resolutions:
-  - high_resolution
-  - medium_resolution
-  - low_resolution
-  - comprehensive
-  - summary
-  - raw_data
-  - processed_data
-  - analysis_ready
-
-# REPOSITORIES
-repositories:
-  - NCBI SRA
-  - ENA
-  - GEO
-  - MG-RAST
-  - IMG/M
-  - PATRIC
-  - CARD
-  - Local Database
-  - Institutional Repository
-  - Other
-
-# End of YAML file.
+  Utilities:
+    sub_categories:
+      bioinformatics:
+        - sequence_assembly_pipelines
+        - annotation_workflows
+      geospatial:
+        - GIS_mapping_tools
+        - population_distribution_models
