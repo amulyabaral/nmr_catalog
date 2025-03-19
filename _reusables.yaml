@@ -157,7 +157,8 @@ data_types:
             - VCF
     proteomic:
       mass_spectrometry:
-        <<: *protein_data_formats
+        formats:
+          <<: *protein_data_formats
         specific:
           peptide_spectrum_matches:
             - mzTab
@@ -170,13 +171,16 @@ data_types:
             - CSV
     amplicon:
       sequence_data: 
+        formats:
           <<: *raw_reads_formats
       gene_data:
+        formats:
           - Gene Presence/Absence Matrices (CSV)
           - Gene Annotations (GFF, TSV)
           - Gene Families (JSON)
           - Amplicon Sequences (FASTA)
       resistance_marker_amplicons:
+        formats:
           - Targeted PCR results (CSV)
           - qPCR data (XLSX)
   
@@ -251,14 +255,16 @@ data_types:
           - NetCDF
           - GRIB
     soil:
-      <<: *environmental_data_formats
+      formats:
+        <<: *environmental_data_formats
       specific:
         soil_composition_analysis:
           - CSV
           - XML
           - XLSX
         microbial_community_data:
-          <<: *abundance_data_formats
+          formats:
+            <<: *abundance_data_formats
         heavy_metal_analysis:
           - PDF
           - CSV
