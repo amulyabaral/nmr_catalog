@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Data Point</title>
+</head>
+<body>
+    <h1>Add New Data Point</h1>
+    <a href="{{ url_for('index') }}">Back to Home</a>
+    <hr>
+    <form method="POST">
+        <label for="data_source_id">Data Source ID:</label>
+        <input type="text" id="data_source_id" name="data_source_id" required><br><br>
+
+        <label for="data_type">Data Type:</label>
+        <select id="data_type" name="data_type" required>
+            {% for data_type, subtypes in vocabularies.data_types.items() %}
+            <optgroup label="{{ data_type }}">
+                {% if subtypes is mapping %}
+                    {% for sub_type, values in subtypes.items() %}
+                        <option value="{{ data_type }} - {{ sub_type }}">{{ data_type }} - {{ sub_type }}</option>
+                    {% endfor %}
+                {% else %}
+                    {% for value in subtypes %}
+                        <option value="{{ data_type }} - {{ value }}">{{ data_type }} - {{ value }}</option>
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        </select><br><br>
+
+        <label for="data_resolution">Data Resolution:</label>
+        <select id="data_resolution" name="data_resolution" required>
+            {% for resolution, values in vocabularies.resolutions.items() %}
+                {% for value in values %}
+                    <option value="{{ resolution }} - {{ value }}">{{ resolution }} - {{ value }}</option>
+                {% endfor %}
+            {% endfor %}
+        </select><br><br>
+
+        <label for="repository">Repository:</label>
+        <select id="repository" name="repository" required>
+            {% for repo_type, values in vocabularies.repositories.items() %}
+                {% for value in values %}
+                    <option value="{{ value }}">{{ value }}</option>
+                {% endfor %}
+            {% endfor %}
+        </select><br><br>
+
+        <label for="repository_url">Repository URL:</label>
+        <input type="url" id="repository_url" name="repository_url" required><br><br>
+
+        <label for="data_description">Description:</label><br>
+        <textarea id="data_description" name="data_description" rows="4" required></textarea><br><br>
+
+        <label for="keywords">Keywords (comma-separated):</label>
+        <input type="text" id="keywords" name="keywords" required><br><br>
+
+        <label for="last_updated">Last Updated (YYYY-MM-DD):</label>
+        <input type="date" id="last_updated" name="last_updated" required><br><br>
+
+        <label for="contact_information">Contact Information:</label>
+        <input type="text" id="contact_information" name="contact_information" required><br><br>
+
+        <button type="submit">Add Data Point</button>
+    </form>
+</body>
+</html>

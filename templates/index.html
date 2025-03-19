@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMR Metadata Catalog</title>
+</head>
+<body>
+    <h1>AMR Metadata Catalog</h1>
+    <a href="{{ url_for('add_data') }}">Add New Data Point</a>
+    <hr>
+    <h2>Data Points</h2>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Data Source ID</th>
+            <th>Data Type</th>
+            <th>Data Resolution</th>
+            <th>Repository</th>
+            <th>Description</th>
+            <th>Keywords</th>
+            <th>Last Updated</th>
+            <th>Contact Info</th>
+        </tr>
+        {% for point in data_points %}
+        <tr>
+            <td>{{ point[0] }}</td>
+            <td>{{ point[1] }}</td>
+            <td>{{ point[2] }}</td>
+            <td>{{ point[3] }}</td>
+            <td>{{ point[4] }}</td>
+            <td>{{ point[6] }}</td>
+            <td>{{ point[7] }}</td>
+            <td>{{ point[8] }}</td>
+            <td>{{ point[9] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
