@@ -208,6 +208,15 @@ function clearAllFilters() {
     
     // Hide results
     document.querySelector('.results-section').style.display = 'none';
+    
+    // Clear active filters
+    document.getElementById('active-filter-tags').innerHTML = '';
+    document.querySelector('.active-filters').style.display = 'none';
+    
+    // Clear hierarchy selections
+    document.querySelectorAll('.hierarchy-node.selected, .hierarchy-subnode.selected, .hierarchy-deepnode.selected, .hierarchy-leafnode.selected').forEach(node => {
+        node.classList.remove('selected');
+    });
 }
 
 function setupModal() {
@@ -328,9 +337,7 @@ function showResourceDetails(resourceId) {
     fetch(`/api/resource/${resourceId}`)
         .then(response => response.json())
         .then(resource => {
-            // Update modal with resource details
-            document.getElementById('modal-title').textContent = resource.data_source_id;
-            
+            // Parse metadata
             let metadataObj = {};
             try {
                 metadataObj = JSON.parse(resource.metadata);
@@ -338,68 +345,104 @@ function showResourceDetails(resourceId) {
                 console.error('Failed to parse metadata:', e);
             }
             
-            // Populate modal details
+            // Update modal title with resource name from metadata if available
+            document.getElementById('modal-title').textContent = metadataObj.title || resource.data_source_id;
+            
+            // Build a more comprehensive and well-organized display
             const detailsContainer = document.getElementById('modal-details');
+            
+            // Extract year from last_updated
+            const year = resource.last_updated ? resource.last_updated.split('-')[0] : '';
+            
             detailsContainer.innerHTML = `
-                <div class="detail-section">
-                    <h3>Resource Information</h3>
-                    <div class="detail-row">
-                        <div class="detail-label">Name:</div>
-                        <div class="detail-value">${metadataObj.title || resource.data_source_id}</div>
+                <div class="detail-grid">
+                    <div class="detail-column">
+                        <div class="detail-section">
+                            <h3>Resource Information</h3>
+                            <div class="detail-row">
+                                <div class="detail-label">Data Source ID:</div>
+                                <div class="detail-value">${resource.data_source_id}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Repository:</div>
+                                <div class="detail-value">${resource.repository}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Year:</div>
+                                <div class="detail-value">${year}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Last Updated:</div>
+                                <div class="detail-value">${resource.last_updated}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Data Format:</div>
+                                <div class="detail-value">${resource.data_format || 'Not specified'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h3>Categories</h3>
+                            <div class="detail-tags">
+                                <div class="detail-tag country">${resource.country}</div>
+                                <div class="detail-tag domain">${resource.domain}</div>
+                                <div class="detail-tag resource-type">${resource.resource_type}</div>
+                            </div>
+                            <div class="subcategory-tags">
+                                <div class="detail-tag category">${resource.category.replace(/_/g, ' ')}</div>
+                                <div class="detail-tag subcategory">${resource.subcategory.replace(/_/g, ' ')}</div>
+                                ${resource.data_type ? `<div class="detail-tag data-type">${resource.data_type.replace(/_/g, ' ')}</div>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Description:</div>
-                        <div class="detail-value">${resource.data_description}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Repository:</div>
-                        <div class="detail-value">${resource.repository}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Last Updated:</div>
-                        <div class="detail-value">${resource.last_updated}</div>
-                    </div>
-                </div>
-                
-                <div class="detail-section">
-                    <h3>Categories</h3>
-                    <div class="detail-row">
-                        <div class="detail-label">Country:</div>
-                        <div class="detail-value">${resource.country}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Domain:</div>
-                        <div class="detail-value">${resource.domain}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Resource Type:</div>
-                        <div class="detail-value">${resource.resource_type}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Category:</div>
-                        <div class="detail-value">${resource.category}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Subcategory:</div>
-                        <div class="detail-value">${resource.subcategory}</div>
-                    </div>
-                </div>
-                
-                <div class="detail-section">
-                    <h3>Additional Information</h3>
-                    <div class="detail-row">
-                        <div class="detail-label">Contact:</div>
-                        <div class="detail-value">${resource.contact_information}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Keywords:</div>
-                        <div class="detail-value">
-                            <div class="tag-list">
+                    
+                    <div class="detail-column">
+                        <div class="detail-section">
+                            <h3>Description</h3>
+                            <div class="detail-description">
+                                ${resource.data_description}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h3>Contact Information</h3>
+                            <div class="detail-contact">
+                                ${resource.contact_information}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h3>Keywords</h3>
+                            <div class="keyword-tags">
                                 ${resource.keywords.split(',').map(keyword => 
-                                    `<span class="data-tag category-tag">${keyword.trim()}</span>`
+                                    `<span class="keyword-tag">${keyword.trim()}</span>`
                                 ).join('')}
                             </div>
                         </div>
+                        
+                        ${metadataObj.institution ? `
+                        <div class="detail-section">
+                            <h3>Additional Information</h3>
+                            <div class="detail-row">
+                                <div class="detail-label">Institution:</div>
+                                <div class="detail-value">${metadataObj.institution}</div>
+                            </div>
+                            ${metadataObj.creator ? `
+                            <div class="detail-row">
+                                <div class="detail-label">Creator:</div>
+                                <div class="detail-value">${metadataObj.creator}</div>
+                            </div>` : ''}
+                            ${metadataObj.license ? `
+                            <div class="detail-row">
+                                <div class="detail-label">License:</div>
+                                <div class="detail-value">${metadataObj.license}</div>
+                            </div>` : ''}
+                            ${metadataObj.version ? `
+                            <div class="detail-row">
+                                <div class="detail-label">Version:</div>
+                                <div class="detail-value">${metadataObj.version}</div>
+                            </div>` : ''}
+                        </div>` : ''}
                     </div>
                 </div>
             `;
@@ -407,6 +450,7 @@ function showResourceDetails(resourceId) {
             // Set resource link
             const resourceLink = document.getElementById('resource-link');
             resourceLink.href = resource.repository_url;
+            resourceLink.textContent = 'Go to Resource Repository';
             
             // Show modal
             document.getElementById('resource-modal').style.display = 'block';
@@ -689,6 +733,12 @@ function setupHierarchyFiltering(hierarchyTree) {
             // Toggle selection on the clicked element
             if (!isSelected) {
                 parentElement.classList.add('selected');
+                
+                // Add to active filters
+                addActiveFilter(filterType, filterValue);
+            } else {
+                // Remove from active filters
+                removeActiveFilter(filterType, filterValue);
             }
             
             // Apply filtering
@@ -696,6 +746,87 @@ function setupHierarchyFiltering(hierarchyTree) {
             filterDisplayedResults(selectedFilters);
         });
     });
+}
+
+function addActiveFilter(filterType, filterValue) {
+    const activeFiltersContainer = document.getElementById('active-filter-tags');
+    
+    // Check if filter already exists
+    if (document.querySelector(`.filter-tag[data-type="${filterType}"][data-value="${filterValue}"]`)) {
+        return;
+    }
+    
+    // Format display names
+    const displayType = formatFilterType(filterType);
+    
+    // Create filter tag
+    const tag = document.createElement('div');
+    tag.className = 'filter-tag';
+    tag.dataset.type = filterType;
+    tag.dataset.value = filterValue;
+    tag.innerHTML = `
+        <span class="filter-type">${displayType}:</span>
+        <span class="filter-value">${formatFilterValue(filterValue)}</span>
+        <span class="remove-filter" data-type="${filterType}" data-value="${filterValue}">&times;</span>
+    `;
+    
+    activeFiltersContainer.appendChild(tag);
+    
+    // Show active filters container
+    document.querySelector('.active-filters').style.display = 'flex';
+    
+    // Add remove handler
+    tag.querySelector('.remove-filter').addEventListener('click', function() {
+        const type = this.getAttribute('data-type');
+        const value = this.getAttribute('data-value');
+        
+        // Deselect the corresponding item in hierarchy
+        const selector = `.hierarchy-node[data-type="${type}"][data-value="${value}"], 
+                           .hierarchy-subnode[data-type="${type}"][data-value="${value}"],
+                           .hierarchy-deepnode[data-type="${type}"][data-value="${value}"],
+                           .hierarchy-leafnode[data-type="${type}"][data-value="${value}"]`;
+        const hierarchyItem = document.querySelector(selector);
+        if (hierarchyItem) {
+            hierarchyItem.classList.remove('selected');
+        }
+        
+        removeActiveFilter(type, value);
+        
+        // Apply filtering
+        const selectedFilters = getSelectedHierarchyFilters();
+        filterDisplayedResults(selectedFilters);
+    });
+}
+
+function removeActiveFilter(filterType, filterValue) {
+    const tag = document.querySelector(`.filter-tag[data-type="${filterType}"][data-value="${filterValue}"]`);
+    if (tag) {
+        tag.remove();
+    }
+    
+    // Hide active filters container if empty
+    const activeFiltersContainer = document.getElementById('active-filter-tags');
+    if (activeFiltersContainer.children.length === 0) {
+        document.querySelector('.active-filters').style.display = 'none';
+    }
+}
+
+function formatFilterType(type) {
+    const typeMap = {
+        'resource_type': 'Resource Type',
+        'category': 'Category',
+        'subcategory': 'Subcategory',
+        'data_type': 'Data Type',
+        'deep_subcategory': 'Data Type'
+    };
+    
+    return typeMap[type] || type;
+}
+
+function formatFilterValue(value) {
+    // Replace underscores with spaces and capitalize words
+    return value.replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
 }
 
 function getSelectedHierarchyFilters() {
@@ -861,4 +992,39 @@ function setupRowClick() {
             showResourceDetails(resourceId);
         });
     });
+}
+
+// Add display active filters function
+function displayActiveFilters(selectedCategories) {
+    const activeFiltersContainer = document.getElementById('active-filter-tags');
+    activeFiltersContainer.innerHTML = '';
+    
+    let hasFilters = false;
+    
+    // Add filters for countries
+    if (selectedCategories.countries && selectedCategories.countries.length > 0) {
+        selectedCategories.countries.forEach(country => {
+            addActiveFilter('country', country);
+        });
+        hasFilters = true;
+    }
+    
+    // Add filters for domains
+    if (selectedCategories.domains && selectedCategories.domains.length > 0) {
+        selectedCategories.domains.forEach(domain => {
+            addActiveFilter('domain', domain);
+        });
+        hasFilters = true;
+    }
+    
+    // Add filters for resource types
+    if (selectedCategories.resourceTypes && selectedCategories.resourceTypes.length > 0) {
+        selectedCategories.resourceTypes.forEach(type => {
+            addActiveFilter('resource_type', type);
+        });
+        hasFilters = true;
+    }
+    
+    // Show/hide container
+    document.querySelector('.active-filters').style.display = hasFilters ? 'flex' : 'none';
 }
