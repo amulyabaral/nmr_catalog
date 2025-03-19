@@ -6,6 +6,8 @@
     <title>NoMoReAMR - Nordic AMR Data</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
 </head>
 <body>
     <nav class="main-nav">
@@ -154,78 +156,39 @@
         <section class="data-browser">
             <h2>Data Explorer</h2>
             
-            <div class="data-table-container">
-                <table class="data-table-grid">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-sort="title">Title <span class="sort-icon">↓</span></th>
-                            <th class="sortable" data-sort="country">Country <span class="sort-icon"></span></th>
-                            <th class="sortable" data-sort="domain">Domain <span class="sort-icon"></span></th>
-                            <th class="sortable" data-sort="category">Category <span class="sort-icon"></span></th>
-                            <th class="sortable" data-sort="year">Year <span class="sort-icon"></span></th>
-                        </tr>
-                    </thead>
-                    <tbody id="data-table-body">
-                        {% for point in data_points %}
-                        <tr 
-                            class="data-row"
-                            data-id="{{ point.id }}"
-                            data-country="{{ point.country }}"
-                            data-domain="{{ point.domain }}"
-                            data-resource-type="{{ point.resource_type }}"
-                            data-category="{{ point.category }}"
-                            data-subcategory="{{ point.subcategory }}"
-                            data-data-type="{{ point.data_type }}"
-                            data-tags="{{ point.keywords }}"
-                            data-title="{{ point.metadata_obj.title|default(point.data_source_id) }}"
-                            data-year="{% if point.metadata_obj.years %}{{ point.metadata_obj.years[-1] }}{% else %}{{ point.last_updated[:4] }}{% endif %}"
-                        >
-                            <td>
-                                <a href="{{ point.repository_url }}" target="_blank" class="resource-link" onclick="event.stopPropagation();">
-                                    {{ point.metadata_obj.title|default(point.data_source_id) }}
-                                </a>
-                                <div class="resource-metadata">
-                                    <span class="metadata-item">{{ point.subcategory }}</span>
-                                    {% if point.data_type %}
-                                    <span class="metadata-item">{{ point.data_type }}</span>
-                                    {% endif %}
-                                    {% if point.data_format %}
-                                    <span class="metadata-item">{{ point.data_format }}</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="tag-cell">
-                                {% if point.metadata_obj.countries %}
-                                    {% for country in point.metadata_obj.countries %}
-                                        <span class="data-tag country-tag" data-filter="country" data-value="{{ country }}">{{ country }}</span>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="data-tag country-tag" data-filter="country" data-value="{{ point.country }}">{{ point.country }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="tag-cell">
-                                {% if point.metadata_obj.domains %}
-                                    {% for domain in point.metadata_obj.domains %}
-                                        <span class="data-tag domain-tag" data-filter="domain" data-value="{{ domain }}">{{ domain }}</span>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="data-tag domain-tag" data-filter="domain" data-value="{{ point.domain }}">{{ point.domain }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="data-tag category-tag" data-filter="category" data-value="{{ point.category }}">{{ point.category }}</span>
-                            </td>
-                            <td>
-                                {% if point.metadata_obj.years %}
-                                    {{ point.metadata_obj.years|join(', ') }}
-                                {% else %}
-                                    {{ point.last_updated[:4] }}
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="visualization-controls">
+                <div class="filter-group">
+                    <label for="node-filter">Filter by:</label>
+                    <select id="node-filter">
+                        <option value="all">All Nodes</option>
+                        <option value="data-points">Data Points Only</option>
+                        <option value="countries">Countries</option>
+                        <option value="domains">Domains</option>
+                        <option value="categories">Categories</option>
+                        <option value="years">Years</option>
+                    </select>
+                </div>
+                <div class="layout-group">
+                    <label for="layout-type">Layout:</label>
+                    <select id="layout-type">
+                        <option value="standard">Standard</option>
+                        <option value="hierarchical">Hierarchical</option>
+                        <option value="circular">Circular</option>
+                    </select>
+                </div>
+                <button id="reset-view" class="reset-btn">Reset View</button>
+            </div>
+            
+            <div id="network-container" class="network-container"></div>
+            
+            <div class="network-legend">
+                <h3>Legend</h3>
+                <div class="legend-item"><span class="legend-dot data-point"></span> Data Point</div>
+                <div class="legend-item"><span class="legend-dot country"></span> Country</div>
+                <div class="legend-item"><span class="legend-dot domain"></span> Domain</div>
+                <div class="legend-item"><span class="legend-dot category"></span> Category</div>
+                <div class="legend-item"><span class="legend-dot subcategory"></span> Subcategory</div>
+                <div class="legend-item"><span class="legend-dot year"></span> Year</div>
             </div>
         </section>
     </main>

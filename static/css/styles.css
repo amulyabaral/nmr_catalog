@@ -1231,4 +1231,113 @@ footer {
 /* Ensure the title cell has enough space for metadata */
 .data-table-grid td:first-child {
     min-width: 250px;
+}
+
+/* Add these styles to your existing CSS file */
+
+.network-container {
+    width: 100%;
+    height: 600px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    margin: 20px 0;
+    position: relative;
+}
+
+.visualization-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+}
+
+.filter-group, .layout-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-group select, .layout-group select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.reset-btn {
+    padding: 8px 16px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.reset-btn:hover {
+    background-color: #0056b3;
+}
+
+.network-legend {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+}
+
+.network-legend h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.legend-dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.legend-dot.data-point {
+    background-color: #4CAF50;
+}
+
+.legend-dot.country {
+    background-color: #2196F3;
+}
+
+.legend-dot.domain {
+    background-color: #FF9800;
+}
+
+.legend-dot.category {
+    background-color: #9C27B0;
+}
+
+.legend-dot.subcategory {
+    background-color: #E91E63;
+}
+
+.legend-dot.year {
+    background-color: #607D8B;
+}
+
+/* Tooltip styles for the network */
+.vis-tooltip {
+    position: absolute;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-size: 14px;
+    max-width: 300px;
+    z-index: 1000;
 } 

@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup clickable rows
     setupClickableRows();
     
+    // Setup network visualization
+    setupNetworkVisualization();
+    
     // Add click handlers for data tags
     document.querySelectorAll('.data-tag[data-filter]').forEach(tag => {
         tag.addEventListener('click', function(e) {
@@ -1248,4 +1251,618 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             behavior: 'smooth'
         });
     });
-}); 
+});
+
+// Add this after the setupClickableRows function
+function setupNetworkVisualization() {
+    console.log('Setting up network visualization');
+    
+    // Get all data points from the table
+    const dataPoints = Array.from(document.querySelectorAll('#data-table-body tr'));
+    
+    // Create nodes and edges arrays for the network
+    const nodes = [];
+    const edges = [];
+    
+    // Track unique nodes to avoid duplicates
+    const uniqueNodes = new Set();
+    
+    // Node counter for generating IDs
+    let nodeCounter = 1;
+    
+    // Process each data point
+    dataPoints.forEach((point, index) => {
+        const dataId = point.getAttribute('data-id');
+        const title = point.getAttribute('data-title');
+        const country = point.getAttribute('data-country');
+        const domain = point.getAttribute('data-domain');
+        const resourceType = point.getAttribute('data-resource-type');
+        const category = point.getAttribute('data-category');
+        const subcategory = point.getAttribute('data-subcategory');
+        const year = point.getAttribute('data-year');
+        
+        // Create data point node
+        const dataNodeId = `data-${dataId}`;
+        if (!uniqueNodes.has(dataNodeId)) {
+            nodes.push({
+                id: dataNodeId,
+                label: truncateLabel(title, 20),
+                title: `<div class="node-tooltip"><strong>${title}</strong><br>Type: ${resourceType}</div>`,
+                group: 'data-points',
+                shape: 'dot',
+                size: 15,
+                font: { size: 12 }
+            });
+            uniqueNodes.add(dataNodeId);
+        }
+        
+        // Process country
+        const countryNodeId = `country-${country}`;
+        if (!uniqueNodes.has(countryNodeId)) {
+            nodes.push({
+                id: countryNodeId,
+                label: country,
+                group: 'countries',
+                shape: 'dot',
+                size: 12
+            });
+            uniqueNodes.add(countryNodeId);
+        }
+        
+        // Connect data point to country
+        edges.push({
+            from: dataNodeId,
+            to: countryNodeId,
+            title: 'Country'
+        });
+        
+        // Process domain
+        const domainNodeId = `domain-${domain}`;
+        if (!uniqueNodes.has(domainNodeId)) {
+            nodes.push({
+                id: domainNodeId,
+                label: domain,
+                group: 'domains',
+                shape: 'dot',
+                size: 12
+            });
+            uniqueNodes.add(domainNodeId);
+        }
+        
+        // Connect data point to domain
+        edges.push({
+            from: dataNodeId,
+            to: domainNodeId,
+            title: 'Domain'
+        });
+        
+        // Process resource type
+        const resourceTypeNodeId = `resource-type-${resourceType}`;
+        if (!uniqueNodes.has(resourceTypeNodeId)) {
+            nodes.push({
+                id: resourceTypeNodeId,
+                label: resourceType,
+                group: 'resource-types',
+                shape: 'dot',
+                size: 12
+            });
+            uniqueNodes.add(resourceTypeNodeId);
+        }
+        
+        // Connect data point to resource type
+        edges.push({
+            from: dataNodeId,
+            to: resourceTypeNodeId,
+            title: 'Resource Type'
+        });
+        
+        // Process category
+        const categoryNodeId = `category-${category}`;
+        if (!uniqueNodes.has(categoryNodeId)) {
+            nodes.push({
+                id: categoryNodeId,
+                label: category,
+                group: 'categories',
+                shape: 'dot',
+                size: 12
+            });
+            uniqueNodes.add(categoryNodeId);
+        }
+        
+        // Connect data point to category
+        edges.push({
+            from: dataNodeId,
+            to: categoryNodeId,
+            title: 'Category'
+        });
+        
+        // Process subcategory if available
+        if (subcategory) {
+            const subcategoryNodeId = `subcategory-${subcategory}`;
+            if (!uniqueNodes.has(subcategoryNodeId)) {
+                nodes.push({
+                    id: subcategoryNodeId,
+                    label: subcategory,
+                    group: 'subcategories',
+                    shape: 'dot',
+                    size: 10
+                });
+                uniqueNodes.add(subcategoryNodeId);
+            }
+            
+            // Connect data point to subcategory
+            edges.push({
+                from: dataNodeId,
+                to: subcategoryNodeId,
+                title: 'Subcategory'
+            });
+            
+            // Connect category to subcategory
+            edges.push({
+                from: categoryNodeId,
+                to: subcategoryNodeId,
+                title: 'Has Subcategory',
+                dashes: true
+            });
+        }
+        
+        // Process year
+        const yearNodeId = `year-${year}`;
+        if (!uniqueNodes.has(yearNodeId)) {
+            nodes.push({
+                id: yearNodeId,
+                label: year,
+                group: 'years',
+                shape: 'dot',
+                size: 10
+            });
+            uniqueNodes.add(yearNodeId);
+        }
+        
+        // Connect data point to year
+        edges.push({
+            from: dataNodeId,
+            to: yearNodeId,
+            title: 'Year'
+        });
+        
+        // Process additional countries from metadata
+        const countryTags = Array.from(point.querySelectorAll('.country-tag')).map(tag => 
+            tag.getAttribute('data-value')
+        );
+        
+        countryTags.forEach(countryTag => {
+            if (countryTag !== country) {
+                const countryTagNodeId = `country-${countryTag}`;
+                if (!uniqueNodes.has(countryTagNodeId)) {
+                    nodes.push({
+                        id: countryTagNodeId,
+                        label: countryTag,
+                        group: 'countries',
+                        shape: 'dot',
+                        size: 12
+                    });
+                    uniqueNodes.add(countryTagNodeId);
+                }
+                
+                // Connect data point to additional country
+                edges.push({
+                    from: dataNodeId,
+                    to: countryTagNodeId,
+                    title: 'Additional Country',
+                    dashes: true
+                });
+            }
+        });
+        
+        // Process additional domains from metadata
+        const domainTags = Array.from(point.querySelectorAll('.domain-tag')).map(tag => 
+            tag.getAttribute('data-value')
+        );
+        
+        domainTags.forEach(domainTag => {
+            if (domainTag !== domain) {
+                const domainTagNodeId = `domain-${domainTag}`;
+                if (!uniqueNodes.has(domainTagNodeId)) {
+                    nodes.push({
+                        id: domainTagNodeId,
+                        label: domainTag,
+                        group: 'domains',
+                        shape: 'dot',
+                        size: 12
+                    });
+                    uniqueNodes.add(domainTagNodeId);
+                }
+                
+                // Connect data point to additional domain
+                edges.push({
+                    from: dataNodeId,
+                    to: domainTagNodeId,
+                    title: 'Additional Domain',
+                    dashes: true
+                });
+            }
+        });
+    });
+    
+    // Create the network
+    const container = document.getElementById('network-container');
+    
+    // Define groups for different node types
+    const groups = {
+        'data-points': {
+            color: { background: '#4CAF50', border: '#2E7D32' },
+            borderWidth: 2
+        },
+        'countries': {
+            color: { background: '#2196F3', border: '#0D47A1' },
+            borderWidth: 2
+        },
+        'domains': {
+            color: { background: '#FF9800', border: '#E65100' },
+            borderWidth: 2
+        },
+        'resource-types': {
+            color: { background: '#673AB7', border: '#311B92' },
+            borderWidth: 2
+        },
+        'categories': {
+            color: { background: '#9C27B0', border: '#4A148C' },
+            borderWidth: 2
+        },
+        'subcategories': {
+            color: { background: '#E91E63', border: '#880E4F' },
+            borderWidth: 2
+        },
+        'years': {
+            color: { background: '#607D8B', border: '#263238' },
+            borderWidth: 2
+        }
+    };
+    
+    // Create the data object
+    const data = {
+        nodes: new vis.DataSet(nodes),
+        edges: new vis.DataSet(edges)
+    };
+    
+    // Define options
+    const options = {
+        nodes: {
+            font: {
+                size: 14,
+                face: 'Inter'
+            }
+        },
+        edges: {
+            width: 1,
+            color: { color: '#999', highlight: '#000' },
+            smooth: { type: 'continuous' }
+        },
+        physics: {
+            stabilization: true,
+            barnesHut: {
+                gravitationalConstant: -5000,
+                centralGravity: 0.3,
+                springLength: 150,
+                springConstant: 0.04,
+                damping: 0.09
+            }
+        },
+        groups: groups,
+        interaction: {
+            hover: true,
+            tooltipDelay: 200,
+            hideEdgesOnDrag: true,
+            navigationButtons: true,
+            keyboard: true
+        }
+    };
+    
+    // Create the network
+    const network = new vis.Network(container, data, options);
+    
+    // Store the network in a global variable for access from other functions
+    window.dataNetwork = {
+        network: network,
+        data: data,
+        originalNodes: [...nodes],
+        originalEdges: [...edges]
+    };
+    
+    // Add event listeners for the network
+    network.on('click', function(params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const node = data.nodes.get(nodeId);
+            
+            // If it's a data point node, show the resource details
+            if (nodeId.startsWith('data-')) {
+                const dataId = nodeId.replace('data-', '');
+                showResourceDetails(dataId);
+            }
+            
+            // If it's a filter node (country, domain, category, etc.), apply that filter
+            else if (nodeId.startsWith('country-')) {
+                const country = node.label;
+                filterDataTable('country', country);
+                highlightConnectedNodes(nodeId);
+            }
+            else if (nodeId.startsWith('domain-')) {
+                const domain = node.label;
+                filterDataTable('domain', domain);
+                highlightConnectedNodes(nodeId);
+            }
+            else if (nodeId.startsWith('category-')) {
+                const category = node.label;
+                filterDataTable('category', category);
+                highlightConnectedNodes(nodeId);
+            }
+            else if (nodeId.startsWith('year-')) {
+                const year = node.label;
+                filterDataTable('year', year);
+                highlightConnectedNodes(nodeId);
+            }
+        }
+    });
+    
+    // Setup filter controls
+    setupNetworkFilters();
+}
+
+// Helper function to truncate node labels
+function truncateLabel(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+// Function to highlight connected nodes
+function highlightConnectedNodes(nodeId) {
+    const network = window.dataNetwork.network;
+    const connectedNodes = network.getConnectedNodes(nodeId);
+    
+    // Get all nodes
+    const allNodes = window.dataNetwork.data.nodes.get();
+    const allEdges = window.dataNetwork.data.edges.get();
+    
+    // Create a set of nodes to highlight (the selected node and its connections)
+    const nodesToHighlight = new Set([nodeId, ...connectedNodes]);
+    
+    // Update the nodes
+    const updatedNodes = allNodes.map(node => {
+        if (nodesToHighlight.has(node.id)) {
+            return {
+                ...node,
+                opacity: 1
+            };
+        } else {
+            return {
+                ...node,
+                opacity: 0.2
+            };
+        }
+    });
+    
+    // Update the edges
+    const updatedEdges = allEdges.map(edge => {
+        if (nodesToHighlight.has(edge.from) && nodesToHighlight.has(edge.to)) {
+            return {
+                ...edge,
+                opacity: 1
+            };
+        } else {
+            return {
+                ...edge,
+                opacity: 0.1
+            };
+        }
+    });
+    
+    // Update the network
+    window.dataNetwork.data.nodes.update(updatedNodes);
+    window.dataNetwork.data.edges.update(updatedEdges);
+}
+
+// Function to reset the network view
+function resetNetworkView() {
+    const network = window.dataNetwork.network;
+    const data = window.dataNetwork.data;
+    
+    // Reset all nodes and edges to their original state
+    const updatedNodes = window.dataNetwork.originalNodes.map(node => ({
+        ...node,
+        opacity: 1
+    }));
+    
+    const updatedEdges = window.dataNetwork.originalEdges.map(edge => ({
+        ...edge,
+        opacity: 1
+    }));
+    
+    // Update the network
+    data.nodes.update(updatedNodes);
+    data.edges.update(updatedEdges);
+    
+    // Fit the view
+    network.fit();
+}
+
+// Function to setup network filters
+function setupNetworkFilters() {
+    const nodeFilter = document.getElementById('node-filter');
+    const layoutType = document.getElementById('layout-type');
+    const resetViewBtn = document.getElementById('reset-view');
+    
+    // Node filter change handler
+    nodeFilter.addEventListener('change', function() {
+        const filterValue = this.value;
+        const network = window.dataNetwork.network;
+        const data = window.dataNetwork.data;
+        
+        // Get all nodes
+        const allNodes = window.dataNetwork.originalNodes;
+        
+        let filteredNodes;
+        
+        if (filterValue === 'all') {
+            // Show all nodes
+            filteredNodes = allNodes;
+        } else {
+            // Filter nodes by group
+            filteredNodes = allNodes.filter(node => {
+                if (filterValue === 'data-points' && node.group === 'data-points') {
+                    return true;
+                } else if (filterValue === 'countries' && (node.group === 'countries' || node.group === 'data-points')) {
+                    return true;
+                } else if (filterValue === 'domains' && (node.group === 'domains' || node.group === 'data-points')) {
+                    return true;
+                } else if (filterValue === 'categories' && (node.group === 'categories' || node.group === 'subcategories' || node.group === 'data-points')) {
+                    return true;
+                } else if (filterValue === 'years' && (node.group === 'years' || node.group === 'data-points')) {
+                    return true;
+                }
+                return false;
+            });
+        }
+        
+        // Get the IDs of filtered nodes
+        const filteredNodeIds = filteredNodes.map(node => node.id);
+        
+        // Filter edges to only include those connecting filtered nodes
+        const filteredEdges = window.dataNetwork.originalEdges.filter(edge => 
+            filteredNodeIds.includes(edge.from) && filteredNodeIds.includes(edge.to)
+        );
+        
+        // Update the network
+        data.nodes.clear();
+        data.edges.clear();
+        data.nodes.add(filteredNodes);
+        data.edges.add(filteredEdges);
+        
+        // Fit the view
+        network.fit();
+    });
+    
+    // Layout type change handler
+    layoutType.addEventListener('change', function() {
+        const layout = this.value;
+        const network = window.dataNetwork.network;
+        
+        let options = {};
+        
+        if (layout === 'hierarchical') {
+            options = {
+                layout: {
+                    hierarchical: {
+                        direction: 'UD',
+                        sortMethod: 'directed',
+                        nodeSpacing: 150,
+                        levelSeparation: 150
+                    }
+                },
+                physics: false
+            };
+        } else if (layout === 'circular') {
+            // For circular layout, we'll use physics with a circular configuration
+            options = {
+                layout: { hierarchical: false },
+                physics: {
+                    stabilization: true,
+                    barnesHut: {
+                        gravitationalConstant: -10000,
+                        centralGravity: 0.5,
+                        springLength: 200,
+                        springConstant: 0.05,
+                        damping: 0.09
+                    }
+                }
+            };
+            
+            // Position nodes in a circle
+            const nodeIds = window.dataNetwork.data.nodes.getIds();
+            const radius = Math.min(container.clientWidth, container.clientHeight) * 0.4;
+            const center = { x: 0, y: 0 };
+            
+            nodeIds.forEach((id, index) => {
+                const angle = 2 * Math.PI * index / nodeIds.length;
+                const x = center.x + radius * Math.cos(angle);
+                const y = center.y + radius * Math.sin(angle);
+                
+                window.dataNetwork.data.nodes.update({
+                    id: id,
+                    x: x,
+                    y: y,
+                    fixed: { x: true, y: true }
+                });
+            });
+            
+            // After a delay, release the fixed positions
+            setTimeout(() => {
+                nodeIds.forEach(id => {
+                    window.dataNetwork.data.nodes.update({
+                        id: id,
+                        fixed: { x: false, y: false }
+                    });
+                });
+            }, 3000);
+        } else {
+            // Standard layout
+            options = {
+                layout: { hierarchical: false },
+                physics: {
+                    stabilization: true,
+                    barnesHut: {
+                        gravitationalConstant: -5000,
+                        centralGravity: 0.3,
+                        springLength: 150,
+                        springConstant: 0.04,
+                        damping: 0.09
+                    }
+                }
+            };
+        }
+        
+        // Apply the new options
+        network.setOptions(options);
+        
+        // Fit the view
+        network.fit();
+    });
+    
+    // Reset view button click handler
+    resetViewBtn.addEventListener('click', function() {
+        resetNetworkView();
+        
+        // Reset the filter dropdown
+        nodeFilter.value = 'all';
+        
+        // Reset the layout dropdown
+        layoutType.value = 'standard';
+        
+        // Apply standard layout
+        const network = window.dataNetwork.network;
+        network.setOptions({
+            layout: { hierarchical: false },
+            physics: {
+                stabilization: true,
+                barnesHut: {
+                    gravitationalConstant: -5000,
+                    centralGravity: 0.3,
+                    springLength: 150,
+                    springConstant: 0.04,
+                    damping: 0.09
+                }
+            }
+        });
+        
+        // Fit the view
+        network.fit();
+    });
+}
+
+// Add this function if it doesn't exist in your code
+function setupViewButtons() {
+    // This function can be empty if you don't need view buttons
+    // or you can implement functionality for switching between table and network views
+    console.log('Setting up view buttons');
+} 
