@@ -198,6 +198,11 @@ function displayResults(data) {
     const stratifiedResults = document.getElementById('stratified-results');
     stratifiedResults.innerHTML = '';
 
+    if (data.length === 0) {
+        stratifiedResults.innerHTML = '<p class="no-results">No resources found matching your criteria.</p>';
+        return;
+    }
+
     // Group data by resource type
     const groupedData = groupByResourceType(data);
 
@@ -293,14 +298,20 @@ function showResourceDetails(resourceId) {
 }
 
 function removeFilter(category, value) {
+    // Convert singular category name to plural for selector
+    const pluralCategory = category === 'resourceTypes' ? 'resource-types' : `${category}s`;
+    
     // Uncheck corresponding checkbox
-    const checkbox = document.querySelector(`.category-checkbox[data-category="${category}"][value="${value}"]`);
+    const singularCategory = category === 'resourceTypes' ? 'resource-type' : 
+                            (category === 'countries' ? 'country' : 'domain');
+    
+    const checkbox = document.querySelector(`.category-checkbox[data-category="${singularCategory}"][value="${value}"]`);
     if (checkbox) {
         checkbox.checked = false;
     }
     
     // Remove selected tag
-    removeSelectedCategory(category, value);
+    removeSelectedCategory(singularCategory, value);
     
     // Update explore button state
     updateExploreButtonState();
