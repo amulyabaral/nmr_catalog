@@ -14,8 +14,11 @@ def load_vocabularies():
         return {
             'data_types': data.get('data_types', {}),
             'metadata_keys': data.get('metadata_keys', []),
-            'resolutions': data.get('metadata_keys', []),  # Using metadata_keys as resolutions
-            'repositories': data.get('metadata_keys', [])  # Using metadata_keys as repositories
+            'resolutions': data.get('resolutions', []),  # Fixed from using metadata_keys
+            'repositories': data.get('repositories', []),  # Fixed from using metadata_keys
+            'common_formats': data.get('common_formats', {}),
+            'tags': data.get('tags', {}),
+            'countries': data.get('countries', [])
         }
 
 # Cache vocabularies at startup

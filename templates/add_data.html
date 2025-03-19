@@ -27,16 +27,17 @@ add_data.html -->
                 {% for category, subcategories in vocabularies.data_types.items() %}
                     <optgroup label="{{ category }}">
                         {% for subcategory, details in subcategories.items() %}
-                            {% if details is mapping %}
-                                {% for specific_type in details %}
+                            {% if details.formats is defined %}
+                                <option value="{{ category }} - {{ subcategory }}">
+                                    {{ category }} - {{ subcategory }}
+                                </option>
+                            {% endif %}
+                            {% if details.specific is defined %}
+                                {% for specific_type in details.specific %}
                                     <option value="{{ category }} - {{ subcategory }} - {{ specific_type }}">
                                         {{ category }} - {{ subcategory }} - {{ specific_type }}
                                     </option>
                                 {% endfor %}
-                            {% else %}
-                                <option value="{{ category }} - {{ subcategory }}">
-                                    {{ category }} - {{ subcategory }}
-                                </option>
                             {% endif %}
                         {% endfor %}
                     </optgroup>
@@ -98,7 +99,40 @@ add_data.html -->
             {% endfor %}
         </fieldset>
 
+        <div class="form-group">
+            <label for="data_format">Data Format:</label>
+            <input type="text" id="data_format" name="data_format" required>
+        </div>
+
         <button type="submit">Add Data Point</button>
     </form>
+
+    <script>
+    const dataTypes = {{ vocabularies.data_types|tojson|safe }};
+    const commonFormats = {{ vocabularies.common_formats|tojson|safe }};
+
+    document.getElementById('data_type').addEventListener('change', function(e) {
+        const parts = e.target.value.split(' - ');
+        const category = parts[0];
+        const subcategory = parts[1];
+        const formatInput = document.getElementById('data_format');
+        
+        let formats = [];
+        if (dataTypes[category] && 
+            dataTypes[category][subcategory] && 
+            dataTypes[category][subcategory].formats) {
+            formats = dataTypes[category][subcategory].formats;
+        }
+        
+        // Add suggestion list for formats
+        const datalist = document.createElement('datalist');
+        datalist.id = 'format-suggestions';
+        datalist.innerHTML = formats.map(format => `<option value="${format}">`).join('');
+        
+        // Update the input
+        formatInput.setAttribute('list', 'format-suggestions');
+        document.body.appendChild(datalist);
+    });
+    </script>
 </body>
 </html>

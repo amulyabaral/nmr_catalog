@@ -14,13 +14,17 @@
         <tr>
             <th>ID</th>
             <th>Data Source ID</th>
+            <th>Category</th>
+            <th>Subcategory</th>
             <th>Data Type</th>
-            <th>Data Resolution</th>
+            <th>Format</th>
+            <th>Resolution</th>
             <th>Repository</th>
+            <th>Repository URL</th>
             <th>Description</th>
             <th>Keywords</th>
             <th>Last Updated</th>
-            <th>Contact Info</th>
+            <th>Contact</th>
         </tr>
         {% for point in data_points %}
         <tr>
@@ -29,10 +33,13 @@
             <td>{{ point[2] }}</td>
             <td>{{ point[3] }}</td>
             <td>{{ point[4] }}</td>
+            <td>{{ point[5] }}</td>
             <td>{{ point[6] }}</td>
             <td>{{ point[7] }}</td>
             <td>{{ point[8] }}</td>
             <td>{{ point[9] }}</td>
+            <td>{{ point[10] }}</td>
+            <td>{{ point[11] }}</td>
         </tr>
         {% endfor %}
     </table>

@@ -1,101 +1,67 @@
 # _reusables.yaml
 
-# COMMON DATA FORMATS (anchors for reuse)
-data_formats: &common_data_formats
-  raw_reads: &raw_reads_formats
+# COMMON DATA FORMATS
+common_formats:
+  raw_reads:
     - FASTQ
     - BAM
     - FAST5             # Detailed raw signal data
     - SFF               # Standard Flowgram Format (legacy)
-  assemblies: &assembly_formats
+  assemblies:
     - FASTA
     - GFF               # Genome Feature Format
     - GBK               # GenBank format
-  mags: &mags_formats
+  mags:
     - FASTA
     - CheckM output
-  gene_counts: &gene_counts_formats
+  gene_counts:
     - TSV
     - CSV
     - TXT
-  gene_annotations: &gene_annotations_formats
+  gene_annotations:
     - TSV
     - GFF
     - BED
     - InterProScan output
     - JSON             # For structured annotation reports
-  abundance_data: &abundance_data_formats
+  abundance_data:
     - Abundance Profiles
     - OTU Tables
     - Feature Tables (e.g., biom format)
-  variant_data: &variant_data_formats
+  variant_data:
     - VCF
     - BED
     - SNP Matrices
     - Core Genome Alignments
     - MAF
-  phylogenetic_data: &phylogenetic_data_formats
+  phylogenetic_data:
     - Newick
     - Nexus
     - Phylodynamic Data
     - PhyloXML
-  transcript_data: &transcript_data_formats
+  transcript_data:
     - RNA-Seq Data
     - Transcript Counts
     - TPM values
     - FPKM values
-  protein_data: &protein_data_formats
+  protein_data:
     - Mass Spectrometry Data
-    - Protein Identifications (e.g., mzIdentML)
-    - Protein Quantification (e.g., mzQuantML)
-  metabolite_data: &metabolite_data_formats
+    - Protein Identifications
+    - Protein Quantification
+  metabolite_data:
     - Chemical Profiles
-    - Metabolite Identifications (e.g., mzML)
+    - Metabolite Identifications
     - HMDB IDs
-  demographic_data: &demographic_data_formats
-    - TSV
-    - CSV
-    - JSON
-    - Shapefile
-  survey_data: &survey_data_formats
-    - CSV
-    - XLSX
-    - SAV
-  epidemiological_data: &epidemiological_data_formats
-    - CSV
-    - GeoJSON
-    - Line list
-  environmental_data: &environmental_data_formats
-    - CSV
-    - NetCDF
-    - GeoTIFF
-    - Shapefile
-  published_articles: &published_articles_formats
-    - PDF
-    - HTML
-    - XML
-    - BibTeX
-    - RIS
-    - EndNote (XML)
-    - DOI records
-  research_group_metadata: &research_group_metadata_fields
-    - Name
-    - Affiliation
-    - Contact Information
-    - Geographic Location
-    - Research Focus Areas
-    - Website URL
-    - Publications List
-    - Funding Sources
-    - Collaborations
 
-# DATA TYPES (catalog sections)
-
+# DATA TYPES
 data_types:
   genomic:
     wgs:
       formats:
-        <<: *common_data_formats
+        - FASTQ
+        - BAM
+        - FASTA
+        - VCF
       specific:
         read_quality_reports:
           - HTML
@@ -106,298 +72,159 @@ data_types:
           - CRAM
         variant_analysis:
           - VCF
-          - Annotated VCF (e.g., snpEff)
-        assembly_evaluation:
-          - QUAST reports (HTML)
-          - BUSCO summary (TXT)
+          - Annotated VCF
     metagenomic:
       soil:
         formats:
-          <<: *common_data_formats
+          - FASTQ
+          - BAM
+          - FASTA
         specific:
           taxonomic_profiles:
             - TSV
             - CSV
             - Kraken output
-            - MetaPhlAn output (TXT)
-      water:
-        formats:
-          <<: *common_data_formats
-        specific:
-          taxonomic_profiles:
-            - TSV
-            - CSV
-            - Kraken output
-            - Bracken output (TXT)
-      earth:   # General environmental metagenomics
-        formats:
-          <<: *common_data_formats
-        specific:
-          taxonomic_profiles:
-            - TSV
-            - CSV
-            - Kraken output
+            - MetaPhlAn output
           functional_profiles:
             - TSV
             - CSV
             - HUMAnN output
-          resistance_mechanism_annotations:
+      water:
+        formats:
+          - FASTQ
+          - BAM
+          - FASTA
+        specific:
+          taxonomic_profiles:
+            - TSV
+            - CSV
+            - Kraken output
+          resistance_genes:
+            - FASTA
             - GFF
-            - Custom Database Matches (JSON)
+            - JSON
     transcriptomic:
       rna_seq:
         formats:
-          <<: *transcript_data_formats
+          - FASTQ
+          - TPM values
+          - FPKM values
         specific:
-          differential_expression_results:
+          differential_expression:
             - TSV
             - CSV
-            - DESeq2 output (R objects serialized)
-          splice_variant_analysis:
+            - DESeq2 output
+          splice_variants:
             - BED
             - VCF
     proteomic:
-      mass_spectrometry:
+      mass_spec:
         formats:
-          <<: *protein_data_formats
+          - mzML
+          - mzIdentML
+          - mzQuantML
         specific:
-          peptide_spectrum_matches:
+          peptide_matches:
             - mzTab
             - pepXML
-          protein_groups:
+          protein_quant:
             - TSV
             - CSV
-          post_translational_modifications:
-            - JSON
-            - CSV
-    amplicon:
-      sequence_data: 
-        formats:
-          <<: *raw_reads_formats
-      gene_data:
-        formats:
-          - Gene Presence/Absence Matrices (CSV)
-          - Gene Annotations (GFF, TSV)
-          - Gene Families (JSON)
-          - Amplicon Sequences (FASTA)
-      resistance_marker_amplicons:
-        formats:
-          - Targeted PCR results (CSV)
-          - qPCR data (XLSX)
-  
+
   population:
     demographic:
       formats:
-        <<: *demographic_data_formats
+        - TSV
+        - CSV
+        - JSON
+        - Shapefile
       specific:
-        population_pyramids:
+        population_data:
+          - CSV
           - JSON
-          - SVG
-        census_reports:
-          - PDF
-          - DOCX
-    survey:
-      formats:
-        <<: *survey_data_formats
-      specific:
-        questionnaires:
-          - PDF
-          - Word Document
-          - Online Survey Links (URL)
-        interview_transcripts:
-          - TXT
-          - DOCX
-          - MP3 (audio)
+        geographic_data:
+          - GeoJSON
+          - Shapefile
     epidemiological:
       formats:
-        <<: *epidemiological_data_formats
+        - CSV
+        - JSON
+        - Line list
       specific:
         case_reports:
           - XML
           - PDF
-        outbreak_investigations:
-          - HTML dashboards
-          - CSV
-        immunization_records:
+        outbreak_data:
           - CSV
           - JSON
+        surveillance:
+          - TSV
+          - XLSX
 
   environmental:
-    air:
-      formats:
-        <<: *environmental_data_formats
-      specific:
-        pollutant_concentrations:
-          - CSV
-          - XML
-          - JSON
-        meteorological_data:
-          - CSV
-          - TXT
-          - JSON
-        airborne_pathogen_surveillance:
-          - BAM
-          - FASTQ
-    wind:
-      specific:
-        wind_speed:
-          - CSV
-          - TXT
-        wind_direction:
-          - CSV
-          - TXT
     water:
       formats:
-        <<: *environmental_data_formats
+        - CSV
+        - NetCDF
+        - GeoTIFF
       specific:
-        chemical_analysis_reports:
+        chemical_analysis:
           - PDF
-          - XLSX
           - CSV
-        biological_indicators:
+        biological_data:
           - TSV
           - CSV
-        hydrological_models:
-          - NetCDF
-          - GRIB
+        resistance_monitoring:
+          - CSV
+          - JSON
     soil:
       formats:
-        <<: *environmental_data_formats
+        - CSV
+        - XML
       specific:
-        soil_composition_analysis:
+        composition_analysis:
           - CSV
           - XML
-          - XLSX
-        microbial_community_data:
-          - Abundance Profiles
+        microbial_data:
           - OTU Tables
-          - Feature Tables (e.g., biom format)
-        heavy_metal_analysis:
-          - PDF
-          - CSV
-    built_environment:
-      specific:
-        infrastructure_surveys:
-          - GIS Shapefile
-          - PDF maps
-        land_use_data:
-          - CSV
-          - GeoTIFF
+          - Feature Tables
+        resistome_data:
+          - FASTA
+          - GFF
+          - JSON
 
   amr_specific:
-    phenotypic_susceptibility_testing:
+    phenotypic:
+      formats:
+        - CSV
+        - XLSX
       specific:
-        MIC_values:
+        mic_data:
           - CSV
           - XLSX
-        disk_diffusion_images:
-          - JPEG
-          - PNG
-    genotypic_amr_profiles:
-      specific:
-        resistance_gene_detection:
-          - TSV
+        disk_diffusion:
           - CSV
-        mobile_genetic_elements:
+          - Images
+        resistance_profiles:
+          - TSV
+          - JSON
+    genotypic:
+      formats:
+        - FASTA
+        - GFF
+      specific:
+        resistance_genes:
+          - TSV
+          - JSON
+        mobile_elements:
           - GFF
           - BED
-          - JSON
-    clinical_outcomes:
-      specific:
-        treatment_response_records:
-          - CSV
-          - XLSX
-        patient_outcome_surveys:
-          - CSV
-          - PDF
+        mutations:
+          - VCF
+          - TSV
 
-  publications:
-    scientific_articles:
-      formats:
-        <<: *published_articles_formats
-      specific:
-        citation_metadata:
-          - BibTeX
-          - RIS
-          - EndNote XML
-        supplementary_materials:
-          - PDF
-          - XLSX
-          - TXT
-        altmetrics:
-          - JSON
-          - XML
-    conference_proceedings:
-      formats:
-        - PDF
-        - PPTX
-        - DOCX
-      specific:
-        presentation_slides:
-          - PPTX
-          - PDF
-        abstracts:
-          - TXT
-          - XML
-
-  research_groups:
-    profiles:
-      formats:
-        <<: *research_group_metadata_fields
-      specific:
-        group_overview_documents:
-          - PDF
-          - DOCX
-        collaborative_networks:
-          - JSON           # A graph or network in JSON format
-        funding_portfolios:
-          - XLSX
-          - PDF
-    institutions:
-      specific:
-        institutional_reports:
-          - PDF
-          - HTML
-        research_centers_data:
-          - CSV
-          - JSON
-
-  external_resources:
-    databases:
-      specific:
-        public_database_exports:
-          - CSV
-          - XML
-          - JSON
-    protocols:
-      specific:
-        laboratory_protocols:
-          - PDF
-          - DOCX
-          - Markdown
-        bioinformatics_workflows:
-          - CWL
-          - Nextflow
-          - Snakemake scripts
-    software_tools:
-      specific:
-        tool_documentation:
-          - PDF
-          - HTML
-        executable_packages:
-          - Docker image (manifest)
-          - Conda environment (YAML)
-    guidelines:
-      specific:
-        clinical_guidelines:
-          - PDF
-          - HTML
-        quality_control_standards:
-          - PDF
-          - DOCX
-
-# METADATA KEYS (for user selection on data points)
-metadata_keys: &metadata_keys
+# METADATA KEYS
+metadata_keys:
   - title
   - description
   - creator
@@ -414,36 +241,106 @@ metadata_keys: &metadata_keys
   - research_area
   - update_frequency
   - status
+  - nordic_countries
 
-# Additional metadata for articles and research groups if needed
-publication_metadata: &publication_metadata
-  - journal
-  - publication_date
-  - authors
-  - peer_review_status
-  - citation_count
-  - altmetrics
-  - supplementary_info
-
-research_group_metadata: &research_group_metadata
-  - group_name
-  - lead_investigator
-  - institution
-  - contact_details
-  - website
-  - research_focus
-  - publications
-  - collaborations
-  - funding_sources
-
-# RESOLUTIONS, REPOSITORIES, ETC.
-# (Assuming these anchors are defined elsewhere or will be extended as needed)
-resolutions: *metadata_keys       # Reusing metadata_keys as a placeholder for resolution options
-repositories: *metadata_keys       # Reusing metadata_keys as a placeholder for repository descriptions
-
-# This YAML catalog is structured to include high-resolution metadata
-# for AMR-related data, spanning genomic, population, environmental data,
-# and extending to scientific publications, research group profiles, and external resources.
-# Users can select and extend these categories based on their data point submissions.
+# TAGS
+tags:
+  genomic:
+    - AMR genes
+    - Virulence factors
+    - Mobile genetic elements
+    - Plasmids
+    - Chromosomal mutations
+    - Multi-drug resistance
+    - Novel resistance mechanisms
+    - Resistance islands
+    - Core genome
+    - Pan genome
   
+  clinical:
+    - Hospital-acquired infections
+    - Community-acquired infections
+    - Treatment outcomes
+    - Patient metadata
+    - Clinical interventions
+    - Antimicrobial usage
+    - Treatment failure
+    - Therapeutic success
+    - Drug administration
+    
+  surveillance:
+    - National surveillance
+    - Regional monitoring
+    - Hospital surveillance
+    - Community surveillance
+    - Real-time monitoring
+    - Historical trends
+    - Outbreak tracking
+    - Resistance patterns
+    - Geographic distribution
+
+  environmental:
+    - Wastewater
+    - Soil microbiome
+    - Agricultural impact
+    - Urban environment
+    - Wildlife
+    - Food production
+    - Water systems
+    - Pollution effects
+    - Environmental reservoirs
+
+  population:
+    - Demographics
+    - Public health
+    - Epidemiology
+    - Social factors
+    - Healthcare access
+    - Population density
+    - Migration patterns
+    - Urban vs rural
+    - Socioeconomic factors
+
+  methodological:
+    - High-throughput sequencing
+    - Culture-based methods
+    - Molecular techniques
+    - Bioinformatics
+    - Machine learning
+    - Statistical analysis
+    - Modeling
+    - Meta-analysis
+    - Systematic review
+
+# NORDIC COUNTRIES
+countries:
+  - Norway
+  - Sweden
+  - Denmark
+  - Finland
+
+# RESOLUTIONS
+resolutions:
+  - high_resolution
+  - medium_resolution
+  - low_resolution
+  - comprehensive
+  - summary
+  - raw_data
+  - processed_data
+  - analysis_ready
+
+# REPOSITORIES
+repositories:
+  - NCBI SRA
+  - ENA
+  - GEO
+  - MG-RAST
+  - IMG/M
+  - PATRIC
+  - CARD
+  - Local Database
+  - Institutional Repository
+  - Other
+
 # End of YAML file.
