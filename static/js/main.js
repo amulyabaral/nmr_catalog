@@ -15,9 +15,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup modal
     setupModal();
     
+    // Setup sortable columns
+    setupSortableColumns();
+    
+    // Setup clickable rows
+    setupClickableRows();
+    
     // Add click handlers for data tags
     document.querySelectorAll('.data-tag[data-filter]').forEach(tag => {
-        tag.addEventListener('click', function() {
+        tag.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent row click
             const filterType = this.getAttribute('data-filter');
             const filterValue = this.getAttribute('data-value');
             
@@ -25,6 +32,13 @@ document.addEventListener('DOMContentLoaded', function() {
             filterDataTable(filterType, filterValue);
         });
     });
+    
+    // Sort by newest entry by default (assuming year is the last column)
+    const yearHeader = document.querySelector('th[data-sort="year"]');
+    if (yearHeader) {
+        yearHeader.click();
+        yearHeader.click(); // Click twice to sort descending (newest first)
+    }
 });
 
 function setupBrowseTabs() {
@@ -899,7 +913,7 @@ function showResourceDetails(dataId) {
             console.error('Error fetching data point details:', error);
             
             // Fallback to using the data from the table row if API fails
-            const dataPoint = document.querySelector(`#data-table-body tr .view-btn[data-id="${dataId}"]`).closest('tr');
+            const dataPoint = document.querySelector(`.data-row[data-id="${dataId}"]`);
             
             const title = dataPoint.getAttribute('data-title');
             const category = dataPoint.getAttribute('data-category');
@@ -1026,5 +1040,77 @@ function filterDataTable(filterType, filterValue) {
         
         // Remove active filters
         activeFiltersContainer.remove();
+    });
+}
+
+// Setup sortable columns
+function setupSortableColumns() {
+    const headers = document.querySelectorAll('.sortable');
+    
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortField = this.getAttribute('data-sort');
+            const isAscending = !this.classList.contains('asc');
+            
+            // Remove active class and sort direction from all headers
+            headers.forEach(h => {
+                h.classList.remove('active', 'asc', 'desc');
+                h.querySelector('.sort-icon').textContent = '';
+            });
+            
+            // Add active class and sort direction to clicked header
+            this.classList.add('active');
+            if (isAscending) {
+                this.classList.add('asc');
+                this.querySelector('.sort-icon').textContent = '↑';
+            } else {
+                this.classList.add('desc');
+                this.querySelector('.sort-icon').textContent = '↓';
+            }
+            
+            // Sort the table
+            sortTable(sortField, isAscending);
+        });
+    });
+}
+
+// Sort table function
+function sortTable(field, ascending) {
+    const tbody = document.getElementById('data-table-body');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Sort the rows
+    rows.sort((a, b) => {
+        let valueA = a.getAttribute(`data-${field}`).toLowerCase();
+        let valueB = b.getAttribute(`data-${field}`).toLowerCase();
+        
+        // Special handling for year field to ensure numeric sorting
+        if (field === 'year') {
+            valueA = parseInt(valueA) || 0;
+            valueB = parseInt(valueB) || 0;
+            return ascending ? valueA - valueB : valueB - valueA;
+        }
+        
+        // Default string comparison
+        if (valueA < valueB) return ascending ? -1 : 1;
+        if (valueA > valueB) return ascending ? 1 : -1;
+        return 0;
+    });
+    
+    // Reorder the rows in the DOM
+    rows.forEach(row => {
+        tbody.appendChild(row);
+    });
+}
+
+// Setup clickable rows
+function setupClickableRows() {
+    const rows = document.querySelectorAll('.data-row');
+    
+    rows.forEach(row => {
+        row.addEventListener('click', function() {
+            const dataId = this.getAttribute('data-id');
+            showResourceDetails(dataId);
+        });
     });
 } 

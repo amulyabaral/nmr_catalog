@@ -41,6 +41,9 @@ def add_data():
             # Get years (multiple)
             years = request.form.getlist('years')
             
+            # Get related entity
+            related_entity = request.form.get('related_entity', '')
+            
             # Use the first country as primary for database storage
             # (we'll store the others in metadata)
             primary_country = countries[0] if countries else ""
@@ -51,7 +54,8 @@ def add_data():
                 'countries': countries,
                 'domains': domains,
                 'years': years,
-                'version': ', '.join(years)  # Use years as version
+                'version': ', '.join(years),  # Use years as version
+                'related_entity': related_entity
             }
 
             # Create data tuple without ID (it will be generated)

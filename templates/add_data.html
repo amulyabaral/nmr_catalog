@@ -90,7 +90,7 @@ add_data.html -->
     </nav>
 
     <div class="form-container">
-        <h1>Add New Data Point</h1>
+        <h1>Add New Resource</h1>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
         
         {% if error %}
@@ -105,8 +105,8 @@ add_data.html -->
                 <legend>Main Categories</legend>
                 
                 <div class="form-group">
-                    <label for="country">Countries (select one or more):</label>
-                    <select id="country" name="countries" multiple required class="multi-select">
+                    <label for="countries">Countries (select one or more):</label>
+                    <select id="countries" name="countries" multiple required class="multi-select">
                         {% for country in vocabularies.main_categories.Country %}
                             <option value="{{ country }}">{{ country }}</option>
                         {% endfor %}
@@ -115,8 +115,8 @@ add_data.html -->
                 </div>
                 
                 <div class="form-group">
-                    <label for="domain">Domains (select one or more):</label>
-                    <select id="domain" name="domains" multiple required class="multi-select">
+                    <label for="domains">Domains (select one or more):</label>
+                    <select id="domains" name="domains" multiple required class="multi-select">
                         {% for domain in vocabularies.main_categories.Domain %}
                             <option value="{{ domain }}">{{ domain }}</option>
                         {% endfor %}
@@ -156,25 +156,31 @@ add_data.html -->
                 </div>
                 
                 <div class="form-group">
-                    <label for="years">Years (select one or more):</label>
-                    <div class="year-selection">
-                        {% for year in range(2010, 2024) %}
-                            <label class="year-checkbox">
-                                <input type="checkbox" name="years" value="{{ year }}"> {{ year }}
-                            </label>
-                        {% endfor %}
+                    <label for="year-range">Years (select range):</label>
+                    <div class="year-range-selector">
+                        <div class="year-range">
+                            <label for="start-year">From:</label>
+                            <select id="start-year" class="year-select">
+                                {% for year in range(2000, 2026) %}
+                                    <option value="{{ year }}">{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="year-range">
+                            <label for="end-year">To:</label>
+                            <select id="end-year" class="year-select">
+                                {% for year in range(2000, 2026) %}
+                                    <option value="{{ year }}" {% if year == 2023 %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" id="apply-years" class="apply-btn">Apply</button>
+                    </div>
+                    <div class="selected-years" id="selected-years"></div>
+                    <div class="hidden-years-container">
+                        <!-- Hidden checkboxes will be added here by JavaScript -->
                     </div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="data_format">Data Format:</label>
-                    <input type="text" id="data_format" name="data_format" required>
-                </div>
-            </fieldset>
-            
-            <!-- Resource Information -->
-            <fieldset>
-                <legend>Resource Information</legend>
                 
                 <div class="form-group">
                     <label for="resource_name">Resource Name:</label>
@@ -185,11 +191,11 @@ add_data.html -->
                     <label for="resource_url">Resource URL:</label>
                     <input type="url" id="resource_url" name="resource_url" required>
                 </div>
-            </fieldset>
-            
-            <!-- Description and Keywords -->
-            <fieldset>
-                <legend>Description and Keywords</legend>
+                
+                <div class="form-group">
+                    <label for="data_format">Data Format:</label>
+                    <input type="text" id="data_format" name="data_format" placeholder="e.g., CSV, JSON, FASTQ">
+                </div>
                 
                 <div class="form-group">
                     <label for="data_description">Description:</label>
@@ -197,26 +203,43 @@ add_data.html -->
                 </div>
                 
                 <div class="form-group">
-                    <label for="keywords">Keywords:</label>
-                    <div class="tag-selection">
-                        <input type="text" id="keyword-input" placeholder="Type and press Enter to add keywords">
-                        <div id="selected-keywords" class="selected-tags"></div>
-                        <input type="hidden" id="keywords" name="keywords">
-                    </div>
+                    <label for="related_entity">Related Entity:</label>
+                    <select id="related_entity" name="related_entity">
+                        <option value="" selected>None</option>
+                        <optgroup label="Research Consortia">
+                            {% for consortium in vocabularies.resource_type_hierarchy.Entities.sub_categories.research_consortia %}
+                                {% if consortium is string %}
+                                    <option value="{{ consortium }}">{{ consortium }}</option>
+                                {% else %}
+                                    {% for key, value in consortium.items() %}
+                                        <option value="{{ key }}">{{ key }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="Data Repositories">
+                            {% for repository in vocabularies.resource_type_hierarchy.Entities.sub_categories.data_repositories %}
+                                {% if repository is string %}
+                                    <option value="{{ repository }}">{{ repository }}</option>
+                                {% else %}
+                                    {% for key, value in repository.items() %}
+                                        <option value="{{ key }}">{{ key }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </optgroup>
+                    </select>
                 </div>
-            </fieldset>
-            
-            <!-- Contact Information -->
-            <fieldset>
-                <legend>Contact Information</legend>
                 
                 <div class="form-group">
-                    <label for="contact_information">Contact Information:</label>
-                    <input type="text" id="contact_information" name="contact_information" required>
+                    <label for="keywords">Keywords:</label>
+                    <input type="text" id="keyword-input" placeholder="Type a keyword and press Enter">
+                    <div id="selected-keywords" class="selected-items"></div>
+                    <input type="hidden" id="keywords" name="keywords">
                 </div>
             </fieldset>
             
-            <button type="submit" class="submit-button">Add Data Point</button>
+            <button type="submit" class="submit-button">Submit Resource</button>
         </form>
     </div>
 

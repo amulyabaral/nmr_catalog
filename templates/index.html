@@ -14,7 +14,6 @@
                 <a href="/">NoMoReAMR</a>
             </div>
             <div class="nav-links">
-                <a href="#about">About</a>
                 <a href="#publications">Publications</a>
                 <a href="#contact">Contact</a>
                 <a href="{{ url_for('add_data') }}" class="submit-btn">Submit Data</a>
@@ -32,64 +31,6 @@
             </div>
         </div>
     </header>
-
-    <section id="about" class="about-section">
-        <div class="container">
-            <h2>About NoMoReAMR</h2>
-            <p>The Nordic Mobilization against Resistance to Antimicrobials (NoMoReAMR) is a research consortium launched with funding from NordForsk to address the growing threat of antimicrobial resistance.</p>
-            
-            <div class="about-grid">
-                <div class="about-card">
-                    <h3>Our Mission</h3>
-                    <p>To create truly interdisciplinary One Health research applications to address the antimicrobial resistance epidemic through collaborative efforts across Nordic countries.</p>
-                </div>
-                
-                <div class="about-card">
-                    <h3>Collaborative Approach</h3>
-                    <p>Researchers from Finland, Norway, Sweden, and Denmark participate in workshops and writing camps to develop innovative research strategies and applications.</p>
-                </div>
-                
-                <div class="about-card">
-                    <h3>One Health Perspective</h3>
-                    <p>We recognize that human, animal, and environmental health are interconnected, and our research reflects this holistic approach to combating antimicrobial resistance.</p>
-                </div>
-            </div>
-            
-            <h3>Participating Institutions</h3>
-            <div class="institutions-grid">
-                <div class="country-group">
-                    <h4>Finland</h4>
-                    <ul>
-                        <li>University of Turku</li>
-                        <li>University of Helsinki</li>
-                    </ul>
-                </div>
-                
-                <div class="country-group">
-                    <h4>Norway</h4>
-                    <ul>
-                        <li>UiT The Arctic University of Norway (Tromsø)</li>
-                        <li>Norwegian University of Life Sciences (Ås)</li>
-                    </ul>
-                </div>
-                
-                <div class="country-group">
-                    <h4>Sweden</h4>
-                    <ul>
-                        <li>University of Gothenburg (Göteborg)</li>
-                    </ul>
-                </div>
-                
-                <div class="country-group">
-                    <h4>Denmark</h4>
-                    <ul>
-                        <li>University of Copenhagen</li>
-                        <li>Technical University of Denmark (Lyngby)</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <main>
         <!-- Browse Section -->
@@ -213,21 +154,22 @@
         <section class="data-browser">
             <h2>Data Explorer</h2>
             
-            <div class="data-table">
-                <table>
+            <div class="data-table-container">
+                <table class="data-table-grid">
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Country</th>
-                            <th>Domain</th>
-                            <th>Category</th>
-                            <th>Year</th>
-                            <th>Actions</th>
+                            <th class="sortable" data-sort="title">Title <span class="sort-icon">↓</span></th>
+                            <th class="sortable" data-sort="country">Country <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="domain">Domain <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="category">Category <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="year">Year <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
                     <tbody id="data-table-body">
                         {% for point in data_points %}
                         <tr 
+                            class="data-row"
+                            data-id="{{ point.id }}"
                             data-country="{{ point.country }}"
                             data-domain="{{ point.domain }}"
                             data-resource-type="{{ point.resource_type }}"
@@ -236,9 +178,10 @@
                             data-data-type="{{ point.data_type }}"
                             data-tags="{{ point.keywords }}"
                             data-title="{{ point.metadata_obj.title|default(point.data_source_id) }}"
+                            data-year="{% if point.metadata_obj.years %}{{ point.metadata_obj.years[-1] }}{% else %}{{ point.last_updated[:4] }}{% endif %}"
                         >
                             <td>
-                                <a href="{{ point.repository_url }}" target="_blank">
+                                <a href="{{ point.repository_url }}" target="_blank" class="resource-link" onclick="event.stopPropagation();">
                                     {{ point.metadata_obj.title|default(point.data_source_id) }}
                                 </a>
                             </td>
@@ -269,9 +212,6 @@
                                 {% else %}
                                     {{ point.last_updated[:4] }}
                                 {% endif %}
-                            </td>
-                            <td>
-                                <button class="action-btn view-btn" data-id="{{ point.id }}">View Details</button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -315,7 +255,6 @@
             <div class="footer-section">
                 <h4>Quick Links</h4>
                 <ul>
-                    <li><a href="#about">About</a></li>
                     <li><a href="#data">Data</a></li>
                     <li><a href="#contact">Contact</a></li>
                 </ul>
