@@ -9,11 +9,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup explore button
     setupExploreButton();
     
-    // Setup resource hierarchy visualization
-    setupResourceHierarchy();
-    
     // Setup view buttons
     setupViewButtons();
+    
+    // Setup modal
+    setupModal();
 });
 
 function setupBrowseTabs() {
@@ -142,8 +142,8 @@ function setupExploreButton() {
         const selectedResourceTypes = Array.from(document.querySelectorAll('#selected-resource-types .selected-tag'))
             .map(tag => tag.getAttribute('data-value'));
         
-        // Filter data points based on selections
-        filterResults(selectedCountries, selectedDomains, selectedResourceTypes);
+        // Filter and stratify results based on selections
+        filterAndStratifyResults(selectedCountries, selectedDomains, selectedResourceTypes);
         
         // Show results section
         document.querySelector('.results-section').style.display = 'block';
@@ -152,6 +152,9 @@ function setupExploreButton() {
         document.querySelector('.results-section').scrollIntoView({
             behavior: 'smooth'
         });
+        
+        // Fetch and render resource hierarchy
+        fetchAndRenderHierarchy(selectedResourceTypes);
     });
     
     // Setup clear filters button
@@ -179,9 +182,9 @@ function setupExploreButton() {
     });
 }
 
-function filterResults(countries, domains, resourceTypes) {
-    const resultsTableBody = document.getElementById('results-table-body');
-    resultsTableBody.innerHTML = '';
+function filterAndStratifyResults(countries, domains, resourceTypes) {
+    const stratifiedResults = document.getElementById('stratified-results');
+    stratifiedResults.innerHTML = '';
     
     // Get all data points
     const dataPoints = Array.from(document.querySelectorAll('#data-table-body tr'));
@@ -207,93 +210,215 @@ function filterResults(countries, domains, resourceTypes) {
     // Update results count
     document.getElementById('results-count').textContent = filteredPoints.length;
     
-    // Add filtered points to results table
+    // If no resource types selected, show all results without stratification
+    if (resourceTypes.length === 0) {
+        createResultsTable(filteredPoints, 'All Resources', stratifiedResults);
+        return;
+    }
+    
+    // Group results by resource type
+    const groupedResults = {};
+    
     filteredPoints.forEach(point => {
-        const newRow = document.createElement('tr');
+        const resourceType = point.getAttribute('data-resource-type');
         
-        // Source ID
-        const sourceCell = document.createElement('td');
-        sourceCell.textContent = point.cells[0].textContent;
-        newRow.appendChild(sourceCell);
+        if (!groupedResults[resourceType]) {
+            groupedResults[resourceType] = [];
+        }
         
-        // Country
-        const countryCell = document.createElement('td');
-        countryCell.textContent = point.getAttribute('data-country');
-        newRow.appendChild(countryCell);
+        groupedResults[resourceType].push(point);
+    });
+    
+    // Create a section for each resource type
+    for (const resourceType of resourceTypes) {
+        if (groupedResults[resourceType] && groupedResults[resourceType].length > 0) {
+            const resourceTypeSection = document.createElement('div');
+            resourceTypeSection.className = 'resource-type-section';
+            
+            createResultsTable(groupedResults[resourceType], resourceType, resourceTypeSection);
+            
+            stratifiedResults.appendChild(resourceTypeSection);
+        }
+    }
+}
+
+function createResultsTable(dataPoints, title, container) {
+    // Create section title
+    const sectionTitle = document.createElement('h3');
+    sectionTitle.className = 'resource-section-title';
+    sectionTitle.textContent = title;
+    container.appendChild(sectionTitle);
+    
+    // Create filter controls
+    const filterControls = document.createElement('div');
+    filterControls.className = 'filter-controls';
+    
+    // Get unique categories for this resource type
+    const categories = [...new Set(dataPoints.map(point => point.getAttribute('data-category')))];
+    
+    if (categories.length > 0) {
+        const categoryFilter = document.createElement('div');
+        categoryFilter.className = 'filter-dropdown';
         
-        // Domain
-        const domainCell = document.createElement('td');
-        domainCell.textContent = point.getAttribute('data-domain');
-        newRow.appendChild(domainCell);
+        const categoryLabel = document.createElement('label');
+        categoryLabel.textContent = 'Filter by Category: ';
+        categoryLabel.setAttribute('for', `category-filter-${title.replace(/\s+/g, '-').toLowerCase()}`);
         
-        // Resource Type
-        const resourceTypeCell = document.createElement('td');
-        resourceTypeCell.textContent = point.getAttribute('data-resource-type');
-        newRow.appendChild(resourceTypeCell);
+        const categorySelect = document.createElement('select');
+        categorySelect.id = `category-filter-${title.replace(/\s+/g, '-').toLowerCase()}`;
+        categorySelect.className = 'category-filter';
+        categorySelect.setAttribute('data-resource-type', title);
+        
+        // Add "All" option
+        const allOption = document.createElement('option');
+        allOption.value = '';
+        allOption.textContent = 'All Categories';
+        categorySelect.appendChild(allOption);
+        
+        // Add category options
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
+        });
+        
+        // Add event listener
+        categorySelect.addEventListener('change', function() {
+            filterResourceTypeResults(this.value, title);
+        });
+        
+        categoryFilter.appendChild(categoryLabel);
+        categoryFilter.appendChild(categorySelect);
+        filterControls.appendChild(categoryFilter);
+    }
+    
+    container.appendChild(filterControls);
+    
+    // Create results table
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'data-table';
+    
+    const table = document.createElement('table');
+    table.id = `results-table-${title.replace(/\s+/g, '-').toLowerCase()}`;
+    
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+        <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Year</th>
+            <th>Repository</th>
+            <th>Actions</th>
+        </tr>
+    `;
+    
+    const tbody = document.createElement('tbody');
+    
+    // Add data points to table
+    dataPoints.forEach(point => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-category', point.getAttribute('data-category'));
+        tr.setAttribute('data-subcategory', point.getAttribute('data-subcategory'));
+        
+        // Title with link
+        const titleCell = document.createElement('td');
+        const titleLink = document.createElement('a');
+        titleLink.href = point.querySelector('a').href;
+        titleLink.target = '_blank';
+        titleLink.textContent = point.getAttribute('data-title');
+        titleCell.appendChild(titleLink);
+        tr.appendChild(titleCell);
         
         // Category
         const categoryCell = document.createElement('td');
-        categoryCell.textContent = point.cells[1].textContent;
-        newRow.appendChild(categoryCell);
+        categoryCell.textContent = point.getAttribute('data-category');
+        tr.appendChild(categoryCell);
+        
+        // Year
+        const yearCell = document.createElement('td');
+        yearCell.textContent = point.getAttribute('data-year');
+        tr.appendChild(yearCell);
         
         // Repository
         const repoCell = document.createElement('td');
         repoCell.textContent = point.cells[4].textContent;
-        newRow.appendChild(repoCell);
-        
-        // Last Updated
-        const dateCell = document.createElement('td');
-        dateCell.textContent = point.cells[5].textContent;
-        newRow.appendChild(dateCell);
+        tr.appendChild(repoCell);
         
         // Actions
         const actionsCell = document.createElement('td');
-        actionsCell.innerHTML = point.cells[6].innerHTML;
-        newRow.appendChild(actionsCell);
+        const viewButton = document.createElement('button');
+        viewButton.className = 'action-btn view-btn';
+        viewButton.setAttribute('data-id', point.querySelector('.view-btn').getAttribute('data-id'));
+        viewButton.textContent = 'View Details';
+        actionsCell.appendChild(viewButton);
+        tr.appendChild(actionsCell);
         
-        resultsTableBody.appendChild(newRow);
+        tbody.appendChild(tr);
     });
+    
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    tableContainer.appendChild(table);
+    container.appendChild(tableContainer);
     
     // Setup view buttons in results
     setupViewButtons();
 }
 
-function setupResourceHierarchy() {
+function filterResourceTypeResults(category, resourceType) {
+    const tableId = `results-table-${resourceType.replace(/\s+/g, '-').toLowerCase()}`;
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+    
+    rows.forEach(row => {
+        if (!category || row.getAttribute('data-category') === category) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function fetchAndRenderHierarchy(selectedResourceTypes) {
     // Fetch the resource type hierarchy
     fetch('/api/resource-hierarchy')
         .then(response => response.json())
         .then(hierarchy => {
-            renderHierarchy(hierarchy);
+            renderHierarchyTree(hierarchy, selectedResourceTypes);
         })
         .catch(error => {
             console.error('Error fetching resource hierarchy:', error);
         });
 }
 
-function renderHierarchy(hierarchy) {
-    const container = document.querySelector('.hierarchy-visualization');
+function renderHierarchyTree(hierarchy, selectedResourceTypes) {
+    const container = document.getElementById('hierarchy-tree');
     container.innerHTML = ''; // Clear any existing content
-    
-    // Create a simple tree visualization
-    const tree = document.createElement('div');
-    tree.className = 'hierarchy-tree';
     
     // For each top-level resource type
     for (const [resourceType, details] of Object.entries(hierarchy)) {
-        const resourceNode = createResourceNode(resourceType, details);
-        tree.appendChild(resourceNode);
+        // Only show selected resource types or all if none selected
+        if (selectedResourceTypes.length === 0 || selectedResourceTypes.includes(resourceType)) {
+            const resourceNode = createHierarchyNode(resourceType, details, selectedResourceTypes);
+            container.appendChild(resourceNode);
+        }
     }
-    
-    container.appendChild(tree);
 }
 
-function createResourceNode(name, details) {
+function createHierarchyNode(name, details, selectedResourceTypes) {
+    const isSelected = selectedResourceTypes.includes(name);
+    
     const node = document.createElement('div');
-    node.className = 'hierarchy-node';
+    node.className = `hierarchy-node ${isSelected ? 'selected' : ''}`;
     
     const nodeHeader = document.createElement('div');
     nodeHeader.className = 'node-header';
     nodeHeader.textContent = name;
+    
+    // Make node header clickable to filter results
+    nodeHeader.addEventListener('click', function() {
+        filterAndHighlightCategory(name);
+    });
     
     node.appendChild(nodeHeader);
     
@@ -303,45 +428,22 @@ function createResourceNode(name, details) {
         childrenContainer.className = 'node-children';
         
         for (const [subName, subDetails] of Object.entries(details.sub_categories)) {
-            // If subDetails is an object with nested structure
-            if (typeof subDetails === 'object' && !Array.isArray(subDetails)) {
-                const childNode = createResourceNode(subName, { sub_categories: subDetails });
-                childrenContainer.appendChild(childNode);
-            } 
-            // If subDetails is an array
-            else if (Array.isArray(subDetails)) {
-                const childNode = document.createElement('div');
-                childNode.className = 'hierarchy-node';
-                
-                const childHeader = document.createElement('div');
-                childHeader.className = 'node-header';
-                childHeader.textContent = subName;
-                
-                childNode.appendChild(childHeader);
-                
-                // Create leaf nodes for array items
-                const leafContainer = document.createElement('div');
-                leafContainer.className = 'node-children';
-                
-                subDetails.forEach(item => {
-                    if (typeof item === 'object') {
-                        // Handle nested objects in arrays
-                        for (const [leafName, leafValues] of Object.entries(item)) {
-                            const leafNode = createResourceNode(leafName, { sub_categories: leafValues });
-                            leafContainer.appendChild(leafNode);
-                        }
-                    } else {
-                        // Simple string item
-                        const leafNode = document.createElement('div');
-                        leafNode.className = 'hierarchy-leaf';
-                        leafNode.textContent = item;
-                        leafContainer.appendChild(leafNode);
-                    }
-                });
-                
-                childNode.appendChild(leafContainer);
-                childrenContainer.appendChild(childNode);
-            }
+            const subNode = document.createElement('div');
+            subNode.className = 'hierarchy-subnode';
+            
+            const subHeader = document.createElement('div');
+            subHeader.className = 'subnode-header';
+            subHeader.textContent = subName;
+            
+            // Make subnode header clickable to filter results
+            subHeader.addEventListener('click', function() {
+                filterAndHighlightSubcategory(name, subName);
+            });
+            
+            subNode.appendChild(subHeader);
+            
+            // Add to container
+            childrenContainer.appendChild(subNode);
         }
         
         node.appendChild(childrenContainer);
@@ -350,15 +452,133 @@ function createResourceNode(name, details) {
     return node;
 }
 
+function filterAndHighlightCategory(category) {
+    // Highlight the selected category in the hierarchy
+    document.querySelectorAll('.hierarchy-node').forEach(node => {
+        if (node.querySelector('.node-header').textContent === category) {
+            node.classList.add('selected');
+        } else {
+            node.classList.remove('selected');
+        }
+    });
+    
+    // Filter results to show only this category
+    const resourceTypeSections = document.querySelectorAll('.resource-type-section');
+    
+    resourceTypeSections.forEach(section => {
+        const sectionTitle = section.querySelector('.resource-section-title').textContent;
+        
+        if (sectionTitle === category) {
+            section.style.display = '';
+        } else {
+            section.style.display = 'none';
+        }
+    });
+}
+
+function filterAndHighlightSubcategory(resourceType, subcategory) {
+    // Highlight the selected subcategory in the hierarchy
+    document.querySelectorAll('.subnode-header').forEach(header => {
+        if (header.textContent === subcategory) {
+            header.classList.add('selected');
+        } else {
+            header.classList.remove('selected');
+        }
+    });
+    
+    // Filter results to show only this subcategory
+    const tableId = `results-table-${resourceType.replace(/\s+/g, '-').toLowerCase()}`;
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+    
+    rows.forEach(row => {
+        if (row.getAttribute('data-category') === subcategory) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
 function setupViewButtons() {
     const viewButtons = document.querySelectorAll('.view-btn');
     viewButtons.forEach(button => {
         button.addEventListener('click', function() {
             const dataId = this.getAttribute('data-id');
-            // Implement view functionality (e.g., modal with details)
-            alert(`View details for data point ${dataId}`);
+            showResourceDetails(dataId);
         });
     });
+}
+
+function setupModal() {
+    // Get the modal
+    const modal = document.getElementById('resource-modal');
+    
+    // Get the <span> element that closes the modal
+    const closeBtn = document.querySelector('.close-modal');
+    
+    // When the user clicks on <span> (x), close the modal
+    closeBtn.onclick = function() {
+        modal.style.display = 'none';
+    }
+    
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
+function showResourceDetails(dataId) {
+    // In a real application, you would fetch the details from the server
+    // For now, we'll just show some dummy data
+    
+    // Find the data point in the table
+    const dataPoint = document.querySelector(`#data-table-body tr .view-btn[data-id="${dataId}"]`).closest('tr');
+    
+    const title = dataPoint.getAttribute('data-title');
+    const category = dataPoint.getAttribute('data-category');
+    const subcategory = dataPoint.getAttribute('data-subcategory');
+    const country = dataPoint.getAttribute('data-country');
+    const domain = dataPoint.getAttribute('data-domain');
+    const resourceType = dataPoint.getAttribute('data-resource-type');
+    const year = dataPoint.getAttribute('data-year');
+    const repository = dataPoint.cells[4].textContent;
+    const repositoryUrl = dataPoint.querySelector('a').href;
+    
+    // Set modal title
+    document.getElementById('modal-title').textContent = title;
+    
+    // Set modal details
+    document.getElementById('modal-details').innerHTML = `
+        <div class="modal-detail-row">
+            <strong>Category:</strong> ${category}
+        </div>
+        <div class="modal-detail-row">
+            <strong>Subcategory:</strong> ${subcategory}
+        </div>
+        <div class="modal-detail-row">
+            <strong>Country:</strong> ${country}
+        </div>
+        <div class="modal-detail-row">
+            <strong>Domain:</strong> ${domain}
+        </div>
+        <div class="modal-detail-row">
+            <strong>Resource Type:</strong> ${resourceType}
+        </div>
+        <div class="modal-detail-row">
+            <strong>Year:</strong> ${year}
+        </div>
+        <div class="modal-detail-row">
+            <strong>Repository:</strong> ${repository}
+        </div>
+        <div class="modal-detail-row">
+            <a href="${repositoryUrl}" target="_blank" class="modal-link">Go to Resource</a>
+        </div>
+    `;
+    
+    // Show the modal
+    document.getElementById('resource-modal').style.display = 'block';
 }
 
 // Smooth scrolling for anchor links

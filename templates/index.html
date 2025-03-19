@@ -27,7 +27,7 @@
             <h1>Nordic Efforts Against Antimicrobial Resistance</h1>
             <p>A platform for AMR data sharing, research collaboration, and resource access across Nordic countries</p>
             <div class="hero-buttons">
-                <a href="#browse-section" class="primary-btn">Explore Data</a>
+                <a href="#browse-section" class="primary-btn">Explore resources</a>
                 <a href="#learn" class="secondary-btn">Learn More</a>
             </div>
         </div>
@@ -38,8 +38,8 @@
         <section id="browse-section" class="browse-section">
             <h2>Browse Resources</h2>
             <div class="browse-tabs">
-                <button class="browse-tab active" data-tab="country">By Country</button>
-                <button class="browse-tab" data-tab="domain">By Domain</button>
+                <button class="browse-tab active" data-tab="country">Select Countries</button>
+                <button class="browse-tab" data-tab="domain">Select Domains</button>
                 <button class="browse-tab" data-tab="resource-type">By Resource Type</button>
             </div>
             
@@ -120,14 +120,6 @@
             </div>
         </section>
 
-        <!-- Resource Type Hierarchy Visualization -->
-        <section class="resource-hierarchy">
-            <h2>Resource Type Hierarchy</h2>
-            <div class="hierarchy-visualization">
-                <!-- This will be populated by JavaScript -->
-            </div>
-        </section>
-
         <!-- Results Section -->
         <section class="results-section" style="display: none;">
             <h2>Results</h2>
@@ -141,24 +133,21 @@
                 <button id="clear-filters" class="clear-btn">Clear All</button>
             </div>
 
-            <div class="data-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Source</th>
-                            <th>Country</th>
-                            <th>Domain</th>
-                            <th>Resource Type</th>
-                            <th>Category</th>
-                            <th>Repository</th>
-                            <th>Last Updated</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="results-table-body">
-                        <!-- Results will be populated here by JavaScript -->
-                    </tbody>
-                </table>
+            <!-- Resource Type Hierarchy Sidebar -->
+            <div class="results-container">
+                <div class="hierarchy-sidebar">
+                    <h3>Resource Categories</h3>
+                    <div id="hierarchy-tree" class="hierarchy-tree">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="results-content">
+                    <!-- Stratified results will be displayed here -->
+                    <div id="stratified-results">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -171,11 +160,10 @@
                     <thead>
                         <tr>
                             <th>Source</th>
+                            <th>Title</th>
                             <th>Category</th>
-                            <th>Type</th>
-                            <th>Resolution</th>
+                            <th>Year</th>
                             <th>Repository</th>
-                            <th>Last Updated</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -188,16 +176,20 @@
                             data-category="{{ point.category }}"
                             data-subcategory="{{ point.subcategory }}"
                             data-tags="{{ point.keywords }}"
+                            data-year="{{ point.metadata_obj.version|default('N/A') }}"
+                            data-title="{{ point.metadata_obj.title|default(point.data_source_id) }}"
                         >
                             <td>{{ point.data_source_id }}</td>
-                            <td>{{ point.category }}</td>
-                            <td>{{ point.data_type }}</td>
-                            <td>{{ point.data_resolution }}</td>
-                            <td>{{ point.repository }}</td>
-                            <td>{{ point.last_updated }}</td>
                             <td>
-                                <button class="action-btn view-btn" data-id="{{ point.id }}">View</button>
-                                <a href="{{ point.repository_url }}" class="action-btn" target="_blank">Go to Source</a>
+                                <a href="{{ point.repository_url }}" target="_blank">
+                                    {{ point.metadata_obj.title|default(point.data_source_id) }}
+                                </a>
+                            </td>
+                            <td>{{ point.category }}</td>
+                            <td>{{ point.metadata_obj.version|default('N/A') }}</td>
+                            <td>{{ point.repository }}</td>
+                            <td>
+                                <button class="action-btn view-btn" data-id="{{ point.id }}">View Details</button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -206,6 +198,15 @@
             </div>
         </section>
     </main>
+
+    <!-- Resource Details Modal -->
+    <div id="resource-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modal-title"></h2>
+            <div id="modal-details"></div>
+        </div>
+    </div>
 
     <footer>
         <div class="footer-content">
