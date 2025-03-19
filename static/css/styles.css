@@ -607,7 +607,7 @@ footer {
 .results-section {
     max-width: 1200px;
     margin: 3rem auto;
-    padding: 2rem;
+    padding: 2.5rem;
     background-color: white;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -659,31 +659,64 @@ footer {
 /* Results Container with Sidebar */
 .results-container {
     display: flex;
-    gap: 2rem;
+    gap: 2.5rem;
     margin-top: 2rem;
 }
 
 .hierarchy-sidebar {
-    flex: 0 0 250px;
+    flex: 0 0 300px;
     background: white;
     padding: 1.5rem;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    max-height: 600px;
+    max-height: 650px;
     overflow-y: auto;
 }
 
 .results-content {
     flex: 1;
+    min-width: 0;
 }
 
-/* Enhanced Hierarchy Tree Styling */
+/* Improved Hierarchy Tree Styling */
 .hierarchy-tree {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
 .hierarchy-node {
-    margin-bottom: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.node-header, .subnode-header, .deepnode-header, .leafnode-header {
+    padding: 10px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.node-header:hover, .subnode-header:hover, .deepnode-header:hover, .leafnode-header:hover {
+    background-color: #f0f0f0;
+}
+
+.node-children {
+    margin-left: 1.2rem;
+    padding-left: 0.8rem;
+    border-left: 1px solid var(--gray-medium);
+    margin-top: 0.5rem;
+}
+
+.hierarchy-subnode {
+    margin: 0.8rem 0;
+}
+
+.hierarchy-deepnode {
+    margin: 0.6rem 0;
+    font-size: 0.9rem;
+}
+
+.hierarchy-leafnode {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
 }
 
 .hierarchy-node.selected > .node-header,
@@ -693,44 +726,13 @@ footer {
     background-color: #e3f2fd;
     color: #1565c0;
     font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.node-header, .subnode-header, .deepnode-header, .leafnode-header {
-    padding: 8px 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-}
-
-.node-header:hover, .subnode-header:hover, .deepnode-header:hover, .leafnode-header:hover {
-    background-color: #f0f0f0;
-}
-
-.node-children {
-    margin-left: 1rem;
-    padding-left: 0.5rem;
-    border-left: 1px solid var(--gray-medium);
-}
-
-.hierarchy-subnode {
-    margin: 0.5rem 0;
-}
-
-.hierarchy-deepnode {
-    margin: 0.3rem 0;
-    font-size: 0.85rem;
-}
-
-.hierarchy-leafnode {
-    margin: 0.2rem 0;
-    font-size: 0.8rem;
-}
-
-.deepnode-header {
-    color: #555;
-}
-
-.leafnode-header {
+.count {
     color: #666;
+    font-size: 0.85em;
+    margin-left: 0.3rem;
 }
 
 /* Resource Type Sections */
@@ -738,15 +740,16 @@ footer {
     background: white;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
     overflow: hidden;
 }
 
 .resource-section-title {
-    padding: 1.2rem;
+    padding: 1.5rem;
     background: var(--gray-light);
     margin: 0;
     border-bottom: 1px solid var(--gray-medium);
+    font-size: 1.3rem;
 }
 
 /* Filter Controls */
@@ -862,6 +865,7 @@ footer {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     overflow: hidden;
     margin: 2rem 0;
+    padding: 1rem;
 }
 
 .data-table-grid {
@@ -874,7 +878,7 @@ footer {
     background: #f5f7fa;
     font-weight: 600;
     text-align: left;
-    padding: 1.2rem 1rem;
+    padding: 1.3rem 1.2rem;
     border-bottom: 2px solid var(--gray-medium);
     position: sticky;
     top: 0;
@@ -882,7 +886,7 @@ footer {
 }
 
 .data-table-grid td {
-    padding: 1rem;
+    padding: 1.2rem 1.2rem;
     border-bottom: 1px solid var(--gray-light);
     vertical-align: middle;
 }
@@ -1414,7 +1418,7 @@ footer {
 .results-section {
     max-width: 1200px;
     margin: 3rem auto;
-    padding: 2rem;
+    padding: 2.5rem;
     background-color: white;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -1432,9 +1436,10 @@ footer {
 
 /* Make the whole hierarchy tree more interactive */
 .node-header, .subnode-header, .deepnode-header, .leafnode-header {
-    padding: 8px 4px;
+    padding: 10px 8px;
     border-radius: 4px;
     transition: background-color 0.2s ease;
+    cursor: pointer;
 }
 
 .node-header:hover, .subnode-header:hover, .deepnode-header:hover, .leafnode-header:hover {
@@ -1448,6 +1453,7 @@ footer {
     background-color: #e3f2fd;
     color: #1565c0;
     font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* Improved table sorting indicators */

@@ -499,26 +499,53 @@ function buildResourceHierarchy(data) {
         .catch(error => console.error('Error building resource hierarchy:', error));
 }
 
-function addSubcategories(parentNode, subcategories, data, resourceType, category) {
+function addSubcategories(parentNode, subcategories, data, resourceType, category, currentPath = {}) {
     const nodeChildren = parentNode.querySelector('.node-children');
     
     if (Array.isArray(subcategories)) {
         subcategories.forEach(item => {
             if (typeof item === 'string') {
                 // Count resources with this subcategory
-                const resourcesInSubcategory = data.filter(r => 
-                    r.resource_type === resourceType && 
-                    r.category === category && 
-                    r.subcategory === item).length;
+                const resourcesInSubcategory = data.filter(r => {
+                    let matches = r.resource_type === resourceType && 
+                                r.category === category;
+                    
+                    // Add subcategory matching if the current path has one
+                    if (currentPath.subcategory) {
+                        matches = matches && r.subcategory === currentPath.subcategory;
+                    } else {
+                        matches = matches && r.subcategory === item;
+                    }
+                    
+                    // Add data_type matching if needed
+                    if (currentPath.data_type) {
+                        matches = matches && r.data_type === currentPath.data_type;
+                    }
+                    
+                    return matches;
+                }).length;
                 
                 if (resourcesInSubcategory === 0) return; // Skip if no resources
                 
                 const leaf = document.createElement('div');
                 leaf.className = 'hierarchy-leafnode';
-                leaf.dataset.type = 'subcategory';
-                leaf.dataset.value = item;
+                
+                // Set correct data attributes based on where we are in the hierarchy
+                if (currentPath.subcategory) {
+                    leaf.dataset.type = 'data_type';
+                    leaf.dataset.value = item;
+                    leaf.dataset.subcategory = currentPath.subcategory;
+                    leaf.dataset.category = category;
+                    leaf.dataset.resourceType = resourceType;
+                } else {
+                    leaf.dataset.type = 'subcategory';
+                    leaf.dataset.value = item;
+                    leaf.dataset.category = category;
+                    leaf.dataset.resourceType = resourceType;
+                }
+                
                 leaf.innerHTML = `
-                    <div class="leafnode-header" data-type="subcategory" data-value="${item}">
+                    <div class="leafnode-header" data-type="${leaf.dataset.type}" data-value="${item}">
                         ${item.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
                     </div>
                 `;
@@ -528,10 +555,18 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                 // Handle nested subcategories
                 for (const [subcat, deepItems] of Object.entries(item)) {
                     // Count resources with this subcategory
-                    const resourcesInSubcategory = data.filter(r => 
-                        r.resource_type === resourceType && 
-                        r.category === category && 
-                        r.subcategory === subcat).length;
+                    const resourcesInSubcategory = data.filter(r => {
+                        let matches = r.resource_type === resourceType && 
+                                    r.category === category && 
+                                    r.subcategory === subcat;
+                        
+                        // Add data_type matching if the current path has one
+                        if (currentPath.data_type) {
+                            matches = matches && r.data_type === currentPath.data_type;
+                        }
+                        
+                        return matches;
+                    }).length;
                     
                     if (resourcesInSubcategory === 0) continue; // Skip if no resources
                     
@@ -539,6 +574,9 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                     deepNode.className = 'hierarchy-deepnode';
                     deepNode.dataset.type = 'subcategory';
                     deepNode.dataset.value = subcat;
+                    deepNode.dataset.category = category;
+                    deepNode.dataset.resourceType = resourceType;
+                    
                     deepNode.innerHTML = `
                         <div class="deepnode-header" data-type="subcategory" data-value="${subcat}">
                             ${subcat.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
@@ -550,31 +588,14 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                     
                     // Add even deeper items if needed
                     if (Array.isArray(deepItems)) {
-                        const deepChildren = deepNode.querySelector('.node-children');
-                        deepItems.forEach(deepItem => {
-                            if (typeof deepItem === 'string') {
-                                // Count resources with this deep subcategory
-                                const resourcesInDeepSubcategory = data.filter(r => 
-                                    r.resource_type === resourceType && 
-                                    r.category === category && 
-                                    r.subcategory === subcat &&
-                                    r.data_type === deepItem).length;
-                                
-                                if (resourcesInDeepSubcategory === 0) return; // Skip if no resources
-                                
-                                const leaf = document.createElement('div');
-                                leaf.className = 'hierarchy-leafnode';
-                                leaf.dataset.type = 'deep_subcategory';
-                                leaf.dataset.value = deepItem;
-                                leaf.innerHTML = `
-                                    <div class="leafnode-header" data-type="deep_subcategory" data-value="${deepItem}">
-                                        ${deepItem.replace(/_/g, ' ')} <span class="count">(${resourcesInDeepSubcategory})</span>
-                                    </div>
-                                `;
-                                
-                                deepChildren.appendChild(leaf);
-                            }
-                        });
+                        // Pass current path information to next level
+                        const newPath = {
+                            ...currentPath,
+                            subcategory: subcat
+                        };
+                        
+                        // Recursively add deeper subcategories
+                        addSubcategories(deepNode, deepItems, data, resourceType, category, newPath);
                     }
                 }
             }
@@ -597,7 +618,7 @@ function setupHierarchyFiltering(hierarchyTree) {
             // Toggle selection state
             const isSelected = parentElement.classList.contains('selected');
             
-            // First remove selected class from all nodes at the same level
+            // Clear selected class from all elements at the same level in the hierarchy
             if (filterType === 'resource_type') {
                 hierarchyTree.querySelectorAll('.hierarchy-node').forEach(node => {
                     node.classList.remove('selected');
@@ -614,13 +635,15 @@ function setupHierarchyFiltering(hierarchyTree) {
                         node.classList.remove('selected');
                     }
                 });
-            } else if (filterType === 'deep_subcategory') {
+            } else if (filterType === 'data_type' || filterType === 'deep_subcategory') {
                 const subcategoryNode = parentElement.closest('.hierarchy-deepnode');
-                subcategoryNode.querySelectorAll('.hierarchy-leafnode').forEach(node => {
-                    if (node.dataset.type === 'deep_subcategory') {
-                        node.classList.remove('selected');
-                    }
-                });
+                if (subcategoryNode) {
+                    subcategoryNode.querySelectorAll('.hierarchy-leafnode').forEach(node => {
+                        if (node.dataset.type === filterType) {
+                            node.classList.remove('selected');
+                        }
+                    });
+                }
             }
             
             // Toggle selection on the clicked element
@@ -640,7 +663,7 @@ function getSelectedHierarchyFilters() {
         resource_type: [],
         category: [],
         subcategory: [],
-        deep_subcategory: []
+        data_type: []
     };
     
     document.querySelectorAll('.hierarchy-node.selected').forEach(node => {
@@ -654,8 +677,11 @@ function getSelectedHierarchyFilters() {
     document.querySelectorAll('.hierarchy-deepnode.selected, .hierarchy-leafnode.selected').forEach(node => {
         if (node.dataset.type === 'subcategory') {
             selectedFilters.subcategory.push(node.dataset.value);
-        } else if (node.dataset.type === 'deep_subcategory') {
-            selectedFilters.deep_subcategory.push(node.dataset.value);
+        } else if (node.dataset.type === 'data_type') {
+            selectedFilters.data_type.push({
+                value: node.dataset.value,
+                subcategory: node.dataset.subcategory
+            });
         }
     });
     
@@ -690,9 +716,15 @@ function filterDisplayedResults(filters) {
             shouldDisplay = false;
         }
         
-        // Apply deep subcategory filter
-        if (shouldDisplay && filters.deep_subcategory.length > 0 && !filters.deep_subcategory.includes(dataType)) {
-            shouldDisplay = false;
+        // Apply data type filter (needs to match both value and parent subcategory)
+        if (shouldDisplay && filters.data_type.length > 0) {
+            const matchesDataType = filters.data_type.some(filter => 
+                filter.value === dataType && filter.subcategory === subcategory
+            );
+            
+            if (!matchesDataType) {
+                shouldDisplay = false;
+            }
         }
         
         // Update row visibility
@@ -705,7 +737,7 @@ function filterDisplayedResults(filters) {
     
     // Update section visibility
     document.querySelectorAll('.resource-type-section').forEach(section => {
-        const visibleRows = section.querySelectorAll('.data-row[style=""]').length;
+        const visibleRows = section.querySelectorAll('.data-row:not([style*="display: none"])').length;
         section.style.display = visibleRows > 0 ? '' : 'none';
     });
     
