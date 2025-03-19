@@ -179,3 +179,13 @@ def get_resource_type_hierarchy():
     with open('_reusables.yaml', 'r') as file:
         data = yaml.safe_load(file)
         return data.get('Resource_type_hierarchy', {})
+
+def get_data_point_by_id(data_id):
+    """Get a single data point by ID"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+    c = conn.cursor()
+    c.execute('SELECT * FROM data_points WHERE id = ?', (data_id,))
+    data_point = c.fetchone()
+    conn.close()
+    return data_point

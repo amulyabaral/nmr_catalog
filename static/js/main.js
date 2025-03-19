@@ -14,6 +14,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup modal
     setupModal();
+    
+    // Add click handlers for data tags
+    document.querySelectorAll('.data-tag[data-filter]').forEach(tag => {
+        tag.addEventListener('click', function() {
+            const filterType = this.getAttribute('data-filter');
+            const filterValue = this.getAttribute('data-value');
+            
+            // Apply filter to the data table
+            filterDataTable(filterType, filterValue);
+        });
+    });
 });
 
 function setupBrowseTabs() {
@@ -770,55 +781,177 @@ function setupModal() {
 }
 
 function showResourceDetails(dataId) {
-    // In a real application, you would fetch the details from the server
-    // For now, we'll just show some dummy data
-    
-    // Find the data point in the table
-    const dataPoint = document.querySelector(`#data-table-body tr .view-btn[data-id="${dataId}"]`).closest('tr');
-    
-    const title = dataPoint.getAttribute('data-title');
-    const category = dataPoint.getAttribute('data-category');
-    const subcategory = dataPoint.getAttribute('data-subcategory');
-    const country = dataPoint.getAttribute('data-country');
-    const domain = dataPoint.getAttribute('data-domain');
-    const resourceType = dataPoint.getAttribute('data-resource-type');
-    const year = dataPoint.getAttribute('data-year');
-    const repository = dataPoint.cells[4].textContent;
-    const repositoryUrl = dataPoint.querySelector('a').href;
-    
-    // Set modal title
-    document.getElementById('modal-title').textContent = title;
-    
-    // Set modal details
-    document.getElementById('modal-details').innerHTML = `
-        <div class="modal-detail-row">
-            <strong>Category:</strong> ${category}
-        </div>
-        <div class="modal-detail-row">
-            <strong>Subcategory:</strong> ${subcategory}
-        </div>
-        <div class="modal-detail-row">
-            <strong>Country:</strong> ${country}
-        </div>
-        <div class="modal-detail-row">
-            <strong>Domain:</strong> ${domain}
-        </div>
-        <div class="modal-detail-row">
-            <strong>Resource Type:</strong> ${resourceType}
-        </div>
-        <div class="modal-detail-row">
-            <strong>Year:</strong> ${year}
-        </div>
-        <div class="modal-detail-row">
-            <strong>Repository:</strong> ${repository}
-        </div>
-        <div class="modal-detail-row">
-            <a href="${repositoryUrl}" target="_blank" class="modal-link">Go to Resource</a>
-        </div>
-    `;
-    
-    // Show the modal
-    document.getElementById('resource-modal').style.display = 'block';
+    // Fetch the data point details from the server
+    fetch(`/api/data-point/${dataId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Set modal title
+            document.getElementById('modal-title').textContent = data.metadata.title || data.data_source_id;
+            
+            // Set resource link
+            const resourceLink = document.getElementById('resource-link');
+            resourceLink.href = data.repository_url;
+            
+            // Build the details HTML
+            let detailsHTML = '';
+            
+            // Basic Information Section
+            detailsHTML += `
+                <div class="detail-section">
+                    <h3>Basic Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">ID:</div>
+                        <div class="detail-value">${data.data_source_id}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Resource Type:</div>
+                        <div class="detail-value">${data.resource_type}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Category:</div>
+                        <div class="detail-value">${data.category}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Subcategory:</div>
+                        <div class="detail-value">${data.subcategory}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Data Format:</div>
+                        <div class="detail-value">${data.data_format}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Countries and Domains Section
+            detailsHTML += `
+                <div class="detail-section">
+                    <h3>Coverage</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Countries:</div>
+                        <div class="detail-value">
+                            <div class="tag-list">
+                                ${(data.metadata.countries || [data.country]).map(country => 
+                                    `<span class="data-tag country-tag">${country}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Domains:</div>
+                        <div class="detail-value">
+                            <div class="tag-list">
+                                ${(data.metadata.domains || [data.domain]).map(domain => 
+                                    `<span class="data-tag domain-tag">${domain}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Years:</div>
+                        <div class="detail-value">${data.metadata.years ? data.metadata.years.join(', ') : data.last_updated.substring(0, 4)}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Description Section
+            detailsHTML += `
+                <div class="detail-section">
+                    <h3>Description</h3>
+                    <div class="detail-row">
+                        <div class="detail-value">${data.data_description}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Keywords Section
+            detailsHTML += `
+                <div class="detail-section">
+                    <h3>Keywords</h3>
+                    <div class="detail-row">
+                        <div class="detail-value">
+                            <div class="tag-list">
+                                ${data.keywords.split(',').map(keyword => 
+                                    `<span class="data-tag">${keyword.trim()}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Contact Information
+            detailsHTML += `
+                <div class="detail-section">
+                    <h3>Contact Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-value">${data.contact_information}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Set the details HTML
+            document.getElementById('modal-details').innerHTML = detailsHTML;
+            
+            // Show the modal
+            document.getElementById('resource-modal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error fetching data point details:', error);
+            
+            // Fallback to using the data from the table row if API fails
+            const dataPoint = document.querySelector(`#data-table-body tr .view-btn[data-id="${dataId}"]`).closest('tr');
+            
+            const title = dataPoint.getAttribute('data-title');
+            const category = dataPoint.getAttribute('data-category');
+            const subcategory = dataPoint.getAttribute('data-subcategory');
+            const country = dataPoint.getAttribute('data-country');
+            const domain = dataPoint.getAttribute('data-domain');
+            const resourceType = dataPoint.getAttribute('data-resource-type');
+            const tags = dataPoint.getAttribute('data-tags');
+            const repositoryUrl = dataPoint.querySelector('a').href;
+            
+            // Set modal title
+            document.getElementById('modal-title').textContent = title;
+            
+            // Set resource link
+            document.getElementById('resource-link').href = repositoryUrl;
+            
+            // Build simplified details HTML
+            let detailsHTML = `
+                <div class="detail-section">
+                    <h3>Basic Information</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Resource Type:</div>
+                        <div class="detail-value">${resourceType}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Category:</div>
+                        <div class="detail-value">${category}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Subcategory:</div>
+                        <div class="detail-value">${subcategory}</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>Coverage</h3>
+                    <div class="detail-row">
+                        <div class="detail-label">Country:</div>
+                        <div class="detail-value">${country}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Domain:</div>
+                        <div class="detail-value">${domain}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Set the details HTML
+            document.getElementById('modal-details').innerHTML = detailsHTML;
+            
+            // Show the modal
+            document.getElementById('resource-modal').style.display = 'block';
+        });
 }
 
 // Smooth scrolling for anchor links
@@ -829,4 +962,69 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             behavior: 'smooth'
         });
     });
-}); 
+});
+
+// Function to filter the data table
+function filterDataTable(filterType, filterValue) {
+    const rows = document.querySelectorAll('#data-table-body tr');
+    
+    rows.forEach(row => {
+        const rowValue = row.getAttribute(`data-${filterType}`);
+        
+        // For countries and domains, check if they're in the metadata
+        if (filterType === 'country' || filterType === 'domain') {
+            const tags = row.querySelectorAll(`.${filterType}-tag`);
+            let hasMatch = false;
+            
+            tags.forEach(tag => {
+                if (tag.getAttribute('data-value') === filterValue) {
+                    hasMatch = true;
+                }
+            });
+            
+            if (hasMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        } 
+        // For other filters, check the data attribute directly
+        else if (rowValue === filterValue) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Show active filter
+    const activeFiltersContainer = document.createElement('div');
+    activeFiltersContainer.className = 'active-filters';
+    activeFiltersContainer.innerHTML = `
+        <span class="filter-label">Active filter:</span>
+        <div class="filter-tag">
+            <span class="filter-type">${filterType}:</span> ${filterValue}
+            <span class="remove-filter" id="clear-table-filter">&times;</span>
+        </div>
+    `;
+    
+    // Remove any existing active filters
+    const existingFilters = document.querySelector('.data-browser .active-filters');
+    if (existingFilters) {
+        existingFilters.remove();
+    }
+    
+    // Add the new active filters
+    const dataTable = document.querySelector('.data-table');
+    dataTable.parentNode.insertBefore(activeFiltersContainer, dataTable);
+    
+    // Add click handler to clear filter
+    document.getElementById('clear-table-filter').addEventListener('click', function() {
+        // Show all rows
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Remove active filters
+        activeFiltersContainer.remove();
+    });
+} 

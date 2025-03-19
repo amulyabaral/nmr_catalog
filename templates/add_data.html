@@ -105,27 +105,27 @@ add_data.html -->
                 <legend>Main Categories</legend>
                 
                 <div class="form-group">
-                    <label for="country">Country:</label>
-                    <select id="country" name="country" required>
-                        <option value="" disabled selected>Select a country</option>
+                    <label for="country">Countries (select one or more):</label>
+                    <select id="country" name="countries" multiple required class="multi-select">
                         {% for country in vocabularies.main_categories.Country %}
                             <option value="{{ country }}">{{ country }}</option>
                         {% endfor %}
                     </select>
+                    <div class="selected-items" id="selected-countries"></div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="domain">Domain:</label>
-                    <select id="domain" name="domain" required>
-                        <option value="" disabled selected>Select a domain</option>
+                    <label for="domain">Domains (select one or more):</label>
+                    <select id="domain" name="domains" multiple required class="multi-select">
                         {% for domain in vocabularies.main_categories.Domain %}
                             <option value="{{ domain }}">{{ domain }}</option>
                         {% endfor %}
                     </select>
+                    <div class="selected-items" id="selected-domains"></div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="resource_type">Resource Type:</label>
+                    <label for="resource_type">Resource Type (select one):</label>
                     <select id="resource_type" name="resource_type" required>
                         <option value="" disabled selected>Select a resource type</option>
                         {% for resource_type in vocabularies.main_categories.Resource_type %}
@@ -156,40 +156,34 @@ add_data.html -->
                 </div>
                 
                 <div class="form-group">
-                    <label for="data_type">Data Type:</label>
-                    <select id="data_type" name="data_type" required>
-                        <option value="" disabled selected>Select a data type</option>
-                        <!-- This will be populated by JavaScript based on subcategory selection -->
-                    </select>
+                    <label for="years">Years (select one or more):</label>
+                    <div class="year-selection">
+                        {% for year in range(2010, 2024) %}
+                            <label class="year-checkbox">
+                                <input type="checkbox" name="years" value="{{ year }}"> {{ year }}
+                            </label>
+                        {% endfor %}
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="data_format">Data Format:</label>
                     <input type="text" id="data_format" name="data_format" required>
                 </div>
-                
-                <div class="form-group">
-                    <label for="data_resolution">Data Resolution:</label>
-                    <select id="data_resolution" name="data_resolution" required>
-                        <option value="high_resolution">High Resolution</option>
-                        <option value="standard">Standard</option>
-                        <option value="comprehensive">Comprehensive</option>
-                    </select>
-                </div>
             </fieldset>
             
-            <!-- Repository Information -->
+            <!-- Resource Information -->
             <fieldset>
-                <legend>Repository Information</legend>
+                <legend>Resource Information</legend>
                 
                 <div class="form-group">
-                    <label for="repository">Repository:</label>
-                    <input type="text" id="repository" name="repository" required>
+                    <label for="resource_name">Resource Name:</label>
+                    <input type="text" id="resource_name" name="resource_name" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="repository_url">Repository URL:</label>
-                    <input type="url" id="repository_url" name="repository_url" required>
+                    <label for="resource_url">Resource URL:</label>
+                    <input type="url" id="resource_url" name="resource_url" required>
                 </div>
             </fieldset>
             
@@ -203,68 +197,22 @@ add_data.html -->
                 </div>
                 
                 <div class="form-group">
-                    <label for="keywords">Keywords (comma-separated):</label>
-                    <input type="text" id="keywords" name="keywords" required>
+                    <label for="keywords">Keywords:</label>
+                    <div class="tag-selection">
+                        <input type="text" id="keyword-input" placeholder="Type and press Enter to add keywords">
+                        <div id="selected-keywords" class="selected-tags"></div>
+                        <input type="hidden" id="keywords" name="keywords">
+                    </div>
                 </div>
             </fieldset>
             
-            <!-- Additional Information -->
+            <!-- Contact Information -->
             <fieldset>
-                <legend>Additional Information</legend>
-                
-                <div class="form-group">
-                    <label for="last_updated">Last Updated:</label>
-                    <input type="date" id="last_updated" name="last_updated" required>
-                </div>
+                <legend>Contact Information</legend>
                 
                 <div class="form-group">
                     <label for="contact_information">Contact Information:</label>
                     <input type="text" id="contact_information" name="contact_information" required>
-                </div>
-            </fieldset>
-            
-            <!-- Metadata -->
-            <fieldset>
-                <legend>Metadata</legend>
-                
-                <div class="form-group">
-                    <label for="title">Title:</label>
-                    <input type="text" id="title" name="title" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="creator">Creator:</label>
-                    <input type="text" id="creator" name="creator" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="institution">Institution:</label>
-                    <input type="text" id="institution" name="institution" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="geographic_coverage">Geographic Coverage:</label>
-                    <input type="text" id="geographic_coverage" name="geographic_coverage" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="license">License:</label>
-                    <input type="text" id="license" name="license" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="version">Version:</label>
-                    <input type="text" id="version" name="version" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="documentation_link">Documentation Link:</label>
-                    <input type="url" id="documentation_link" name="documentation_link">
-                </div>
-                
-                <div class="form-group">
-                    <label for="research_area">Research Area:</label>
-                    <input type="text" id="research_area" name="research_area">
                 </div>
             </fieldset>
             
@@ -356,73 +304,102 @@ add_data.html -->
                         }
                     }
                 }
-                
-                // Trigger change event to update data type dropdown
-                subcategorySelect.dispatchEvent(new Event('change'));
-            });
-            
-            // Setup the data type dropdown based on subcategory selection
-            const dataTypeSelect = document.getElementById('data_type');
-            
-            subcategorySelect.addEventListener('change', function() {
-                const selectedResourceType = resourceTypeSelect.value;
-                const selectedCategory = categorySelect.value;
-                const selectedSubcategory = this.value;
-                
-                // Clear existing options
-                dataTypeSelect.innerHTML = '<option value="" disabled selected>Select a data type</option>';
-                
-                // If there's a selected subcategory
-                if (selectedResourceType && selectedCategory && selectedSubcategory &&
-                    hierarchy[selectedResourceType] && 
-                    hierarchy[selectedResourceType].sub_categories && 
-                    hierarchy[selectedResourceType].sub_categories[selectedCategory]) {
-                    
-                    let dataTypes = [];
-                    const subCategoryData = hierarchy[selectedResourceType].sub_categories[selectedCategory];
-                    
-                    // Find the data types based on the structure
-                    if (Array.isArray(subCategoryData)) {
-                        // Look for the selected subcategory in the array
-                        for (const item of subCategoryData) {
-                            if (typeof item === 'object' && item[selectedSubcategory]) {
-                                // Found it, these are the data types
-                                dataTypes = item[selectedSubcategory];
-                                break;
-                            }
-                        }
-                    } 
-                    else if (typeof subCategoryData === 'object' && subCategoryData[selectedSubcategory]) {
-                        // Direct access to data types
-                        dataTypes = subCategoryData[selectedSubcategory];
-                    }
-                    
-                    // Add data types to dropdown
-                    if (Array.isArray(dataTypes)) {
-                        dataTypes.forEach(type => {
-                            if (typeof type === 'object') {
-                                // Handle nested structure
-                                for (const dataType in type) {
-                                    const option = document.createElement('option');
-                                    option.value = dataType;
-                                    option.textContent = dataType.replace(/_/g, ' ');
-                                    dataTypeSelect.appendChild(option);
-                                }
-                            } else {
-                                // Simple string
-                                const option = document.createElement('option');
-                                option.value = type;
-                                option.textContent = type.replace(/_/g, ' ');
-                                dataTypeSelect.appendChild(option);
-                            }
-                        });
-                    }
-                }
             });
         })
         .catch(error => {
             console.error('Error fetching resource hierarchy:', error);
         });
+
+    // Handle multi-select dropdowns
+    document.querySelectorAll('.multi-select').forEach(select => {
+        const selectedItemsContainer = document.getElementById(`selected-${select.id}s`);
+        
+        select.addEventListener('change', function() {
+            // Clear the container
+            selectedItemsContainer.innerHTML = '';
+            
+            // Add selected items
+            Array.from(this.selectedOptions).forEach(option => {
+                const tag = document.createElement('div');
+                tag.className = 'selected-tag';
+                tag.innerHTML = `
+                    ${option.text}
+                    <span class="remove-tag" data-value="${option.value}">&times;</span>
+                `;
+                selectedItemsContainer.appendChild(tag);
+                
+                // Add click handler to remove tag
+                tag.querySelector('.remove-tag').addEventListener('click', function() {
+                    const value = this.getAttribute('data-value');
+                    
+                    // Deselect the option
+                    Array.from(select.options).forEach(opt => {
+                        if (opt.value === value) {
+                            opt.selected = false;
+                        }
+                    });
+                    
+                    // Remove the tag
+                    this.parentElement.remove();
+                });
+            });
+        });
+    });
+
+    // Handle keyword input
+    const keywordInput = document.getElementById('keyword-input');
+    const selectedKeywords = document.getElementById('selected-keywords');
+    const keywordsField = document.getElementById('keywords');
+    const keywords = new Set();
+
+    keywordInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            
+            const keyword = this.value.trim();
+            if (keyword && !keywords.has(keyword)) {
+                // Add to set
+                keywords.add(keyword);
+                
+                // Create tag
+                const tag = document.createElement('div');
+                tag.className = 'selected-tag';
+                tag.innerHTML = `
+                    ${keyword}
+                    <span class="remove-tag" data-value="${keyword}">&times;</span>
+                `;
+                selectedKeywords.appendChild(tag);
+                
+                // Add click handler to remove tag
+                tag.querySelector('.remove-tag').addEventListener('click', function() {
+                    const value = this.getAttribute('data-value');
+                    keywords.delete(value);
+                    this.parentElement.remove();
+                    updateKeywordsField();
+                });
+                
+                // Update hidden field
+                updateKeywordsField();
+                
+                // Clear input
+                this.value = '';
+            }
+        }
+    });
+
+    function updateKeywordsField() {
+        keywordsField.value = Array.from(keywords).join(',');
+    }
+
+    // Handle form submission
+    document.querySelector('form').addEventListener('submit', function(e) {
+        // Ensure at least one year is selected
+        const selectedYears = document.querySelectorAll('input[name="years"]:checked');
+        if (selectedYears.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one year.');
+        }
+    });
     </script>
 </body>
 </html>

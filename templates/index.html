@@ -217,11 +217,11 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Source</th>
                             <th>Title</th>
+                            <th>Country</th>
+                            <th>Domain</th>
                             <th>Category</th>
                             <th>Year</th>
-                            <th>Repository</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -235,18 +235,41 @@
                             data-subcategory="{{ point.subcategory }}"
                             data-data-type="{{ point.data_type }}"
                             data-tags="{{ point.keywords }}"
-                            data-year="{{ point.metadata_obj.version|default('N/A') }}"
                             data-title="{{ point.metadata_obj.title|default(point.data_source_id) }}"
                         >
-                            <td>{{ point.data_source_id }}</td>
                             <td>
                                 <a href="{{ point.repository_url }}" target="_blank">
                                     {{ point.metadata_obj.title|default(point.data_source_id) }}
                                 </a>
                             </td>
-                            <td>{{ point.category }}</td>
-                            <td>{{ point.metadata_obj.version|default('N/A') }}</td>
-                            <td>{{ point.repository }}</td>
+                            <td class="tag-cell">
+                                {% if point.metadata_obj.countries %}
+                                    {% for country in point.metadata_obj.countries %}
+                                        <span class="data-tag country-tag" data-filter="country" data-value="{{ country }}">{{ country }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="data-tag country-tag" data-filter="country" data-value="{{ point.country }}">{{ point.country }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="tag-cell">
+                                {% if point.metadata_obj.domains %}
+                                    {% for domain in point.metadata_obj.domains %}
+                                        <span class="data-tag domain-tag" data-filter="domain" data-value="{{ domain }}">{{ domain }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="data-tag domain-tag" data-filter="domain" data-value="{{ point.domain }}">{{ point.domain }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="data-tag category-tag" data-filter="category" data-value="{{ point.category }}">{{ point.category }}</span>
+                            </td>
+                            <td>
+                                {% if point.metadata_obj.years %}
+                                    {{ point.metadata_obj.years|join(', ') }}
+                                {% else %}
+                                    {{ point.last_updated[:4] }}
+                                {% endif %}
+                            </td>
                             <td>
                                 <button class="action-btn view-btn" data-id="{{ point.id }}">View Details</button>
                             </td>
@@ -263,7 +286,14 @@
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2 id="modal-title"></h2>
-            <div id="modal-details"></div>
+            
+            <div id="modal-details" class="modal-details">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            
+            <div class="modal-actions">
+                <a id="resource-link" href="#" target="_blank" class="modal-link">Go to Resource</a>
+            </div>
         </div>
     </div>
 

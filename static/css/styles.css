@@ -788,7 +788,9 @@ footer {
     padding: 2rem;
     border-radius: var(--border-radius);
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    max-width: 600px;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
     position: relative;
 }
 
@@ -964,4 +966,167 @@ footer {
     .about-grid, .institutions-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Multi-select styling */
+.multi-select {
+    height: auto;
+    min-height: 100px;
+}
+
+.selected-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.selected-tag {
+    background: var(--gray-light);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+.remove-tag {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.remove-tag:hover {
+    color: #ff3333;
+}
+
+/* Year selection */
+.year-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.5rem;
+}
+
+.year-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+}
+
+/* Tag selection */
+.tag-selection {
+    margin-top: 0.5rem;
+}
+
+#keyword-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+#selected-keywords {
+    margin-top: 0.5rem;
+}
+
+/* Data tags styling */
+.tag-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.data-tag {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.data-tag:hover {
+    filter: brightness(0.9);
+}
+
+.country-tag {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.domain-tag {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.category-tag {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+/* Enhanced modal styling */
+.modal-details {
+    margin: 1.5rem 0;
+}
+
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+
+.detail-section h3 {
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--gray-medium);
+    padding-bottom: 0.3rem;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--gray-light);
+    border-radius: 4px;
+}
+
+.detail-row:nth-child(even) {
+    background-color: white;
+}
+
+.detail-label {
+    flex: 0 0 30%;
+    font-weight: 500;
+}
+
+.detail-value {
+    flex: 0 0 70%;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.modal-link {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    background: var(--secondary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.modal-link:hover {
+    background: #1a54f7;
 } 
