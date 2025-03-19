@@ -12,18 +12,23 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
-    # Create data points table
+    # Create enhanced data points table
     c.execute('''CREATE TABLE IF NOT EXISTS data_points (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    data_source_id TEXT,
-                    data_type TEXT,
-                    data_resolution TEXT,
-                    repository TEXT,
-                    repository_url TEXT,
-                    data_description TEXT,
-                    keywords TEXT,
-                    last_updated TEXT,
-                    contact_information TEXT
+                    data_source_id TEXT NOT NULL,
+                    category TEXT NOT NULL,           -- Top level category (genomic, population, etc.)
+                    subcategory TEXT NOT NULL,        -- Second level (wgs, metagenomic, etc.)
+                    data_type TEXT,                   -- Specific data type
+                    data_format TEXT,                 -- File format
+                    data_resolution TEXT NOT NULL,    -- From metadata_keys
+                    repository TEXT NOT NULL,
+                    repository_url TEXT NOT NULL,
+                    data_description TEXT NOT NULL,
+                    keywords TEXT NOT NULL,
+                    last_updated DATE NOT NULL,
+                    contact_information TEXT NOT NULL,
+                    metadata JSON,                    -- Additional metadata as JSON
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )''')
 
     conn.commit()
@@ -35,22 +40,26 @@ def add_data_point(data):
     c = conn.cursor()
     c.execute('''INSERT INTO data_points (
                     data_source_id,
+                    category,
+                    subcategory,
                     data_type,
+                    data_format,
                     data_resolution,
                     repository,
                     repository_url,
                     data_description,
                     keywords,
                     last_updated,
-                    contact_information
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', data)
+                    contact_information,
+                    metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', data)
     conn.commit()
     conn.close()
 
 def get_all_data_points():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT * FROM data_points')
+    c.execute('SELECT * FROM data_points ORDER BY created_at DESC')
     data_points = c.fetchall()
     conn.close()
     return data_points
