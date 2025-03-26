@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Add the hierarchy level styles
+    addHierarchyStyles();
 });
 
 function setupBrowseTabs() {
@@ -1080,19 +1083,24 @@ function displayActiveFilters(selectedCategories) {
 }
 
 // Function to initialize the tree based on container ID
-function initializeTree(containerId) {
-    const container = document.getElementById(containerId);
-    
-    switch(containerId) {
-        case 'country-tree-container':
-            fetchAndBuildCountryTree(container);
-            break;
-        case 'domain-tree-container':
-            fetchAndBuildDomainTree(container);
-            break;
-        case 'type-tree-container':
-            fetchAndBuildTypeTree(container);
-            break;
+function initializeTree(targetId) {
+    const container = document.getElementById(targetId);
+    if (targetId === 'country-tree-container') {
+        fetchAndBuildCountryTree(container);
+    } else if (targetId === 'domain-tree-container') {
+        fetchAndBuildDomainTree(container);
+    } else if (targetId === 'type-tree-container') {
+        fetchAndBuildTypeTree(container);
+        
+        // Auto-expand the first few levels after a short delay
+        setTimeout(() => {
+            // Expand all level 1 and 2 nodes
+            container.querySelectorAll('.level-1-node, .level-2-node').forEach(node => {
+                if (node.querySelector('.child-nodes')) {
+                    node.classList.add('node-expanded');
+                }
+            });
+        }, 500);
     }
 }
 
@@ -1312,22 +1320,21 @@ function fetchAndBuildTypeTree(container) {
         });
 }
 
-// Modify the processDeepHierarchy function to use level information
+// Update the processDeepHierarchy function to properly show all levels
 function processDeepHierarchy(hierarchyNode, parentDomNode, resourceType, category, resources, path = {}) {
     if (!hierarchyNode) return;
     
     const childContainer = document.createElement('div');
     childContainer.className = 'child-nodes';
     
-    // Handle array of items
+    // Handle array of items (these are typically leaf nodes like level 4-5 items)
     if (Array.isArray(hierarchyNode)) {
         hierarchyNode.forEach(item => {
             if (typeof item === 'string') {
-                // Simple string item (old format)
+                // Handle legacy string format
                 const itemNode = createTreeNode(formatCategoryName(item), 'subcategory', 0);
                 childContainer.appendChild(itemNode);
                 
-                // Make it clickable for filtering
                 itemNode.querySelector('.node-content').addEventListener('click', function(e) {
                     e.stopPropagation();
                     const type = path.subcategory ? 'data_type' : 'subcategory';
@@ -1335,61 +1342,40 @@ function processDeepHierarchy(hierarchyNode, parentDomNode, resourceType, catego
                     selectInHierarchy(type, value, path);
                 });
             } else if (typeof item === 'object') {
-                // Check if using new format with name and level
-                if (item.name) {
-                    const level = item.level || 0;
-                    const itemNode = createTreeNode(formatCategoryName(item.name), `level-${level}`, 0);
-                    childContainer.appendChild(itemNode);
-                    
-                    // Make it clickable for filtering
-                    itemNode.querySelector('.node-content').addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const type = path.subcategory ? 'data_type' : 'subcategory';
-                        const value = item.name;
-                        selectInHierarchy(type, value, path);
-                    });
-                } else {
-                    // Object with nested items (old format)
-                    for (const [key, value] of Object.entries(item)) {
-                        const displayName = value.title || formatCategoryName(key);
-                        const level = value.level || 0;
-                        const subNode = createTreeNode(displayName, `level-${level}`, 0);
-                        
-                        // Process next level recursively
-                        const newPath = {...path, subcategory: key};
-                        processDeepHierarchy(value.sub_categories || value.items, subNode, resourceType, category, resources, newPath);
-                        
-                        // Make it expandable
-                        subNode.querySelector('.node-content').addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            toggleNode(this.parentNode);
-                        });
-                        
-                        childContainer.appendChild(subNode);
-                    }
-                }
+                // Handle new format with name and level
+                const itemName = item.name || 'unnamed';
+                const itemLevel = item.level || 0;
+                
+                // Create a node with proper level styling
+                const itemNode = createTreeNode(formatCategoryName(itemName), `level-${itemLevel}`, 0);
+                childContainer.appendChild(itemNode);
+                
+                // Make it clickable for filtering
+                itemNode.querySelector('.node-content').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectInHierarchy('item', itemName, {...path, level: itemLevel});
+                });
             }
         });
     } 
-    // Handle sub_categories object or items
-    else if (hierarchyNode.sub_categories || hierarchyNode.items) {
-        const nextLevel = hierarchyNode.sub_categories || hierarchyNode.items;
-        processDeepHierarchy(nextLevel, parentDomNode, resourceType, category, resources, path);
+    // Handle items array directly
+    else if (hierarchyNode.items) {
+        // Process leaf items array
+        processDeepHierarchy(hierarchyNode.items, parentDomNode, resourceType, category, resources, path);
     }
-    // Handle plain object with nested categories
-    else if (typeof hierarchyNode === 'object') {
-        for (const [key, value] of Object.entries(hierarchyNode)) {
-            if (key === 'title' || key === 'level') continue; // Skip title and level properties
+    // Handle sub_categories
+    else if (hierarchyNode.sub_categories) {
+        // Process subcategories object
+        const subCategoriesObj = hierarchyNode.sub_categories;
+        
+        // Process each subcategory
+        for (const [key, value] of Object.entries(subCategoriesObj)) {
+            const nodeLevel = value.level || 0;
+            const subNode = createTreeNode(formatCategoryName(key), `level-${nodeLevel}`, 0);
             
-            const displayName = (value && value.title) ? value.title : formatCategoryName(key);
-            const level = (value && value.level) ? value.level : 0;
-            const subNode = createTreeNode(displayName, `level-${level}`, 0);
-            
-            // Process next level
-            const newPath = {...path, subcategory: key};
-            if (value && (value.sub_categories || value.items)) {
-                processDeepHierarchy(value.sub_categories || value.items, subNode, resourceType, category, resources, newPath);
-            }
+            // Recursively process subcategories
+            const newPath = {...path, category: key};
+            processDeepHierarchy(value, subNode, resourceType, key, resources, newPath);
             
             // Make it expandable
             subNode.querySelector('.node-content').addEventListener('click', function(e) {
@@ -1400,7 +1386,36 @@ function processDeepHierarchy(hierarchyNode, parentDomNode, resourceType, catego
             childContainer.appendChild(subNode);
         }
     }
+    // Handle plain object with nested categories
+    else if (typeof hierarchyNode === 'object') {
+        // Skip level and other special properties
+        for (const [key, value] of Object.entries(hierarchyNode)) {
+            if (key === 'level') continue;
+            
+            if (key === 'sub_categories' || key === 'items') {
+                // These are handled separately
+                processDeepHierarchy(hierarchyNode[key], parentDomNode, resourceType, category, resources, path);
+            } else if (typeof value === 'object') {
+                // This is a subcategory node
+                const nodeLevel = value.level || 0;
+                const subNode = createTreeNode(formatCategoryName(key), `level-${nodeLevel}`, 0);
+                
+                // Recursively process this subcategory
+                const newPath = {...path, [nodeLevel === 2 ? 'category' : 'subcategory']: key};
+                processDeepHierarchy(value, subNode, resourceType, category, resources, newPath);
+                
+                // Make it expandable
+                subNode.querySelector('.node-content').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleNode(this.parentNode);
+                });
+                
+                childContainer.appendChild(subNode);
+            }
+        }
+    }
     
+    // Only append if we have children
     if (childContainer.children.length > 0) {
         parentDomNode.appendChild(childContainer);
     }
@@ -1436,11 +1451,12 @@ function createTreeNode(name, cssClass, count = 0) {
         const level = parseInt(cssClass.split('-')[1]);
         node.setAttribute('data-level', level);
         
-        // Add indentation based on level
-        node.style.paddingLeft = `${(level-1) * 10}px`;
+        // Add visual indentation based on level
+        node.style.paddingLeft = `${(level-1) * 15}px`;
         
         // Add level-specific styling class
         node.classList.add('hierarchy-level');
+        node.classList.add(`level-${level}`); // For additional CSS styling
     }
     
     const nodeContent = document.createElement('div');
@@ -1449,18 +1465,18 @@ function createTreeNode(name, cssClass, count = 0) {
     const nodeToggle = document.createElement('span');
     nodeToggle.className = 'node-toggle';
     
-    const nodeName = document.createElement('span');
-    nodeName.className = 'node-name';
-    nodeName.textContent = name;
-    
-    // Add level indicator
+    // Add level indicator before the name
     if (cssClass.startsWith('level-')) {
         const level = parseInt(cssClass.split('-')[1]);
         const levelIndicator = document.createElement('span');
         levelIndicator.className = 'level-indicator';
-        levelIndicator.textContent = `L${level}:`;
+        levelIndicator.textContent = `L${level}: `;
         nodeContent.appendChild(levelIndicator);
     }
+    
+    const nodeName = document.createElement('span');
+    nodeName.className = 'node-name';
+    nodeName.textContent = name;
     
     const nodeCount = document.createElement('span');
     nodeCount.className = 'node-count';
@@ -1516,4 +1532,71 @@ function filterAndShowResults(countries, domains, resourceTypes, category = null
     
     // Scroll to the browse section
     document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Add CSS styles for the hierarchy levels
+function addHierarchyStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Hierarchy level styling */
+        .hierarchy-level {
+            border-left: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .level-1-node {
+            font-weight: bold;
+            font-size: 1.1em;
+            border-left-color: #4a90e2;
+        }
+        
+        .level-2-node {
+            font-weight: 600;
+            border-left-color: #50e3c2;
+        }
+        
+        .level-3-node {
+            font-weight: 500;
+            border-left-color: #b8e986;
+        }
+        
+        .level-4-node {
+            border-left-color: #f8e71c;
+        }
+        
+        .level-5-node {
+            border-left-color: #f5a623;
+            font-style: italic;
+        }
+        
+        .level-indicator {
+            font-size: 0.8em;
+            color: #666;
+            margin-right: 4px;
+            font-weight: normal;
+        }
+        
+        /* Improve toggle buttons */
+        .node-toggle {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 5px;
+            text-align: center;
+            line-height: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .node-expanded > .node-content .node-toggle {
+            transform: rotate(90deg);
+        }
+        
+        /* Add visual indicators for nodes with children */
+        .tree-node:has(> .child-nodes) > .node-content .node-toggle:before {
+            content: '▶';
+            color: #777;
+        }
+    `;
+    document.head.appendChild(style);
 }
