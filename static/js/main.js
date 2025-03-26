@@ -591,34 +591,31 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                     return matches;
                 }).length;
                 
-                // FIX: Check condition and only proceed if resources exist
-                if (resourcesInSubcategory > 0 || data.some(r => r.data_type === item)) {
-                    const leaf = document.createElement('div');
-                    leaf.className = 'hierarchy-leafnode';
-                    
-                    // Set correct data attributes based on where we are in the hierarchy
-                    if (currentPath.subcategory) {
-                        leaf.dataset.type = 'data_type';
-                        leaf.dataset.value = item;
-                        leaf.dataset.subcategory = currentPath.subcategory;
-                        leaf.dataset.category = category;
-                        leaf.dataset.resourceType = resourceType;
-                    } else {
-                        leaf.dataset.type = 'subcategory';
-                        leaf.dataset.value = item;
-                        leaf.dataset.category = category;
-                        leaf.dataset.resourceType = resourceType;
-                    }
-                    
-                    leaf.innerHTML = `
-                        <div class="leafnode-header" data-type="${leaf.dataset.type}" data-value="${item}">
-                            ${item.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
-                        </div>
-                    `;
-                    
-                    nodeChildren.appendChild(leaf);
+                // Always create leaf nodes regardless of resource count to show full hierarchy
+                const leaf = document.createElement('div');
+                leaf.className = 'hierarchy-leafnode';
+                
+                // Set correct data attributes based on where we are in the hierarchy
+                if (currentPath.subcategory) {
+                    leaf.dataset.type = 'data_type';
+                    leaf.dataset.value = item;
+                    leaf.dataset.subcategory = currentPath.subcategory;
+                    leaf.dataset.category = category;
+                    leaf.dataset.resourceType = resourceType;
+                } else {
+                    leaf.dataset.type = 'subcategory';
+                    leaf.dataset.value = item;
+                    leaf.dataset.category = category;
+                    leaf.dataset.resourceType = resourceType;
                 }
-                // Instead of continue, we just don't execute the code if the condition isn't met
+                
+                leaf.innerHTML = `
+                    <div class="leafnode-header" data-type="${leaf.dataset.type}" data-value="${item}">
+                        ${item.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
+                    </div>
+                `;
+                
+                nodeChildren.appendChild(leaf);
             } else if (typeof item === 'object') {
                 // Handle complex nested structures
                 for (const [subcat, details] of Object.entries(item)) {
@@ -1282,7 +1279,8 @@ function fetchAndBuildTypeTree(container) {
                     // Update count
                     typeNode.querySelector('.node-count').textContent = resources.length;
                     
-                    if (resources.length > 0 && hierarchy[resourceType].sub_categories) {
+                    // Always build the hierarchy even if no resources
+                    if (hierarchy[resourceType].sub_categories) {
                         const childContainer = document.createElement('div');
                         childContainer.className = 'child-nodes';
                         
@@ -1291,7 +1289,7 @@ function fetchAndBuildTypeTree(container) {
                             const catResources = resources.filter(r => r.category === category);
                             const catNode = createTreeNode(formatCategoryName(category), 'category', catResources.length);
                             
-                            // Add subcategories if available
+                            // Add subcategories if available - always show them regardless of resources
                             const subCategories = hierarchy[resourceType].sub_categories[category];
                             if (subCategories && Array.isArray(subCategories) && subCategories.length > 0) {
                                 const subContainer = document.createElement('div');
