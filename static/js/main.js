@@ -591,32 +591,34 @@ function addSubcategories(parentNode, subcategories, data, resourceType, categor
                     return matches;
                 }).length;
                 
-                if (resourcesInSubcategory === 0 && !data.some(r => r.data_type === item)) continue; // Skip if no resources
-                
-                const leaf = document.createElement('div');
-                leaf.className = 'hierarchy-leafnode';
-                
-                // Set correct data attributes based on where we are in the hierarchy
-                if (currentPath.subcategory) {
-                    leaf.dataset.type = 'data_type';
-                    leaf.dataset.value = item;
-                    leaf.dataset.subcategory = currentPath.subcategory;
-                    leaf.dataset.category = category;
-                    leaf.dataset.resourceType = resourceType;
-                } else {
-                    leaf.dataset.type = 'subcategory';
-                    leaf.dataset.value = item;
-                    leaf.dataset.category = category;
-                    leaf.dataset.resourceType = resourceType;
+                // FIX: Check condition and only proceed if resources exist
+                if (resourcesInSubcategory > 0 || data.some(r => r.data_type === item)) {
+                    const leaf = document.createElement('div');
+                    leaf.className = 'hierarchy-leafnode';
+                    
+                    // Set correct data attributes based on where we are in the hierarchy
+                    if (currentPath.subcategory) {
+                        leaf.dataset.type = 'data_type';
+                        leaf.dataset.value = item;
+                        leaf.dataset.subcategory = currentPath.subcategory;
+                        leaf.dataset.category = category;
+                        leaf.dataset.resourceType = resourceType;
+                    } else {
+                        leaf.dataset.type = 'subcategory';
+                        leaf.dataset.value = item;
+                        leaf.dataset.category = category;
+                        leaf.dataset.resourceType = resourceType;
+                    }
+                    
+                    leaf.innerHTML = `
+                        <div class="leafnode-header" data-type="${leaf.dataset.type}" data-value="${item}">
+                            ${item.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
+                        </div>
+                    `;
+                    
+                    nodeChildren.appendChild(leaf);
                 }
-                
-                leaf.innerHTML = `
-                    <div class="leafnode-header" data-type="${leaf.dataset.type}" data-value="${item}">
-                        ${item.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
-                    </div>
-                `;
-                
-                nodeChildren.appendChild(leaf);
+                // Instead of continue, we just don't execute the code if the condition isn't met
             } else if (typeof item === 'object') {
                 // Handle complex nested structures
                 for (const [subcat, details] of Object.entries(item)) {
