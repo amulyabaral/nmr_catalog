@@ -1291,52 +1291,10 @@ function fetchAndBuildTypeTree(container) {
                             
                             // Add subcategories if available - always show them regardless of resources
                             const subCategories = hierarchy[resourceType].sub_categories[category];
-                            if (subCategories && Array.isArray(subCategories) && subCategories.length > 0) {
-                                const subContainer = document.createElement('div');
-                                subContainer.className = 'child-nodes';
-                                
-                                // Process subcategories (might be strings or objects)
-                                subCategories.forEach(subCat => {
-                                    if (typeof subCat === 'string') {
-                                        // Simple string subcategory
-                                        const subResources = catResources.filter(r => r.subcategory === subCat);
-                                        const subNode = createTreeNode(formatCategoryName(subCat), 'subcategory', subResources.length);
-                                        
-                                        subNode.querySelector('.node-content').addEventListener('click', function(e) {
-                                            e.stopPropagation();
-                                            filterAndShowResults(null, null, [resourceType], category, subCat);
-                                        });
-                                        
-                                        subContainer.appendChild(subNode);
-                                    } else {
-                                        // Object with nested subcategories
-                                        Object.keys(subCat).forEach(nestedSubCat => {
-                                            const nestedResources = catResources.filter(r => r.subcategory === nestedSubCat);
-                                            const nestedNode = createTreeNode(formatCategoryName(nestedSubCat), 'subcategory', nestedResources.length);
-                                            
-                                            nestedNode.querySelector('.node-content').addEventListener('click', function(e) {
-                                                e.stopPropagation();
-                                                filterAndShowResults(null, null, [resourceType], category, nestedSubCat);
-                                            });
-                                            
-                                            subContainer.appendChild(nestedNode);
-                                        });
-                                    }
-                                });
-                                
-                                catNode.appendChild(subContainer);
-                                catNode.querySelector('.node-content').addEventListener('click', function(e) {
-                                    e.stopPropagation();
-                                    toggleNode(this.parentNode);
-                                });
-                            } else {
-                                // If no subcategories, just make it clickable for filtering
-                                catNode.querySelector('.node-content').addEventListener('click', function(e) {
-                                    e.stopPropagation();
-                                    filterAndShowResults(null, null, [resourceType], category);
-                                });
-                            }
-                                
+                            
+                            // Process this category's subcategories recursively
+                            processDeepHierarchy(subCategories, catNode, resourceType, category, resources);
+                            
                             childContainer.appendChild(catNode);
                         });
                         
@@ -1352,6 +1310,108 @@ function fetchAndBuildTypeTree(container) {
             
             container.appendChild(treeElement);
         });
+}
+
+// New recursive function to process deep hierarchies
+function processDeepHierarchy(hierarchyNode, parentDomNode, resourceType, category, resources, path = {}) {
+    if (!hierarchyNode) return;
+    
+    const childContainer = document.createElement('div');
+    childContainer.className = 'child-nodes';
+    
+    // Handle array of subcategories
+    if (Array.isArray(hierarchyNode)) {
+        hierarchyNode.forEach(item => {
+            if (typeof item === 'string') {
+                // Simple string item
+                const itemNode = createTreeNode(formatCategoryName(item), 'subcategory', 0);
+                childContainer.appendChild(itemNode);
+                
+                // Make it clickable for filtering
+                itemNode.querySelector('.node-content').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const type = path.subcategory ? 'data_type' : 'subcategory';
+                    const value = item;
+                    
+                    // Select in hierarchy and update filters
+                    selectInHierarchy(type, value, path);
+                });
+            } else if (typeof item === 'object') {
+                // Object with nested items
+                for (const [key, value] of Object.entries(item)) {
+                    const displayName = value.title || formatCategoryName(key);
+                    const subNode = createTreeNode(displayName, 'subcategory', 0);
+                    
+                    // Process next level recursively
+                    const newPath = {...path, subcategory: key};
+                    processDeepHierarchy(value.sub_categories || value.items, subNode, resourceType, category, resources, newPath);
+                    
+                    // Make it expandable
+                    subNode.querySelector('.node-content').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        toggleNode(this.parentNode);
+                    });
+                    
+                    childContainer.appendChild(subNode);
+                }
+            }
+        });
+    } 
+    // Handle sub_categories object
+    else if (hierarchyNode.sub_categories) {
+        processDeepHierarchy(hierarchyNode.sub_categories, parentDomNode, resourceType, category, resources, path);
+    }
+    // Handle items array
+    else if (hierarchyNode.items) {
+        processDeepHierarchy(hierarchyNode.items, parentDomNode, resourceType, category, resources, path);
+    }
+    // Handle plain object with nested categories
+    else if (typeof hierarchyNode === 'object') {
+        for (const [key, value] of Object.entries(hierarchyNode)) {
+            if (key === 'title') continue; // Skip title property
+            
+            const displayName = (value && value.title) ? value.title : formatCategoryName(key);
+            const subNode = createTreeNode(displayName, 'subcategory', 0);
+            
+            // Process next level
+            const newPath = {...path, subcategory: key};
+            if (value && (value.sub_categories || value.items)) {
+                processDeepHierarchy(value.sub_categories || value.items, subNode, resourceType, category, resources, newPath);
+            }
+            
+            // Make it expandable
+            subNode.querySelector('.node-content').addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleNode(this.parentNode);
+            });
+            
+            childContainer.appendChild(subNode);
+        }
+    }
+    
+    if (childContainer.children.length > 0) {
+        parentDomNode.appendChild(childContainer);
+    }
+}
+
+// Helper to select an item in the hierarchy and update filters
+function selectInHierarchy(type, value, path) {
+    // Build full path including parent categories
+    let filterInfo = {
+        type: type,
+        value: value
+    };
+    
+    if (path.subcategory) {
+        filterInfo.subcategory = path.subcategory;
+    }
+    
+    // Add to active filters
+    addActiveFilter(type, value);
+    
+    // Apply filtering
+    const selectedFilters = getSelectedHierarchyFilters();
+    filterDisplayedResults(selectedFilters);
 }
 
 // Helper function to create a tree node
