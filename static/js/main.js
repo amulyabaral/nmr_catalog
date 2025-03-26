@@ -17,6 +17,27 @@ document.addEventListener('DOMContentLoaded', function() {
         yearHeader.click();
         yearHeader.click(); // Click twice to sort descending
     }
+    
+    // Set up explorer card functionality
+    document.querySelectorAll('.expand-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const container = document.getElementById(targetId);
+            
+            if (container.classList.contains('expanded')) {
+                container.classList.remove('expanded');
+                this.textContent = `Explore ${this.textContent.split(' ')[1]}`;
+            } else {
+                container.classList.add('expanded');
+                this.textContent = 'Collapse';
+                
+                // Initialize tree if it's empty
+                if (container.innerHTML.trim() === '') {
+                    initializeTree(targetId);
+                }
+            }
+        });
+    });
 });
 
 function setupBrowseTabs() {
@@ -1027,4 +1048,349 @@ function displayActiveFilters(selectedCategories) {
     
     // Show/hide container
     document.querySelector('.active-filters').style.display = hasFilters ? 'flex' : 'none';
+}
+
+// Function to initialize the tree based on container ID
+function initializeTree(containerId) {
+    const container = document.getElementById(containerId);
+    
+    switch(containerId) {
+        case 'country-tree-container':
+            fetchAndBuildCountryTree(container);
+            break;
+        case 'domain-tree-container':
+            fetchAndBuildDomainTree(container);
+            break;
+        case 'type-tree-container':
+            fetchAndBuildTypeTree(container);
+            break;
+    }
+}
+
+// Fetch country data and build tree
+function fetchAndBuildCountryTree(container) {
+    // First get the main categories
+    fetch('/api/main-categories')
+        .then(response => response.json())
+        .then(data => {
+            const countries = data.Country;
+            
+            // Create a resource tree element
+            const treeElement = document.createElement('div');
+            treeElement.className = 'resource-tree';
+            
+            // Add each country as a top-level node
+            countries.forEach(country => {
+                const countryNode = createTreeNode(country, 'country');
+                
+                // Fetch resources for this country and add sub-categories
+                fetch('/api/filter-resources', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ countries: [country] })
+                })
+                .then(response => response.json())
+                .then(resources => {
+                    // Create domain sub-nodes
+                    const domains = [...new Set(resources.map(r => r.domain))];
+                    
+                    // Update the count badge
+                    countryNode.querySelector('.node-count').textContent = resources.length;
+                    
+                    // If there are resources, make the node expandable
+                    if (resources.length > 0) {
+                        const childContainer = document.createElement('div');
+                        childContainer.className = 'child-nodes';
+                        
+                        domains.forEach(domain => {
+                            const domainResources = resources.filter(r => r.domain === domain);
+                            const domainNode = createTreeNode(domain, 'domain', domainResources.length);
+                            
+                            // Add resource type level
+                            const resourceTypes = [...new Set(domainResources.map(r => r.resource_type))];
+                            const typeContainer = document.createElement('div');
+                            typeContainer.className = 'child-nodes';
+                            
+                            resourceTypes.forEach(type => {
+                                const typeResources = domainResources.filter(r => r.resource_type === type);
+                                const typeNode = createTreeNode(type, 'resource-type', typeResources.length);
+                                
+                                // Make the type node link to filtered results
+                                typeNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    filterAndShowResults([country], [domain], [type]);
+                                });
+                                
+                                typeContainer.appendChild(typeNode);
+                            });
+                            
+                            domainNode.appendChild(typeContainer);
+                            domainNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                toggleNode(this.parentNode);
+                            });
+                            
+                            childContainer.appendChild(domainNode);
+                        });
+                        
+                        countryNode.appendChild(childContainer);
+                        countryNode.querySelector('.node-content').addEventListener('click', function() {
+                            toggleNode(this.parentNode);
+                        });
+                    }
+                });
+                
+                treeElement.appendChild(countryNode);
+            });
+            
+            container.appendChild(treeElement);
+        });
+}
+
+// Fetch domain data and build tree
+function fetchAndBuildDomainTree(container) {
+    fetch('/api/main-categories')
+        .then(response => response.json())
+        .then(data => {
+            const domains = data.Domain;
+            
+            const treeElement = document.createElement('div');
+            treeElement.className = 'resource-tree';
+            
+            domains.forEach(domain => {
+                const domainNode = createTreeNode(domain, 'domain');
+                
+                fetch('/api/filter-resources', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ domains: [domain] })
+                })
+                .then(response => response.json())
+                .then(resources => {
+                    // Update count
+                    domainNode.querySelector('.node-count').textContent = resources.length;
+                    
+                    if (resources.length > 0) {
+                        const childContainer = document.createElement('div');
+                        childContainer.className = 'child-nodes';
+                        
+                        // Group by resource type
+                        const resourceTypes = [...new Set(resources.map(r => r.resource_type))];
+                        
+                        resourceTypes.forEach(type => {
+                            const typeResources = resources.filter(r => r.resource_type === type);
+                            const typeNode = createTreeNode(type, 'resource-type', typeResources.length);
+                            
+                            // Add categories
+                            const categories = [...new Set(typeResources.map(r => r.category))];
+                            const categoryContainer = document.createElement('div');
+                            categoryContainer.className = 'child-nodes';
+                            
+                            categories.forEach(category => {
+                                const catResources = typeResources.filter(r => r.category === category);
+                                const catNode = createTreeNode(category, 'category', catResources.length);
+                                
+                                catNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    filterAndShowResults(null, [domain], [type], category);
+                                });
+                                
+                                categoryContainer.appendChild(catNode);
+                            });
+                            
+                            typeNode.appendChild(categoryContainer);
+                            typeNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                toggleNode(this.parentNode);
+                            });
+                            
+                            childContainer.appendChild(typeNode);
+                        });
+                        
+                        domainNode.appendChild(childContainer);
+                        domainNode.querySelector('.node-content').addEventListener('click', function() {
+                            toggleNode(this.parentNode);
+                        });
+                    }
+                });
+                
+                treeElement.appendChild(domainNode);
+            });
+            
+            container.appendChild(treeElement);
+        });
+}
+
+// Build the resource type tree using the hierarchy data
+function fetchAndBuildTypeTree(container) {
+    fetch('/api/resource-hierarchy')
+        .then(response => response.json())
+        .then(hierarchy => {
+            const treeElement = document.createElement('div');
+            treeElement.className = 'resource-tree';
+            
+            // For each top level resource type
+            Object.keys(hierarchy).forEach(resourceType => {
+                const typeNode = createTreeNode(resourceType, 'resource-type');
+                
+                // Fetch resources for this type
+                fetch('/api/filter-resources', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ resourceTypes: [resourceType] })
+                })
+                .then(response => response.json())
+                .then(resources => {
+                    // Update count
+                    typeNode.querySelector('.node-count').textContent = resources.length;
+                    
+                    if (resources.length > 0 && hierarchy[resourceType].sub_categories) {
+                        const childContainer = document.createElement('div');
+                        childContainer.className = 'child-nodes';
+                        
+                        // Add categories from the hierarchy
+                        Object.keys(hierarchy[resourceType].sub_categories).forEach(category => {
+                            const catResources = resources.filter(r => r.category === category);
+                            const catNode = createTreeNode(formatCategoryName(category), 'category', catResources.length);
+                            
+                            // Add subcategories if available
+                            const subCategories = hierarchy[resourceType].sub_categories[category];
+                            if (subCategories && Array.isArray(subCategories) && subCategories.length > 0) {
+                                const subContainer = document.createElement('div');
+                                subContainer.className = 'child-nodes';
+                                
+                                // Process subcategories (might be strings or objects)
+                                subCategories.forEach(subCat => {
+                                    if (typeof subCat === 'string') {
+                                        // Simple string subcategory
+                                        const subResources = catResources.filter(r => r.subcategory === subCat);
+                                        const subNode = createTreeNode(formatCategoryName(subCat), 'subcategory', subResources.length);
+                                        
+                                        subNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                            e.stopPropagation();
+                                            filterAndShowResults(null, null, [resourceType], category, subCat);
+                                        });
+                                        
+                                        subContainer.appendChild(subNode);
+                                    } else {
+                                        // Object with nested subcategories
+                                        Object.keys(subCat).forEach(nestedSubCat => {
+                                            const nestedResources = catResources.filter(r => r.subcategory === nestedSubCat);
+                                            const nestedNode = createTreeNode(formatCategoryName(nestedSubCat), 'subcategory', nestedResources.length);
+                                            
+                                            nestedNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                                e.stopPropagation();
+                                                filterAndShowResults(null, null, [resourceType], category, nestedSubCat);
+                                            });
+                                            
+                                            subContainer.appendChild(nestedNode);
+                                        });
+                                    }
+                                });
+                                
+                                catNode.appendChild(subContainer);
+                                catNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    toggleNode(this.parentNode);
+                                });
+                            } else {
+                                // If no subcategories, just make it clickable for filtering
+                                catNode.querySelector('.node-content').addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    filterAndShowResults(null, null, [resourceType], category);
+                                });
+                            }
+                                
+                            childContainer.appendChild(catNode);
+                        });
+                        
+                        typeNode.appendChild(childContainer);
+                        typeNode.querySelector('.node-content').addEventListener('click', function() {
+                            toggleNode(this.parentNode);
+                        });
+                    }
+                });
+                
+                treeElement.appendChild(typeNode);
+            });
+            
+            container.appendChild(treeElement);
+        });
+}
+
+// Helper function to create a tree node
+function createTreeNode(name, cssClass, count = 0) {
+    const node = document.createElement('div');
+    node.className = `tree-node ${cssClass}-node`;
+    
+    const nodeContent = document.createElement('div');
+    nodeContent.className = 'node-content';
+    
+    const nodeToggle = document.createElement('span');
+    nodeToggle.className = 'node-toggle';
+    
+    const nodeName = document.createElement('span');
+    nodeName.className = 'node-name';
+    nodeName.textContent = name;
+    
+    const nodeCount = document.createElement('span');
+    nodeCount.className = 'node-count';
+    nodeCount.textContent = count;
+    
+    nodeContent.appendChild(nodeToggle);
+    nodeContent.appendChild(nodeName);
+    nodeContent.appendChild(nodeCount);
+    
+    node.appendChild(nodeContent);
+    
+    return node;
+}
+
+// Toggle node expansion
+function toggleNode(node) {
+    node.classList.toggle('node-expanded');
+}
+
+// Format category names for display (replace underscores with spaces)
+function formatCategoryName(name) {
+    return name.replace(/_/g, ' ');
+}
+
+// Apply filters and scroll to results section
+function filterAndShowResults(countries, domains, resourceTypes, category = null, subcategory = null) {
+    // This function will apply filters and show results
+    console.log('Filtering by:', { countries, domains, resourceTypes, category, subcategory });
+    
+    // Update the filter checkboxes in the browse section
+    if (countries) {
+        countries.forEach(country => {
+            document.querySelector(`input[data-category="country"][value="${country}"]`).checked = true;
+        });
+    }
+    
+    if (domains) {
+        domains.forEach(domain => {
+            document.querySelector(`input[data-category="domain"][value="${domain}"]`).checked = true;
+        });
+    }
+    
+    if (resourceTypes) {
+        resourceTypes.forEach(type => {
+            document.querySelector(`input[data-category="resource-type"][value="${type}"]`).checked = true;
+        });
+    }
+    
+    // Trigger the change event to update the display
+    document.querySelectorAll('.category-checkbox:checked').forEach(checkbox => {
+        checkbox.dispatchEvent(new Event('change'));
+    });
+    
+    // Scroll to the browse section
+    document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' });
 }
