@@ -21,200 +21,238 @@ Resource_type_hierarchy:
     sub_categories:
       omics_data:
         title: Omics and Molecular Data
-        genomic:
-          title: Genomic Sequencing
-          - whole_genome_sequencing:
-              title: Whole Genome Sequencing
-              - clinical_isolates
-              - bacterial_genomes
-              - viral_genomes
-              - fungal_genomes
-          - metagenomic:
-              title: Metagenomic Analysis
-              - wastewater_metagenomes
-              - human_fecal_metagenomes
-              - environmental_metagenomes
-              - host_associated_metagenomes
-              - soil_metagenomes
-              - marine_metagenomes
-          - transcriptomic:
-              title: Transcriptomic Data
-              - rna_seq:
-                  title: RNA Sequencing
-                  - bulk_rna_seq
-                  - single_cell_rna_seq
-                  - spatial_transcriptomics
-              - microarray:
-                  title: Microarray Data
-                  - expression_profiling
-                  - snp_genotyping
-              - meta_transcriptomics:
-                  title: Meta-transcriptomics
-                  - environmental_transcriptomes
-                  - host_microbiome_interaction
-          - proteomic:
-              title: Proteomic Data
-              - mass_spectrometry
-              - protein_arrays
-              - structural_proteomics
+        sub_categories:
+          genomic:
+            title: Genomic Sequencing
+            sub_categories:
+              whole_genome_sequencing:
+                title: Whole Genome Sequencing
+                items:
+                  - clinical_isolates
+                  - bacterial_genomes
+                  - viral_genomes
+                  - fungal_genomes
+              metagenomic:
+                title: Metagenomic Analysis
+                items:
+                  - wastewater_metagenomes
+                  - human_fecal_metagenomes
+                  - environmental_metagenomes
+                  - host_associated_metagenomes
+                  - soil_metagenomes
+                  - marine_metagenomes
+              transcriptomic:
+                title: Transcriptomic Data
+                sub_categories:
+                  rna_seq:
+                    title: RNA Sequencing
+                    items:
+                      - bulk_rna_seq
+                      - single_cell_rna_seq
+                      - spatial_transcriptomics
+                  microarray:
+                    title: Microarray Data
+                    items:
+                      - expression_profiling
+                      - snp_genotyping
+                  meta_transcriptomics:
+                    title: Meta-transcriptomics
+                    items:
+                      - environmental_transcriptomes
+                      - host_microbiome_interaction
+              proteomic:
+                title: Proteomic Data
+                items:
+                  - mass_spectrometry
+                  - protein_arrays
+                  - structural_proteomics
       population_data:
         title: Population and Epidemiological Data
-        - population_density
-        - human_mobility
-        - antimicrobial_consumption
-        - disease_incidence:
+        items:
+          - population_density
+          - human_mobility
+          - antimicrobial_consumption
+        sub_categories:
+          disease_incidence:
             title: Disease Incidence Records
-            - vector-borne
-            - sexually_transmitted
-            - respiratory_diseases
-            - foodborne_illnesses
-            - waterborne_diseases
-        - demographic_data:
+            items:
+              - vector-borne
+              - sexually_transmitted
+              - respiratory_diseases
+              - foodborne_illnesses
+              - waterborne_diseases
+          demographic_data:
             title: Demographic Information
-            - age_distribution
-            - socioeconomic_factors
-            - healthcare_access
+            items:
+              - age_distribution
+              - socioeconomic_factors
+              - healthcare_access
       environmental_data:
         title: Environmental Monitoring Data
-        - air_quality:
+        sub_categories:
+          air_quality:
             title: Air Quality Measurements
-            - particulate_matter
-            - bioaerosols
-            - gaseous_pollutants
-            - allergens
-        - climatological:
+            items:
+              - particulate_matter
+              - bioaerosols
+              - gaseous_pollutants
+              - allergens
+          climatological:
             title: Climate Data
-            - wind_patterns
-            - temperature_records and anomalies
-            - precipitation_records
-            - extreme_weather_events
-        - wastewater_infrastructure:
+            items:
+              - wind_patterns
+              - "temperature_records and anomalies"
+              - precipitation_records
+              - extreme_weather_events
+          wastewater_infrastructure:
             title: Wastewater System Data
-            - treatment_plant_locations
-            - chemical_monitoring_data
-            - flow_rates
-            - catchment_area_mapping
-        - water_quality:
+            items:
+              - treatment_plant_locations
+              - chemical_monitoring_data
+              - flow_rates
+              - catchment_area_mapping
+          water_quality:
             title: Water Quality Assessments
-            - drinking_water
-            - recreational_waters
-            - groundwater
+            items:
+              - drinking_water
+              - recreational_waters
+              - groundwater
 
   Systems:
     title: Infrastructure and Systems
     sub_categories:
       surveillance_network:
         title: Surveillance Networks and Early Warning Systems
-        - pathogen_tracking_systems:
+        sub_categories:
+          pathogen_tracking_systems:
             title: Pathogen Surveillance Systems
-            - clinical_isolate_registry
-            - wastewater_surveillance
-            - syndromic_surveillance
-            - vector_surveillance
-        - zoonotic_monitoring:
+            items:
+              - clinical_isolate_registry
+              - wastewater_surveillance
+              - syndromic_surveillance
+              - vector_surveillance
+          zoonotic_monitoring:
             title: Zoonotic Disease Monitoring
-            - migratory_bird_tracking
-            - wildlife_disease_surveillance
-            - livestock_health_monitoring
-            - vector_distribution_mapping
-        - environmental_monitoring:
+            items:
+              - migratory_bird_tracking
+              - wildlife_disease_surveillance
+              - livestock_health_monitoring
+              - vector_distribution_mapping
+          environmental_monitoring:
             title: Environmental Monitoring Networks
-            - water_quality_networks
-            - air_quality_networks
-            - climate_monitoring_stations
+            items:
+              - water_quality_networks
+              - air_quality_networks
+              - climate_monitoring_stations
       annotation_platforms:
         title: Data Annotation and Processing Platforms
-        - metadata_curation_tools
-        - geospatial_mapping:
+        items:
+          - metadata_curation_tools
+        sub_categories:
+          geospatial_mapping:
             title: Geospatial Analysis Tools
-            - OpenStreetMap_integration
-            - urban_rural_classification
-            - satellite_imagery_analysis
-            - elevation_mapping
-        - sequence_annotation:
+            items:
+              - OpenStreetMap_integration
+              - urban_rural_classification
+              - satellite_imagery_analysis
+              - elevation_mapping
+          sequence_annotation:
             title: Sequence Annotation Tools
-            - gene_prediction
-            - variant_calling
-            - functional_annotation
-        - data_visualization:
+            items:
+              - gene_prediction
+              - variant_calling
+              - functional_annotation
+          data_visualization:
             title: Visualization Platforms
-            - dashboard_systems
-            - interactive_maps
-            - network_visualization
+            items:
+              - dashboard_systems
+              - interactive_maps
+              - network_visualization
 
   Publications:
     title: Scientific Literature and Reports
     sub_categories:
       research_articles:
         title: Peer-reviewed Research
-        - epidemiological_studies
-        - methodology_papers
-        - outbreak_reports
+        items:
+          - epidemiological_studies
+          - methodology_papers
+          - outbreak_reports
       policy_documents:
         title: Policy and Guidance Documents
-        - government_reports
-        - regulatory_frameworks
-        - best_practice_guidelines
+        items:
+          - government_reports
+          - regulatory_frameworks
+          - best_practice_guidelines
       educational_resources:
         title: Educational Materials
-        - training_manuals
-        - online_courses
-        - infographics
+        items:
+          - training_manuals
+          - online_courses
+          - infographics
 
   Entities:
     title: Organizations and Repositories
     sub_categories:
       research_consortia:
         title: Research Networks and Consortia
-        - academic_partnerships
-        - public_health_networks
-        - industry_collaborations
-        - international_initiatives
+        items:
+          - academic_partnerships
+          - public_health_networks
+          - industry_collaborations
+          - international_initiatives
       data_repositories:
         title: Data Storage and Sharing Platforms
-        - wastewater_portal
-        - antimicrobial_resistance_registry
-        - genomic_databases
-        - environmental_data_archives
-        - clinical_data_repositories
+        items:
+          - wastewater_portal
+          - antimicrobial_resistance_registry
+          - genomic_databases
+          - environmental_data_archives
+          - clinical_data_repositories
       funding_bodies:
         title: Funding Organizations
-        - government_agencies
-        - non_profit_foundations
-        - international_organizations
+        items:
+          - government_agencies
+          - non_profit_foundations
+          - international_organizations
       public_health_agencies:
         title: Public Health Institutions
-        - national_health_institutes
-        - regional_health_authorities
-        - international_agencies
+        items:
+          - national_health_institutes
+          - regional_health_authorities
+          - international_agencies
 
   Utilities:
     title: Tools and Analytical Utilities
     sub_categories:
       bioinformatics:
         title: Bioinformatics Tools
-        - sequence_assembly_pipelines
-        - annotation_workflows
-        - phylogenetic_analysis_tools
-        - variant_calling_algorithms
-        - microbial_community_analysis
-        - protein_structure_prediction
+        items:
+          - sequence_assembly_pipelines
+          - annotation_workflows
+          - phylogenetic_analysis_tools
+          - variant_calling_algorithms
+          - microbial_community_analysis
+          - protein_structure_prediction
       geospatial:
         title: Geospatial Analysis Tools
-        - GIS_mapping_tools
-        - population_distribution_models
-        - spatial_clustering_algorithms
-        - remote_sensing_analysis
-        - trajectory_modeling
+        items:
+          - GIS_mapping_tools
+          - population_distribution_models
+          - spatial_clustering_algorithms
+          - remote_sensing_analysis
+          - trajectory_modeling
       statistical:
         title: Statistical and Mathematical Methods
-        - epidemiological_models
-        - machine_learning_algorithms
-        - bayesian_inference_tools
-        - time_series_analysis
+        items:
+          - epidemiological_models
+          - machine_learning_algorithms
+          - bayesian_inference_tools
+          - time_series_analysis
       data_management:
         title: Data Management Tools
-        - databases_and_storage
-        - data_cleaning_utilities
-        - metadata_standards
-        - ontology_services
+        items:
+          - databases_and_storage
+          - data_cleaning_utilities
+          - metadata_standards
+          - ontology_services
