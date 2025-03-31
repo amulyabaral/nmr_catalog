@@ -94,6 +94,9 @@
         .hierarchy-display { font-size: 0.85em; color: #555; }
         .hierarchy-display span { margin-right: 3px; }
         .hierarchy-display span:not(:last-child)::after { content: '>'; margin-left: 3px; color: #999; }
+        .comma-separated-list span:not(:last-child)::after {
+            content: ", ";
+        }
     </style>
 </head>
 <body>
@@ -136,8 +139,8 @@
                     <tr>
                         <th>ID</th>
                         <th>Title</th>
-                        <th>Country</th>
-                        <th>Domain</th>
+                        <th>Countries</th>
+                        <th>Domains</th>
                         <th>Hierarchy</th>
                         <th>Years</th>
                         <th>URL</th>
@@ -149,8 +152,12 @@
                     <tr>
                         <td>{{ res.data_source_id }}</td>
                         <td>{{ res.metadata_obj.get('title', res.data_source_id) }}</td>
-                        <td>{{ res.country }}</td>
-                        <td>{{ res.domain }}</td>
+                        <td class="comma-separated-list">
+                            {% for country in res.countries_list %}<span>{{ country }}</span>{% else %}N/A{% endfor %}
+                        </td>
+                        <td class="comma-separated-list">
+                            {% for domain in res.domains_list %}<span>{{ domain }}</span>{% else %}N/A{% endfor %}
+                        </td>
                         <td class="hierarchy-display">
                             {% if res.resource_type %}<span>{{ res.resource_type|replace('_', ' ')|title }}</span>{% endif %}
                             {% if res.category %}<span>{{ res.category|replace('_', ' ')|title }}</span>{% endif %}

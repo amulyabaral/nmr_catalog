@@ -85,23 +85,27 @@
             <!-- Main Categories -->
             <fieldset>
                 <legend>Main Categories</legend>
-                {# Assuming single select for edit based on DB schema #}
+                {# <<< UPDATED: Change to multi-select >>> #}
                 <div class="form-group">
-                    <label for="countries">Country:</label>
-                    <select id="countries" name="countries" required class="single-select">
-                        <option value="" disabled>-- Select Country --</option>
+                    <label for="countries">Countries:</label>
+                    {# Use getlist to handle multiple selections from form_data #}
+                    {% set selected_countries = form_data.getlist('countries') %}
+                    <select id="countries" name="countries" required class="multi-select-tags" multiple>
+                        {# <option value="" disabled>-- Select Country --</option> #} {# Remove placeholder for multi-select #}
                         {% for country in vocabularies.main_categories.Country %}
-                            <option value="{{ country }}" {% if country == form_data.get('countries') %}selected{% endif %}>{{ country }}</option>
+                            <option value="{{ country }}" {% if country in selected_countries %}selected{% endif %}>{{ country }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="domains">Domain:</label>
-                     <select id="domains" name="domains" required class="single-select">
-                         <option value="" disabled>-- Select Domain --</option>
+                    <label for="domains">Domains:</label>
+                    {# Use getlist to handle multiple selections from form_data #}
+                    {% set selected_domains = form_data.getlist('domains') %}
+                     <select id="domains" name="domains" required class="multi-select-tags" multiple>
+                         {# <option value="" disabled>-- Select Domain --</option> #} {# Remove placeholder for multi-select #}
                         {% for domain in vocabularies.main_categories.Domain %}
-                            <option value="{{ domain }}" {% if domain == form_data.get('domains') %}selected{% endif %}>{{ domain }}</option>
+                            <option value="{{ domain }}" {% if domain in selected_domains %}selected{% endif %}>{{ domain }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -418,8 +422,12 @@
 
         // --- Document Ready ---
         $(document).ready(function() {
-            // Initialize Select2 for multi-selects (if any are used in edit form)
-            // $('.multi-select-tags').select2({ placeholder: "Select one or more...", allowClear: true, tags: false });
+            // Initialize Select2 for multi-selects (including countries/domains)
+            $('.multi-select-tags').select2({
+                 placeholder: "Select one or more...",
+                 allowClear: true,
+                 tags: false // Prevent creation of new tags
+            });
 
             // Initialize Select2 for Related Resources (AJAX)
             $('#related-resources-select').select2({
@@ -484,8 +492,6 @@
                 // Clear the hidden field if parsing fails?
                 // $('#related_resources').val('[]');
             }
-            // --- End Pre-fill Related Resources ---
-
 
             // Fetch hierarchy data
             fetch('/api/resource-hierarchy')

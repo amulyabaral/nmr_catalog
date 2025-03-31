@@ -58,16 +58,16 @@ def init_db():
                     contact_information TEXT,           -- Allow NULL
                     metadata JSON,                      -- Additional metadata as JSON
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    country TEXT NOT NULL,              -- Main category: Country
-                    domain TEXT NOT NULL                -- Main category: Domain
+                    countries TEXT NOT NULL,            -- <<< RENAMED & TYPE CHANGE (JSON list)
+                    domains TEXT NOT NULL               -- <<< RENAMED & TYPE CHANGE (JSON list)
                 )''')
 
-    # Create pending submissions table
+    # Create pending submissions table (already uses JSON lists for countries/domains)
     c.execute('''CREATE TABLE IF NOT EXISTS pending_submissions (
                     submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     status TEXT DEFAULT 'pending', -- pending, approved, rejected
-                    resource_name TEXT,     -- <<< ADDED: Name/Title of the resource
+                    resource_name TEXT,
                     countries TEXT,         -- JSON list of selected countries
                     domains TEXT,           -- JSON list of selected domains
                     primary_hierarchy_path TEXT, -- JSON object: {resource_type: val, category: val, ... level5: val}
@@ -77,7 +77,7 @@ def init_db():
                     contact_info TEXT,
                     description TEXT,
                     related_metadata TEXT,  -- JSON list of selected hierarchy node paths/IDs
-                    related_resources TEXT, -- <<< ADDED: JSON list of linked existing resource data_source_ids
+                    related_resources TEXT, -- JSON list of linked existing resource data_source_ids
                     keywords TEXT,          -- Comma-separated string
                     license TEXT,           -- Optional license info
                     submitter_info TEXT     -- Optional: could add user ID or email if auth is implemented
@@ -172,16 +172,16 @@ def add_data_point(data):
     # The input 'data' tuple structure is assumed to be:
     # (None, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format,
     #  data_resolution, repository, repository_url, data_description, keywords,
-    #  last_updated, contact_information, metadata, country, domain)
+    #  last_updated, contact_information, metadata, countries_json, domains_json) # <<< UPDATED
     # Indices:   1           2          3            4          5        6           7          8
     #            9              10          11             12                 13
-    #            14             15                  16         17       18
+    #            14             15                  16         17             18         # <<< UPDATED
 
     if check_duplicate_entry(data):
         print(f"Warning: Duplicate entry detected based on repository_url: {data[11]}")
         return None
 
-    # Generate unique ID
+    # Generate unique ID (using same logic, doesn't depend on country/domain)
     id_gen_data = (
         None, None, data[2], None, None, None, None, data[7], None, None, None, None, None,
         data[14], None, data[16]
@@ -208,8 +208,8 @@ def add_data_point(data):
         data[14], # last_updated (required)
         data[15] or None, # contact_information
         data[16] or '{}', # metadata (default if None)
-        data[17], # country (required)
-        data[18]  # domain (required)
+        data[17], # countries_json (required) # <<< UPDATED
+        data[18]  # domains_json (required)   # <<< UPDATED
     )
 
     conn = get_db()
@@ -220,8 +220,8 @@ def add_data_point(data):
                         data_source_id, resource_type, category, subcategory, data_type, level5,
                         year_start, year_end, data_format, data_resolution, repository, repository_url,
                         data_description, keywords, last_updated, contact_information, metadata,
-                        country, domain
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data)
+                        countries, domains
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data) # <<< UPDATED columns
         conn.commit()
         print(f"Added data point with ID: {data_source_id}")
     except sqlite3.IntegrityError as e:

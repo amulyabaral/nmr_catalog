@@ -245,13 +245,29 @@ def filter_resources():
     """
     params = []
 
+    # --- UPDATED Filtering for JSON columns ---
+    # Use LIKE for simple JSON array matching (assumes simple values like ["Sweden", "Norway"])
+    # This is not the most efficient way for large datasets but works for SQLite without JSON extensions
     if filters.get('countries'):
-        query += " AND country IN (" + ",".join(["?"] * len(filters['countries'])) + ")"
-        params.extend(filters['countries'])
+        country_conditions = []
+        for country in filters['countries']:
+            # Create a LIKE pattern for the country within the JSON array string
+            # e.g., %"Sweden"% - checks if the exact string exists
+            like_pattern = f'%"{country}"%'
+            country_conditions.append("countries LIKE ?")
+            params.append(like_pattern)
+        if country_conditions:
+            query += " AND (" + " OR ".join(country_conditions) + ")" # Use OR if any selected country should match
 
     if filters.get('domains'):
-        query += " AND domain IN (" + ",".join(["?"] * len(filters['domains'])) + ")"
-        params.extend(filters['domains'])
+        domain_conditions = []
+        for domain in filters['domains']:
+            like_pattern = f'%"{domain}"%'
+            domain_conditions.append("domains LIKE ?")
+            params.append(like_pattern)
+        if domain_conditions:
+            query += " AND (" + " OR ".join(domain_conditions) + ")" # Use OR if any selected domain should match
+    # --- END UPDATED Filtering ---
 
     if filters.get('resourceTypes'):
         query += " AND resource_type IN (" + ",".join(["?"] * len(filters['resourceTypes'])) + ")"
@@ -264,7 +280,21 @@ def filter_resources():
     conn.close() # Close connection
 
     # Convert results to list of dictionaries
-    return jsonify([dict(row) for row in results])
+    # Parse countries and domains JSON for the response
+    processed_results = []
+    for row in results:
+        row_dict = dict(row)
+        try:
+            row_dict['countries_list'] = json.loads(row_dict.get('countries', '[]'))
+        except json.JSONDecodeError:
+            row_dict['countries_list'] = ['Error']
+        try:
+            row_dict['domains_list'] = json.loads(row_dict.get('domains', '[]'))
+        except json.JSONDecodeError:
+            row_dict['domains_list'] = ['Error']
+        processed_results.append(row_dict)
+
+    return jsonify(processed_results)
 
 # Use data_source_id for fetching specific resources via API
 @app.route('/api/resource/<resource_id>')
@@ -278,13 +308,22 @@ def get_resource(resource_id):
     if result is None:
         return jsonify({'error': 'Resource not found'}), 404
 
-    # Convert row to dict and parse metadata
+    # Convert row to dict and parse metadata, countries, domains
     resource_dict = dict(result)
     if resource_dict.get('metadata'):
         try:
             resource_dict['metadata'] = json.loads(resource_dict['metadata'])
         except json.JSONDecodeError:
             resource_dict['metadata'] = {} # Handle invalid JSON
+    try:
+        resource_dict['countries_list'] = json.loads(resource_dict.get('countries', '[]'))
+    except json.JSONDecodeError:
+        resource_dict['countries_list'] = []
+    try:
+        resource_dict['domains_list'] = json.loads(resource_dict.get('domains', '[]'))
+    except json.JSONDecodeError:
+        resource_dict['domains_list'] = []
+
 
     return jsonify(resource_dict)
 
@@ -436,7 +475,8 @@ def get_network_data():
     conn = get_db()
     cur = conn.cursor()
     # Select columns needed for linking and display from the main data_points table
-    cur.execute('SELECT id, data_source_id, resource_type, category, subcategory, data_type, level5, country, domain, metadata FROM data_points')
+    # <<< Fetch countries and domains instead of country, domain >>>
+    cur.execute('SELECT id, data_source_id, resource_type, category, subcategory, data_type, level5, countries, domains, metadata FROM data_points')
     data_points = cur.fetchall()
     conn.close()
 
@@ -453,6 +493,23 @@ def get_network_data():
                 metadata = json.loads(point_dict['metadata'])
             except json.JSONDecodeError:
                 pass # Ignore invalid JSON
+
+        # --- Parse Countries and Domains JSON ---
+        countries_list = []
+        domains_list = []
+        try:
+            countries_list = json.loads(point_dict.get('countries', '[]'))
+        except json.JSONDecodeError:
+            print(f"Warning: Could not parse countries JSON for {point_dict['data_source_id']}")
+        try:
+            domains_list = json.loads(point_dict.get('domains', '[]'))
+        except json.JSONDecodeError:
+            print(f"Warning: Could not parse domains JSON for {point_dict['data_source_id']}")
+
+        # --- Use FIRST country/domain for node linking/coloring (simplification) ---
+        country = countries_list[0] if countries_list else None
+        domain = domains_list[0] if domains_list else None
+        # --- End Simplification ---
 
         # --- Determine the leaf hierarchy node ID for this data point ---
         # This uses the specific hierarchy fields stored in data_points
@@ -475,20 +532,14 @@ def get_network_data():
 
 
         # --- Add Data Point Node ---
-        # Use data_source_id for the node ID for consistency if possible,
-        # but ensure it doesn't clash with hierarchy IDs. Prefixing is safer.
-        # Let's stick with db primary key for uniqueness guarantee.
         dp_node_id = f"dp_{point_dict['id']}"
-        # Get title from metadata if available, otherwise use data_source_id
         dp_label = metadata.get('title', point_dict['data_source_id'])
-        country = point_dict.get('country') # Primary country from DB
-        domain = point_dict.get('domain')   # Primary domain from DB
-        country_info = COUNTRY_INFO.get(country, default_country_info)
-        # Use country color for the data point fill, but add distinct border
+        country_info = COUNTRY_INFO.get(country, default_country_info) if country else default_country_info
         dp_fill_color = country_info['color']
-        dp_border_color = '#555555' # Darker border for contrast
+        dp_border_color = '#555555'
         dp_shape = 'dot'
-        tooltip = f"<b>{dp_label}</b><br>ID: {point_dict['data_source_id']}<br>Country: {country}<br>Domain: {domain}<br>Type: {point_dict.get('resource_type', 'N/A')}"
+        # Update tooltip to show lists
+        tooltip = f"<b>{dp_label}</b><br>ID: {point_dict['data_source_id']}<br>Countries: {', '.join(countries_list)}<br>Domains: {', '.join(domains_list)}<br>Type: {point_dict.get('resource_type', 'N/A')}"
 
         if dp_node_id not in added_nodes:
             nodes.append({
@@ -497,25 +548,17 @@ def get_network_data():
                 'title': tooltip,
                 'group': 'data_point',
                 'shape': dp_shape,
-                'size': 18, # Slightly larger data points
+                'size': 18,
                 'mass': 3,
-                'font': {'size': base_font_size}, # Apply base font size
-                # --- Styling for Data Points ---
+                'font': {'size': base_font_size},
                 'color': {
-                    'background': dp_fill_color, # Fill color based on country
-                    'border': dp_border_color,   # Distinct border color
-                    'highlight': {
-                        'background': dp_fill_color,
-                        'border': '#2B7CE9' # Standard highlight border color
-                    },
-                    'hover': {
-                        'background': dp_fill_color,
-                        'border': '#E04141' # Different hover border color
-                    }
+                    'background': dp_fill_color,
+                    'border': dp_border_color,
+                    'highlight': { 'background': dp_fill_color, 'border': '#2B7CE9' },
+                    'hover': { 'background': dp_fill_color, 'border': '#E04141' }
                 },
-                'borderWidth': 2, # Make border thicker than default
-                'borderWidthSelected': 4 # Even thicker when selected
-                # --- End Styling ---
+                'borderWidth': 2,
+                'borderWidthSelected': 4
             })
             added_nodes.add(dp_node_id)
 
@@ -524,64 +567,43 @@ def get_network_data():
             edges.append({
                 'from': leaf_hierarchy_node_id,
                 'to': dp_node_id,
-                # 'arrows': 'to', # REMOVED ARROWS
-                'length': 80, # Shorter link from hierarchy to data point
+                'length': 80,
                 'color': {'color': '#c0c0c0', 'highlight': '#a0a0a0', 'hover': '#a0a0a0'}
             })
 
         # --- Add Country and Domain Nodes and Edges from Data Point ---
-        # Country Node (Primary Country)
-        country_node_id = f"country_{country.replace(' ', '_').lower()}" if country else None
-        if country_node_id:
+        # Link to *all* countries and domains associated with the data point
+        for c_name in countries_list:
+            country_node_id = f"country_{c_name.replace(' ', '_').lower()}"
+            c_info = COUNTRY_INFO.get(c_name, default_country_info)
             if country_node_id not in added_nodes:
-                country_label = f"{country_info['flag']} {country}"
+                country_label = f"{c_info['flag']} {c_name}"
                 nodes.append({
-                    'id': country_node_id,
-                    'label': country_label,
-                    'title': f"Country: {country}",
-                    'group': 'country_node',
-                    'color': country_info['color'], # Use the pastel color
-                    'shape': 'hexagon',
-                    'size': 30, # Larger country nodes
-                    'mass': 15,
-                    'font': {'size': base_font_size + 2} # Larger font for countries
+                    'id': country_node_id, 'label': country_label, 'title': f"Country: {c_name}",
+                    'group': 'country_node', 'color': c_info['color'], 'shape': 'hexagon',
+                    'size': 30, 'mass': 15, 'font': {'size': base_font_size + 2}
                 })
                 added_nodes.add(country_node_id)
-            # Edge from Data Point to Country
             edges.append({
-                'from': dp_node_id,
-                'to': country_node_id,
-                # 'arrows': 'to', # REMOVED ARROWS
-                'length': 200, # Longer link to country
+                'from': dp_node_id, 'to': country_node_id, 'length': 200,
                 'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
             })
 
-        # Domain Node (Primary Domain)
-        domain_node_id = f"domain_{domain.replace(' ', '_').lower()}" if domain else None
-        if domain_node_id:
-             if domain_node_id not in added_nodes:
-                domain_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
-                domain_color = '#FFDAB9' # Pastel Orange/Peach for domain
+        for d_name in domains_list:
+            domain_node_id = f"domain_{d_name.replace(' ', '_').lower()}"
+            if domain_node_id not in added_nodes:
+                domain_shape = DOMAIN_SHAPES.get(d_name, DOMAIN_SHAPES['default'])
+                domain_color = '#FFDAB9'
                 nodes.append({
-                    'id': domain_node_id,
-                    'label': domain,
-                    'title': f"Domain: {domain}",
-                    'group': 'domain_node',
-                    'color': domain_color,
-                    'shape': domain_shape,
-                    'size': 22, # Larger domain nodes
-                    'mass': 8,
-                    'font': {'size': base_font_size} # Apply base font size
+                    'id': domain_node_id, 'label': d_name, 'title': f"Domain: {d_name}",
+                    'group': 'domain_node', 'color': domain_color, 'shape': domain_shape,
+                    'size': 22, 'mass': 8, 'font': {'size': base_font_size}
                 })
                 added_nodes.add(domain_node_id)
-             # Edge from Data Point to Domain
-             edges.append({
-                'from': dp_node_id,
-                'to': domain_node_id,
-                # 'arrows': 'to', # REMOVED ARROWS
-                'length': 180, # Slightly shorter link to domain than country
+            edges.append({
+                'from': dp_node_id, 'to': domain_node_id, 'length': 180,
                 'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
-             })
+            })
 
 
     return jsonify({'nodes': nodes, 'edges': edges})
@@ -639,16 +661,22 @@ def approve_submission(submission_id):
     try:
         # --- Transform Submission Data ---
         resource_name = submission.get('resource_name')
-        countries = json.loads(submission.get('countries', '[]'))
-        domains = json.loads(submission.get('domains', '[]'))
+        # Get JSON strings directly from submission
+        countries_json = submission.get('countries', '[]')
+        domains_json = submission.get('domains', '[]')
+        # Parse primary hierarchy and related data
         primary_hierarchy = json.loads(submission.get('primary_hierarchy_path', '{}'))
         related_metadata_paths = json.loads(submission.get('related_metadata', '[]'))
         related_resource_ids = json.loads(submission.get('related_resources', '[]'))
         year_start = submission.get('year_start')
         year_end = submission.get('year_end')
 
-        country = countries[0] if countries else 'Unknown'
-        domain = domains[0] if domains else 'Unknown'
+        # Validate JSON lists are not empty
+        countries_list = json.loads(countries_json)
+        domains_list = json.loads(domains_json)
+        if not countries_list or not domains_list:
+             flash(f'Submission {submission_id} missing Country or Domain selection. Cannot approve.', 'error')
+             return redirect(url_for('admin_review'))
 
         # Extract hierarchy levels (use .get with None default)
         resource_type = primary_hierarchy.get('resource_type') # Required
@@ -658,36 +686,34 @@ def approve_submission(submission_id):
         level5 = primary_hierarchy.get('level5')
 
         # --- Validation ---
-        if not resource_name or not resource_type or year_start is None or year_end is None or not countries or not domains:
-             flash(f'Submission {submission_id} missing required fields (Name, Type, Year Range, Country, Domain). Cannot approve.', 'error')
+        if not resource_name or not resource_type or year_start is None or year_end is None:
+             flash(f'Submission {submission_id} missing required fields (Name, Type, Year Range). Cannot approve.', 'error')
              return redirect(url_for('admin_review'))
         # --- End Validation ---
 
         repository_url = submission.get('resource_url')
-        # Use urlparse to get netloc (domain name) as repository, handle potential errors
         try:
             parsed_url = urlparse(repository_url)
             repository = parsed_url.netloc if parsed_url.netloc else 'Unknown'
-        except Exception: # Catch potential errors during parsing
+        except Exception:
             repository = 'Unknown'
 
         data_description = submission.get('description', '')
-        keywords = submission.get('keywords') # Keep as potentially None
-        contact_information = submission.get('contact_info') # Keep as potentially None
+        keywords = submission.get('keywords')
+        contact_information = submission.get('contact_info')
         last_updated = datetime.date.today().isoformat()
-        data_format = 'Unknown' # Set default as not collected
-        data_resolution = 'Unknown' # Set default as not collected
+        data_format = 'Unknown'
+        data_resolution = 'Unknown'
 
         # Create metadata JSON
         metadata_dict = {
             "title": resource_name,
-            "institution": "Unknown", # Not collected, default
+            "institution": "Unknown",
             "license": submission.get('license'),
             "original_url": repository_url,
             "related_metadata_categories": related_metadata_paths,
             "related_resource_ids": related_resource_ids,
             "submitted_description": data_description
-            # Add resolution here if desired: "resolution": data_resolution
         }
         metadata_json = json.dumps(metadata_dict)
 
@@ -696,27 +722,22 @@ def approve_submission(submission_id):
             None, resource_type, category, subcategory, data_type, level5,
             year_start, year_end, data_format, data_resolution, repository, repository_url,
             data_description, keywords, last_updated, contact_information, metadata_json,
-            country, domain
+            countries_json, domains_json # <<< Pass JSON strings
         )
 
         # --- Add to Main Data Points Table ---
         new_data_source_id = add_data_point(data_point_tuple)
 
         if new_data_source_id:
-            # Update status or delete the pending submission
-            # Option 1: Update status
-            # update_pending_submission_status(submission_id, 'approved')
-            # Option 2: Delete after approval
             delete_pending_submission(submission_id)
             flash(f'Submission {submission_id} approved and added with ID: {new_data_source_id}.', 'success')
         else:
             flash(f'Failed to add approved submission {submission_id} to main database (possibly duplicate URL).', 'error')
 
-
     except json.JSONDecodeError as e:
         flash(f'Error parsing JSON data for submission {submission_id}: {e}. Cannot approve.', 'error')
     except Exception as e:
-        app.logger.error(f"Error approving submission {submission_id}: {e}", exc_info=True) # Log stack trace
+        app.logger.error(f"Error approving submission {submission_id}: {e}", exc_info=True)
         flash(f'An error occurred while approving submission {submission_id}: {e}', 'error')
 
     return redirect(url_for('admin_review'))
@@ -769,16 +790,20 @@ def download_db():
 def admin_manage():
     """Displays a list of approved resources for editing or deletion."""
     approved_resources = get_all_data_points() # Fetch all approved points
-    # Parse metadata for display if needed (optional, can be done in template)
+    # Parse JSON fields for display
     for resource in approved_resources:
         try:
-            # Ensure metadata exists and is valid JSON before parsing
             if resource.get('metadata'):
                  resource['metadata_obj'] = json.loads(resource['metadata'])
             else:
-                 resource['metadata_obj'] = {} # Default to empty dict if no metadata
+                 resource['metadata_obj'] = {}
+            # <<< Parse countries and domains JSON >>>
+            resource['countries_list'] = json.loads(resource.get('countries', '[]'))
+            resource['domains_list'] = json.loads(resource.get('domains', '[]'))
         except json.JSONDecodeError:
             resource['metadata_obj'] = {'Error': 'Invalid JSON'}
+            resource['countries_list'] = ['Error'] # Add error handling
+            resource['domains_list'] = ['Error']
     return render_template('admin_manage.html', resources=approved_resources)
 
 # --- NEW: Edit Resource (GET - Show Form) ---
@@ -791,31 +816,29 @@ def edit_data_form(data_id):
         flash(f'Resource with ID {data_id} not found.', 'error')
         return redirect(url_for('admin_manage'))
 
-    # Convert Row to mutable dict to add metadata_obj
     data_point = dict(data_point_row)
-
-    # Prepare data for the form (similar to how it's done for add_data errors)
-    form_data = {} # Initialize form_data dictionary
-    metadata = {} # Initialize metadata dictionary
+    form_data = {}
+    metadata = {}
 
     try:
-        # Parse metadata JSON string from the database record
         if data_point.get('metadata'):
             metadata = json.loads(data_point['metadata'])
-        # Add the parsed metadata object to the data_point dictionary for template access
-        data_point['metadata_obj'] = metadata # <<< ADD THIS LINE
+        data_point['metadata_obj'] = metadata
 
-        # Use title from metadata, fallback to data_source_id
+        # <<< Parse countries and domains JSON from DB >>>
+        countries_list = json.loads(data_point.get('countries', '[]'))
+        domains_list = json.loads(data_point.get('domains', '[]'))
+
         form_data['resource_name'] = metadata.get('title', data_point.get('data_source_id'))
-        form_data['license'] = metadata.get('license', '') # Use get with default
+        form_data['license'] = metadata.get('license', '')
 
-        # Pass related resources/metadata JSON strings; JS will parse them.
         form_data['related_resources'] = json.dumps(metadata.get('related_resource_ids', []))
         form_data['related_metadata'] = json.dumps(metadata.get('related_metadata_categories', []))
 
-        # Populate other fields directly from the data_point dictionary
-        form_data['countries'] = data_point.get('country') # Single value from DB
-        form_data['domains'] = data_point.get('domain')     # Single value from DB
+        # <<< Pass the lists for multi-select pre-filling >>>
+        form_data['countries'] = countries_list
+        form_data['domains'] = domains_list
+
         form_data['level1_resource_type'] = data_point.get('resource_type')
         form_data['level2_category'] = data_point.get('category')
         form_data['level3_subcategory'] = data_point.get('subcategory')
@@ -824,23 +847,33 @@ def edit_data_form(data_id):
         form_data['year_start'] = data_point.get('year_start')
         form_data['year_end'] = data_point.get('year_end')
         form_data['resource_url'] = data_point.get('repository_url')
-        form_data['contact_info'] = data_point.get('contact_information', '') # Use get with default
-        form_data['description'] = data_point.get('data_description', '') # Use get with default
-        form_data['keywords'] = data_point.get('keywords', '') # Use get with default
+        form_data['contact_info'] = data_point.get('contact_information', '')
+        form_data['description'] = data_point.get('data_description', '')
+        form_data['keywords'] = data_point.get('keywords', '')
 
-        # Convert to MultiDict for template compatibility if reusing add_data logic heavily
-        form_data_multidict = MultiDict(form_data)
+        # Convert to MultiDict for template compatibility
+        # Handle list values correctly for MultiDict
+        form_data_multidict_items = []
+        for key, value in form_data.items():
+            if isinstance(value, list):
+                for item in value:
+                    form_data_multidict_items.append((key, item))
+            else:
+                form_data_multidict_items.append((key, value))
+        form_data_multidict = MultiDict(form_data_multidict_items)
 
-    except json.JSONDecodeError:
-        flash('Error parsing metadata for editing.', 'error')
-        # Provide default empty structure or fallback
-        data_point['metadata_obj'] = {'Error': 'Invalid JSON'} # Add error info
-        form_data_multidict = MultiDict(data_point) # Fallback to raw data_point dict
 
-    # Pass the modified data_point dict (now includes metadata_obj)
+    except json.JSONDecodeError as e:
+        flash(f'Error parsing stored data for editing: {e}', 'error')
+        data_point['metadata_obj'] = {'Error': 'Invalid JSON'}
+        # Provide empty lists if parsing fails
+        form_data['countries'] = []
+        form_data['domains'] = []
+        form_data_multidict = MultiDict(data_point) # Fallback
+
     return render_template('edit_data.html',
                            vocabularies=VOCABULARIES,
-                           data_point=data_point, # Pass the modified data point
+                           data_point=data_point,
                            form_data=form_data_multidict) # Pass the pre-filled form data
 
 # --- NEW: Edit Resource (POST - Handle Update) ---
@@ -848,21 +881,19 @@ def edit_data_form(data_id):
 @admin_required
 def update_data(data_id):
     """Handles the submission of the edit form."""
-    # Fetch the original data point to compare or use defaults if needed
     original_data_point = get_data_point_by_id(data_id)
     if not original_data_point:
         flash(f'Resource with ID {data_id} not found.', 'error')
         return redirect(url_for('admin_manage'))
 
-    form_data = request.form # Use request.form for POST
+    form_data = request.form
 
     try:
-        # --- Collect Form Data (similar to add_data) ---
+        # --- Collect Form Data ---
         resource_name = form_data.get('resource_name')
-        # Assuming single country/domain selection in edit form for simplicity matching DB
-        country = form_data.get('countries') # Assuming single value select/input
-        domain = form_data.get('domains')   # Assuming single value select/input
-        # If using multi-select in edit form, use getlist and handle appropriately
+        # <<< Get lists for countries and domains >>>
+        countries_list = form_data.getlist('countries')
+        domains_list = form_data.getlist('domains')
 
         primary_hierarchy = {
             'resource_type': form_data.get('level1_resource_type'),
@@ -871,7 +902,6 @@ def update_data(data_id):
             'data_type': form_data.get('level4_data_type'),
             'level5': form_data.get('level5_item')
         }
-        # Clean empty values, but allow None to be stored if a level is deselected
         primary_hierarchy = {k: (v if v else None) for k, v in primary_hierarchy.items()}
 
         year_start = form_data.get('year_start', type=int)
@@ -885,21 +915,19 @@ def update_data(data_id):
         license_info = form_data.get('license')
 
         # --- Basic Validation ---
-        if not resource_name or not country or not domain or not primary_hierarchy.get('resource_type') or not resource_url or year_start is None or year_end is None or year_start > year_end:
-             flash('Missing required fields or invalid year range.', 'error')
+        # <<< Check if lists are empty >>>
+        if not resource_name or not countries_list or not domains_list or not primary_hierarchy.get('resource_type') or not resource_url or year_start is None or year_end is None or year_start > year_end:
+             flash('Missing required fields (Name, Country, Domain, Resource Type, URL) or invalid year range.', 'error')
              # Re-render edit form with submitted data
-             # Need to reconstruct the MultiDict for the template
              return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
 
         # --- Prepare Data for Update ---
-        # Extract hierarchy levels
         resource_type = primary_hierarchy.get('resource_type')
         category = primary_hierarchy.get('category')
         subcategory = primary_hierarchy.get('subcategory')
         data_type = primary_hierarchy.get('data_type')
         level5 = primary_hierarchy.get('level5')
 
-        # Reconstruct metadata JSON
         try:
             parsed_url = urlparse(resource_url)
             repository = parsed_url.netloc if parsed_url.netloc else 'Unknown'
@@ -909,25 +937,27 @@ def update_data(data_id):
              flash(f'Invalid format for related data or URL: {e}', 'error')
              return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
 
-        # Get original metadata to preserve fields not edited in the form (like institution)
         original_metadata = {}
         if original_data_point.get('metadata'):
             try:
                 original_metadata = json.loads(original_data_point['metadata'])
             except json.JSONDecodeError:
-                pass # Ignore if original is invalid
+                pass
 
         metadata_dict = {
             "title": resource_name,
-            "institution": original_metadata.get('institution', "Unknown"), # Preserve original institution
+            "institution": original_metadata.get('institution', "Unknown"),
             "license": license_info,
-            "original_url": resource_url, # Store the potentially updated URL here too
+            "original_url": resource_url,
             "related_metadata_categories": related_metadata_list,
             "related_resource_ids": related_resources_list,
-            "submitted_description": description # Store the potentially updated description
-            # Add other metadata fields if they were editable
+            "submitted_description": description
         }
         metadata_json_updated = json.dumps(metadata_dict)
+
+        # <<< Convert lists to JSON strings for DB update >>>
+        countries_json_updated = json.dumps(countries_list)
+        domains_json_updated = json.dumps(domains_list)
 
         # Dictionary of fields to update in data_points table
         update_payload = {
@@ -938,20 +968,16 @@ def update_data(data_id):
             'level5': level5,
             'year_start': year_start,
             'year_end': year_end,
-            # 'data_format': form_data.get('data_format', original_data_point.get('data_format')), # If editable
-            # 'data_resolution': form_data.get('data_resolution', original_data_point.get('data_resolution')), # If editable
             'repository': repository,
             'repository_url': resource_url,
             'data_description': description,
             'keywords': keywords,
-            'last_updated': datetime.date.today().isoformat(), # Update timestamp
+            'last_updated': datetime.date.today().isoformat(),
             'contact_information': contact_info,
             'metadata': metadata_json_updated,
-            'country': country,
-            'domain': domain
+            'countries': countries_json_updated, # <<< Use new column name and JSON
+            'domains': domains_json_updated    # <<< Use new column name and JSON
         }
-        # Keep None values from hierarchy deselection
-        # update_payload = {k: v for k, v in update_payload.items() if v is not None} # Reconsider this line
 
         # --- Call Database Update Function ---
         if update_data_point(data_id, update_payload):
@@ -959,13 +985,11 @@ def update_data(data_id):
             return redirect(url_for('admin_manage'))
         else:
             flash(f'Failed to update resource {original_data_point.get("data_source_id", data_id)}.', 'error')
-            # Re-render edit form with submitted data
             return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
 
     except Exception as e:
         app.logger.error(f"Error updating resource {data_id}: {e}", exc_info=True)
         flash(f'An unexpected error occurred: {e}', 'error')
-        # Re-render edit form with submitted data
         return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
 
 # --- (Optional) NEW: Delete Resource ---
