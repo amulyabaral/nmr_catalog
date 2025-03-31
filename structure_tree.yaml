@@ -1,0 +1,347 @@
+main_categories:
+  Country:
+    - Sweden
+    - Norway
+    - Denmark
+    - Finland
+  Domain:
+    - Human
+    - Animal
+    - Environment
+  Resource_type:
+    - Data
+    - Systems
+    - Publications
+    - Entities
+    - Utilities
+
+Resource_type_hierarchy:
+  Data:
+    level: 1
+    sub_categories:
+      omics_data:
+        level: 2
+        sub_categories:
+          genomic:
+            level: 3
+            sub_categories:
+              whole_genome_sequencing:
+                level: 4
+                items:
+                  - name: clinical_isolates
+                    level: 5
+                  - name: bacterial_genomes
+                    level: 5
+                  - name: viral_genomes
+                    level: 5
+                  - name: fungal_genomes
+                    level: 5
+              metagenomic:
+                level: 4
+                items:
+                  - name: wastewater_metagenomes
+                    level: 5
+                  - name: human_fecal_metagenomes
+                    level: 5
+                  - name: other_environmental_metagenomes
+                    level: 5
+                  - name: host_associated_metagenomes
+                    level: 5
+                  - name: soil_metagenomes
+                    level: 5
+                  - name: marine_metagenomes
+                    level: 5
+              transcriptomic:
+                level: 3
+                sub_categories:
+                  rna_seq:
+                    level: 4
+                    items:
+                      - name: bulk_rna_seq
+                        level: 5
+                      - name: single_cell_rna_seq
+                        level: 5
+                      - name: spatial_transcriptomics
+                        level: 5
+                  microarray:
+                    level: 4
+                    items:
+                      - name: expression_profiling
+                        level: 5
+                      - name: snp_genotyping
+                        level: 5
+                  meta_transcriptomics:
+                    level: 4
+                    items:
+                      - name: environmental_transcriptomes
+                        level: 5
+                      - name: host_microbiome_interaction
+                        level: 5
+              proteomic:
+                level: 3
+                items:
+                  - name: mass_spectrometry
+                    level: 4
+                  - name: protein_arrays
+                    level: 4
+                  - name: structural_proteomics
+                    level: 4
+      population_data:
+        level: 2
+        items:
+          - name: population_density
+            level: 3
+          - name: human_mobility
+            level: 3
+          - name: antimicrobial_consumption
+            level: 3
+        sub_categories:
+          disease_incidence:
+            level: 3
+            items:
+              - name: vector-borne
+                level: 4
+              - name: sexually_transmitted
+                level: 4
+              - name: respiratory_diseases
+                level: 4
+              - name: foodborne_illnesses
+                level: 4
+              - name: waterborne_diseases
+                level: 4
+          demographic_data:
+            level: 3
+            items:
+              - name: age_distribution
+                level: 4
+              - name: socioeconomic_factors
+                level: 4
+              - name: healthcare_access
+                level: 4
+      environmental_data:
+        level: 2
+        sub_categories:
+          air_quality:
+            level: 3
+            items:
+              - name: particulate_matter
+                level: 4
+              - name: bioaerosols
+                level: 4
+              - name: gaseous_pollutants
+                level: 4
+              - name: allergens
+                level: 4
+          climatological:
+            level: 3
+            items:
+              - name: wind_patterns
+                level: 4
+              - name: temperature_records_and_anomalies
+                level: 4
+              - name: precipitation_records
+                level: 4
+              - name: extreme_weather_events
+                level: 4
+          wastewater_infrastructure:
+            level: 3
+            items:
+              - name: treatment_plant_locations
+                level: 4
+              - name: chemical_monitoring_data
+                level: 4
+              - name: flow_rates
+                level: 4
+              - name: catchment_area_mapping
+                level: 4
+          water_quality:
+            level: 3
+            items:
+              - name: drinking_water
+                level: 4
+              - name: recreational_waters
+                level: 4
+              - name: groundwater
+                level: 4
+
+  Systems:
+    level: 1
+    sub_categories:
+      surveillance_network:
+        level: 2
+        sub_categories:
+          pathogen_tracking_systems:
+            level: 3
+            items:
+              - name: clinical_isolate_registry
+                level: 4
+              - name: wastewater_surveillance
+                level: 4
+              - name: syndromic_surveillance
+                level: 4
+              - name: vector_surveillance
+                level: 4
+          zoonotic_monitoring:
+            level: 3
+            items:
+              - name: migratory_bird_tracking
+                level: 4
+              - name: wildlife_disease_surveillance
+                level: 4
+              - name: livestock_health_monitoring
+                level: 4
+              - name: vector_distribution_mapping
+                level: 4
+          environmental_monitoring:
+            level: 3
+            items:
+              - name: water_quality_networks
+                level: 4
+              - name: air_quality_networks
+                level: 4
+              - name: climate_monitoring_stations
+                level: 4
+      annotation_platforms:
+        level: 2
+        items:
+          - name: metadata_curation_tools
+            level: 3
+        sub_categories:
+          geospatial_mapping:
+            level: 3
+            items:
+              - name: OpenStreetMap_integration
+                level: 4
+              - name: urban_rural_classification
+                level: 4
+              - name: satellite_imagery_analysis
+                level: 4
+              - name: elevation_mapping
+                level: 4
+          sequence_annotation:
+            level: 3
+            items:
+              - name: gene_prediction
+                level: 4
+              - name: variant_calling
+                level: 4
+              - name: functional_annotation
+                level: 4
+          data_visualization:
+            level: 3
+            items:
+              - name: dashboard_systems
+                level: 4
+              - name: interactive_maps
+                level: 4
+              - name: network_visualization
+                level: 4
+
+  Publications:
+    level: 1
+    sub_categories:
+      research_articles:
+        level: 2
+        items:
+          - name: epidemiological_studies
+            level: 3
+          - name: methodology_papers
+            level: 3
+          - name: outbreak_reports
+            level: 3
+      policy_documents:
+        level: 2
+        items:
+          - name: government_reports
+            level: 3
+          - name: regulatory_frameworks
+            level: 3
+          - name: best_practice_guidelines
+            level: 3
+      educational_resources:
+        level: 2
+        items:
+          - name: training_manuals
+            level: 3
+          - name: online_courses
+            level: 3
+          - name: infographics
+            level: 3
+
+  Entities:
+    level: 1
+    sub_categories:
+      research_consortia:
+        level: 2
+      funding_bodies:
+        level: 2
+        items:
+          - name: government_agencies
+            level: 3
+          - name: non_profit_foundations
+            level: 3
+          - name: international_organizations
+            level: 3
+      public_health_agencies:
+        level: 2
+        items:
+          - name: national_health_institutes
+            level: 3
+          - name: regional_health_authorities
+            level: 3
+          - name: international_agencies
+            level: 3
+
+  Utilities:
+    level: 1
+    sub_categories:
+      bioinformatics:
+        level: 2
+        items:
+          - name: sequence_assembly_pipelines
+            level: 3
+          - name: annotation_workflows
+            level: 3
+          - name: phylogenetic_analysis_tools
+            level: 3
+          - name: variant_calling_algorithms
+            level: 3
+          - name: microbial_community_analysis
+            level: 3
+          - name: protein_structure_prediction
+            level: 3
+      geospatial:
+        level: 2
+        items:
+          - name: GIS_mapping_tools
+            level: 3
+          - name: population_distribution_models
+            level: 3
+          - name: spatial_clustering_algorithms
+            level: 3
+          - name: remote_sensing_analysis
+            level: 3
+          - name: trajectory_modeling
+            level: 3
+      statistical:
+        level: 2
+        items:
+          - name: epidemiological_models
+            level: 3
+          - name: machine_learning_algorithms
+            level: 3
+          - name: bayesian_inference_tools
+            level: 3
+          - name: time_series_analysis
+            level: 3
+      data_management:
+        level: 2
+        items:
+          - name: databases_and_storage
+            level: 3
+          - name: data_cleaning_utilities
+            level: 3
+          - name: metadata_standards
+            level: 3
+          - name: ontology_services
+            level: 3
