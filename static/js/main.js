@@ -1446,6 +1446,79 @@ function addHierarchyStyles() {
     document.head.appendChild(style);
 }
 
+// --- Helper function to parse color string (hex, rgb, rgba) into {r, g, b, a} ---
+function parseColor(colorString) {
+    if (!colorString) return { r: 200, g: 200, b: 200, a: 1 }; // Default grey if no color
+
+    // RGBA
+    let match = colorString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (match) {
+        return {
+            r: parseInt(match[1]),
+            g: parseInt(match[2]),
+            b: parseInt(match[3]),
+            a: match[4] !== undefined ? parseFloat(match[4]) : 1
+        };
+    }
+
+    // Hex short (#rgb)
+    match = colorString.match(/^#([a-f\d])([a-f\d])([a-f\d])$/i);
+    if (match) {
+        return {
+            r: parseInt(match[1] + match[1], 16),
+            g: parseInt(match[2] + match[2], 16),
+            b: parseInt(match[3] + match[3], 16),
+            a: 1
+        };
+    }
+
+    // Hex long (#rrggbb)
+    match = colorString.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (match) {
+        return {
+            r: parseInt(match[1], 16),
+            g: parseInt(match[2], 16),
+            b: parseInt(match[3], 16),
+            a: 1
+        };
+    }
+
+    // TODO: Handle named colors if necessary, otherwise default
+    console.warn("Could not parse color:", colorString, "Defaulting to grey.");
+    return { r: 200, g: 200, b: 200, a: 1 }; // Default grey
+}
+
+// --- Helper function to set opacity on a color string ---
+function setOpacity(colorString, opacity) {
+    const color = parseColor(colorString);
+    return `rgba(${color.r}, ${color.g}, ${color.b}, ${opacity})`;
+}
+
+// --- Helper function to update opacity for a node/edge color property (string or object) ---
+function updateColorOpacity(colorProperty, opacity) {
+    if (!colorProperty) return colorProperty; // Return null/undefined as is
+
+    if (typeof colorProperty === 'string') {
+        return setOpacity(colorProperty, opacity);
+    } else if (typeof colorProperty === 'object') {
+        const newColor = {};
+        if (colorProperty.color) newColor.color = setOpacity(colorProperty.color, opacity);
+        if (colorProperty.background) newColor.background = setOpacity(colorProperty.background, opacity);
+        if (colorProperty.border) newColor.border = setOpacity(colorProperty.border, opacity);
+
+        // Handle highlight and hover states if they exist
+        if (colorProperty.highlight) {
+            newColor.highlight = updateColorOpacity(colorProperty.highlight, opacity); // Recurse for nested objects
+        }
+        if (colorProperty.hover) {
+            newColor.hover = updateColorOpacity(colorProperty.hover, opacity); // Recurse for nested objects
+        }
+        return newColor;
+    }
+    return colorProperty; // Return original if type is unexpected
+}
+
+
 // --- Updated Function for Physics-Based Network Graph ---
 function setupNetworkGraph() {
     const container = document.getElementById('network-graph-container');
@@ -1538,50 +1611,94 @@ function setupNetworkGraph() {
             const networkData = { nodes: nodes, edges: edges };
             const network = new vis.Network(container, networkData, options);
 
+            // Store original colors for reset (optional, but safer)
+            // We'll try resetting without storing originals first by recalculating rgba with alpha=1
+
             // --- Updated Event listener for clicking nodes ---
             network.on("click", function (params) {
-                // Reset styles for all nodes and edges first
-                // (This is handled implicitly by setSelection, but good practice if doing manual styling)
+                const allNodes = nodes.get({ returnType: "Object" }); // Get all nodes as id:object map
+                const allEdges = edges.get({ returnType: "Object" }); // Get all edges as id:object map
+                const nodeUpdates = [];
+                const edgeUpdates = [];
+                const lowNodeOpacity = 0.2; // Opacity for non-selected nodes
+                const lowEdgeOpacity = 0.1; // Opacity for non-selected edges
 
                 if (params.nodes.length > 0) {
                     const clickedNodeId = params.nodes[0];
-                    const nodeData = nodes.get(clickedNodeId); // Get data of the clicked node
+                    const nodeData = nodes.get(clickedNodeId);
 
                     // Get IDs of connected nodes and edges
                     const connectedNodes = network.getConnectedNodes(clickedNodeId);
-                    const allNodesToSelect = [clickedNodeId, ...connectedNodes];
-                    const connectedEdges = network.getConnectedEdges(clickedNodeId);
+                    const allNodesToSelect = new Set([clickedNodeId, ...connectedNodes]); // Use Set for faster lookup
+                    const connectedEdges = new Set(network.getConnectedEdges(clickedNodeId)); // Use Set
 
-                    // Select the clicked node and all its direct neighbors and connecting edges
+                    // Update nodes opacity
+                    for (const nodeId in allNodes) {
+                        const node = allNodes[nodeId];
+                        const targetOpacity = allNodesToSelect.has(nodeId) ? 1.0 : lowNodeOpacity;
+                        const newColor = updateColorOpacity(node.color, targetOpacity);
+                        // Also ensure font color opacity changes
+                        const newFont = { ...(node.font || {}), color: setOpacity((node.font && node.font.color) || '#333333', targetOpacity) };
+                        nodeUpdates.push({ id: nodeId, color: newColor, font: newFont });
+                    }
+
+                    // Update edges opacity
+                    for (const edgeId in allEdges) {
+                        const edge = allEdges[edgeId];
+                        const targetOpacity = connectedEdges.has(edgeId) ? 1.0 : lowEdgeOpacity;
+                        const newColor = updateColorOpacity(edge.color, targetOpacity);
+                        edgeUpdates.push({ id: edgeId, color: newColor });
+                    }
+
+                    // Apply updates
+                    nodes.update(nodeUpdates);
+                    edges.update(edgeUpdates);
+
+                    // Keep selection for border highlight
                     network.setSelection({
-                        nodes: allNodesToSelect,
-                        edges: connectedEdges
+                        nodes: Array.from(allNodesToSelect), // Convert Set back to Array
+                        edges: Array.from(connectedEdges)   // Convert Set back to Array
                     });
 
                     // --- Optional: Open resource modal if a data point node is clicked ---
                     if (nodeData && nodeData.group === 'data_point' && clickedNodeId.startsWith('dp_')) {
-                        const dbId = clickedNodeId.substring(3); // Extract DB primary key 'id'
+                        const dbId = clickedNodeId.substring(3);
                         if (typeof showResourceDetails === 'function') {
                              console.log("Attempting to show details for DB id:", dbId);
-                             // Assuming showResourceDetails takes the DB primary key (integer)
                              showResourceDetails(parseInt(dbId));
                         } else {
                              console.error("showResourceDetails function not found");
                         }
                     } else if (nodeData && nodeData.title) {
-                        // Log info for other nodes
                         console.log("Clicked Node Info:", nodeData.title);
                     }
 
                 } else {
-                    // Clicked on empty space, clear selection
+                    // Clicked on empty space, reset all opacities to 1.0
+                    for (const nodeId in allNodes) {
+                        const node = allNodes[nodeId];
+                        const newColor = updateColorOpacity(node.color, 1.0);
+                        const newFont = { ...(node.font || {}), color: setOpacity((node.font && node.font.color) || '#333333', 1.0) };
+                        nodeUpdates.push({ id: nodeId, color: newColor, font: newFont });
+                    }
+                    for (const edgeId in allEdges) {
+                        const edge = allEdges[edgeId];
+                        const newColor = updateColorOpacity(edge.color, 1.0);
+                        edgeUpdates.push({ id: edgeId, color: newColor });
+                    }
+
+                    // Apply updates
+                    nodes.update(nodeUpdates);
+                    edges.update(edgeUpdates);
+
+                    // Clear selection
                     network.unselectAll();
                 }
             });
 
             // --- Optional: Stop physics after stabilization ---
             network.on("stabilizationIterationsDone", function () {
-                network.setOptions( { physics: false } ); // Turn off physics once stable
+                network.setOptions( { physics: false } );
                 console.log("Network stabilized, physics turned off.");
             });
 

@@ -1,7 +1,7 @@
 -- Clear existing data before inserting new data
 DELETE FROM data_points;
 
--- Insert new data based on _reusables.yaml hierarchy, including level5
+-- Insert new data based on the provided table and _reusables.yaml hierarchy
 INSERT INTO data_points (
     data_source_id,
     resource_type,      -- Level 1
@@ -21,230 +21,294 @@ INSERT INTO data_points (
     country,
     domain
 ) VALUES
--- Data -> omics_data -> genomic -> whole_genome_sequencing -> clinical_isolates
-('NIPH-WGS-CLIN-2023', 'Data', 'omics_data', 'genomic', 'whole_genome_sequencing', 'clinical_isolates', 'FASTQ', 'high', 'ENA',
-'https://www.ebi.ac.uk/ena/browser/view/PRJEB00001', 'Whole Genome Sequencing data of clinical isolates from Norwegian hospitals in 2023.',
-'WGS, clinical isolates, AMR, Norway, genomic', '2023-12-01', 'contact@niph.no',
-'{"title": "Norwegian WGS Clinical Isolates 2023", "institution": "NIPH", "geographic_coverage": "Norway", "license": "CC BY 4.0", "version": "1.0"}',
+
+-- Denmark - Human Health
+('SYS-SURV-DANMAP-DK', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'clinical_isolate_registry', NULL, 'Web Platform/Database', 'national', 'DANMAP',
+'https://www.danmap.org/', 'Danish Integrated Antimicrobial Resistance Monitoring and Research Programme. Monitors antimicrobial consumption and resistance in humans and animals.',
+'surveillance, AMR, human, animal, Denmark, monitoring, consumption, resistance', '2024-01-01', 'danmap@ssi.dk',
+'{"title": "DANMAP", "institution": "SSI/DTU", "geographic_coverage": "Denmark", "license": "Public Access", "version": "Annual Reports"}',
+'Denmark', 'Human'), -- Primary Domain: Human
+
+('ENT-RESC-COPSAC-DK', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'cohort', 'COPSAC',
+'https://copsac.com/', 'Copenhagen Prospective Studies on Asthma in Childhood. Research includes microbiome and potential links to health outcomes.',
+'research, cohort, asthma, microbiome, children, Denmark, human', '2024-01-01', 'info@copsac.com',
+'{"title": "COPSAC - Copenhagen Prospective Studies on Asthma in Childhood", "institution": "COPSAC", "geographic_coverage": "Denmark", "license": "N/A", "version": "Ongoing"}',
+'Denmark', 'Human'),
+
+-- Denmark - Animal Health / Food (DANMAP already added, covers Animal too)
+
+-- Denmark - Environment
+('ENT-GOV-DEPA-DK', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Danish Environmental Protection Agency',
+'https://eng.mst.dk/', 'The Danish Environmental Protection Agency (Miljøstyrelsen). Involved in environmental regulations and monitoring.',
+'environment, agency, government, Denmark, regulation, monitoring', '2024-01-01', 'mst@mst.dk',
+'{"title": "Danish Environmental Protection Agency", "institution": "Miljøstyrelsen", "geographic_coverage": "Denmark", "license": "Government Publication", "version": "N/A"}',
+'Denmark', 'Environment'),
+
+('PUB-RA-MICROFLORA-DK', 'Publications', 'research_articles', 'methodology_papers', NULL, NULL, 'Website/Publication', 'national', 'Microflora Danica',
+'https://vbn.aau.dk/en/publications/microflora-danica-the-microbiome-of-denmark-2', 'Publication describing the Microflora Danica project, aiming to map the Danish microbiome.',
+'microbiome, Denmark, publication, research, environment, human', '2024-01-01', 'N/A',
+'{"title": "Microflora Danica - The Microbiome of Denmark", "institution": "Aalborg University", "geographic_coverage": "Denmark", "license": "Journal Copyright", "version": "N/A"}',
+'Denmark', 'Environment'), -- Primary Domain: Environment
+
+('SYS-SURV-MIDAS-DK', 'Systems', 'surveillance_network', 'environmental_monitoring', 'wastewater_surveillance', NULL, 'Project Website', 'local/national', 'MIDAS Denmark / Repares',
+'https://repares.vscht.cz/project', 'Microbiology dashboard for wastewater surveillance in Denmark (part of Repares project).',
+'wastewater, surveillance, environment, Denmark, microbiology, AMR', '2024-01-01', 'N/A',
+'{"title": "MIDAS Denmark / Repares Wastewater Surveillance", "institution": "Various (REPARES)", "geographic_coverage": "Denmark", "license": "N/A", "version": "Ongoing"}',
+'Denmark', 'Environment'),
+
+-- Denmark - Predictors
+('ENT-GOV-STATDK-DK', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Danmarks Statistik',
+'https://www.dst.dk/en/', 'Statistics Denmark, providing national statistics relevant to societal factors.',
+'statistics, demographics, societal factors, Denmark, government', '2024-01-01', 'dst@dst.dk',
+'{"title": "Danmarks Statistik (Statistics Denmark)", "institution": "Danmarks Statistik", "geographic_coverage": "Denmark", "license": "Public Data", "version": "N/A"}',
+'Denmark', 'Human'), -- Domain: Human (societal factors)
+
+('ENT-GOV-HEALTHMIN-DK', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Danish Ministry of Health',
+'https://sum.dk/English', 'The Danish Ministry of Health (Sundhedsministeriet). Sets national health policy.',
+'government, policy, health, Denmark, ministry', '2024-01-01', 'sum@sum.dk',
+'{"title": "Danish Ministry of Health", "institution": "Sundhedsministeriet", "geographic_coverage": "Denmark", "license": "Government Publication", "version": "N/A"}',
+'Denmark', 'Human'),
+
+-- Denmark - Research Centers
+('ENT-RESC-DAMRA-DK', 'Entities', 'research_consortia', 'public_health_networks', NULL, NULL, 'Website', 'national', 'Danish AMR Alliance',
+'https://novonordiskfonden.dk/en/news/new-danish-alliance-will-combat-a-global-health-crisis/', 'New alliance funded by Novo Nordisk Foundation to combat AMR in Denmark.',
+'research, AMR, alliance, consortium, Denmark, funding', '2024-01-01', 'N/A',
+'{"title": "Danish AMR Alliance (DAMRA)", "institution": "Novo Nordisk Foundation", "geographic_coverage": "Denmark", "license": "N/A", "version": "New"}',
+'Denmark', 'Human'),
+
+('ENT-RESC-ICARS-DK', 'Entities', 'research_consortia', 'international_initiatives', NULL, NULL, 'Website', 'international', 'ICARS',
+'https://icars-global.org/', 'International Centre for Antimicrobial Resistance Solutions, hosted by Denmark.',
+'research, AMR, international, solutions, consortium, Denmark', '2024-01-01', 'info@icars-global.org',
+'{"title": "ICARS - International Centre for Antimicrobial Resistance Solutions", "institution": "ICARS", "geographic_coverage": "International", "license": "N/A", "version": "N/A"}',
+'Denmark', 'Human'),
+
+-- Norway - Human Health
+('ENT-PHA-FHI-NO', 'Entities', 'public_health_agencies', 'national_health_institutes', NULL, NULL, 'Website', 'national', 'FHI (AMR Section)',
+'https://www.fhi.no/en/in/antimicrobial/', 'Norwegian Institute of Public Health (Folkehelseinstituttet) - Antimicrobial Resistance Section.',
+'public health, AMR, Norway, institute, surveillance', '2024-01-01', 'N/A',
+'{"title": "FHI - Norwegian Institute of Public Health (AMR)", "institution": "FHI", "geographic_coverage": "Norway", "license": "Government Publication", "version": "N/A"}',
 'Norway', 'Human'),
 
--- Data -> omics_data -> genomic -> metagenomic -> wastewater_metagenomes
-('KI-MWGS-WW-2022', 'Data', 'omics_data', 'genomic', 'metagenomic', 'wastewater_metagenomes', 'FASTQ.gz', 'high', 'MG-RAST',
-'https://www.mg-rast.org/mgmain.html?mgpage=project&project=mgp98765', 'Metagenomic analysis of wastewater samples from Stockholm for AMR gene surveillance.',
-'metagenomics, wastewater, AMR, Sweden, environmental', '2022-11-15', 'contact@ki.se',
-'{"title": "Stockholm Wastewater Metagenome Study 2022", "institution": "KI", "geographic_coverage": "Sweden", "license": "CC BY-NC 4.0", "version": "1.1"}',
-'Sweden', 'Environment'),
-
--- Data -> omics_data -> transcriptomic -> rna_seq -> bulk_rna_seq
-('UH-TRNS-BULK-2023', 'Data', 'omics_data', 'transcriptomic', 'rna_seq', 'bulk_rna_seq', 'BAM', 'high', 'GEO',
-'https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE00001', 'Bulk RNA-Seq data from Finnish patient samples responding to antibiotic treatment.',
-'transcriptomics, RNA-Seq, bulk, Finland, host response', '2023-09-30', 'contact@helsinki.fi',
-'{"title": "Finnish Bulk RNA-Seq Host Response", "institution": "UH", "geographic_coverage": "Finland", "license": "CC BY 4.0", "version": "1.0"}',
-'Finland', 'Human'),
-
--- Data -> omics_data -> proteomic -> mass_spectrometry (Level 4 is leaf here)
-('DTU-PROT-MS-2023', 'Data', 'omics_data', 'proteomic', 'mass_spectrometry', NULL, 'mzML', 'high', 'PRIDE',
-'https://www.ebi.ac.uk/pride/archive/projects/PXD00001', 'Mass spectrometry-based proteomic analysis of resistant bacterial strains from Danish farms.',
-'proteomics, mass spectrometry, AMR, Denmark, animal', '2023-10-25', 'contact@dtu.dk',
-'{"title": "Danish Farm Animal Proteomics (MS)", "institution": "DTU", "geographic_coverage": "Denmark", "license": "CC BY 4.0", "version": "1.0"}',
-'Denmark', 'Animal'),
-
--- Data -> population_data -> disease_incidence -> vector-borne (Level 4 is leaf here)
-('FHI-POP-DIS-VB-2022', 'Data', 'population_data', 'disease_incidence', 'vector-borne', NULL, 'CSV', 'national', 'FHI Portal',
-'https://www.fhi.no/data/vector-borne-2022', 'National surveillance data on vector-borne diseases potentially linked to AMR spread in Norway, 2022.',
-'population data, disease incidence, vector-borne, Norway, surveillance', '2022-12-31', 'contact@fhi.no',
-'{"title": "Norway Vector-Borne Disease Incidence 2022", "institution": "FHI", "geographic_coverage": "Norway", "license": "Restricted", "version": "2022"}',
+('SYS-SURV-NORM-NO', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'clinical_isolate_registry', NULL, 'Website/Database', 'national', 'NORM',
+'https://www.unn.no/fag-og-forskning/norm-norsk-overvakingssystem-for-antibiotikaresistens-hos-mikrober', 'Norwegian monitoring system for antimicrobial resistance in microbes.',
+'surveillance, AMR, human, Norway, monitoring, resistance, microbes', '2024-01-01', 'N/A',
+'{"title": "NORM - Norwegian Surveillance System for Antimicrobial Resistance", "institution": "UNN", "geographic_coverage": "Norway", "license": "Public Data", "version": "Annual Reports"}',
 'Norway', 'Human'),
 
--- Data -> population_data -> demographic_data -> socioeconomic_factors (Level 4 is leaf here)
-('FOHM-POP-DEM-SE-2021', 'Data', 'population_data', 'demographic_data', 'socioeconomic_factors', NULL, 'XLSX', 'regional', 'FOHM Repository',
-'https://www.folkhalsomyndigheten.se/data/socioeconomic-2021', 'Analysis of socioeconomic factors and AMR prevalence in different Swedish regions.',
-'population data, demographics, socioeconomic, Sweden, AMR', '2021-12-31', 'contact@fohm.se',
-'{"title": "Swedish Socioeconomic Factors & AMR 2021", "institution": "FOHM", "geographic_coverage": "Sweden", "license": "CC BY 4.0", "version": "2021"}',
-'Sweden', 'Human'),
+('SYS-SURV-KRES-NO', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'clinical_isolate_registry', NULL, 'Website/Database', 'national', 'K-Res',
+'https://www.unn.no/fag-og-forskning/k-res', 'National advisory unit for detection of antimicrobial resistance mechanisms (Kompetansesenter for påvisning av resistensmekanismer).',
+'surveillance, AMR, human, Norway, detection, mechanisms, laboratory', '2024-01-01', 'N/A',
+'{"title": "K-Res - National Advisory Unit for Detection of AMR Mechanisms", "institution": "UNN", "geographic_coverage": "Norway", "license": "N/A", "version": "N/A"}',
+'Norway', 'Human'),
 
--- Data -> environmental_data -> air_quality -> bioaerosols (Level 4 is leaf here)
-('THL-ENV-AIR-BIO-2023', 'Data', 'environmental_data', 'air_quality', 'bioaerosols', NULL, 'CSV', 'local', 'THL AirData',
-'https://www.thl.fi/data/air-bioaerosols-helsinki', 'Monitoring data for bioaerosols containing potential AMR determinants in Helsinki urban air.',
-'environmental data, air quality, bioaerosols, Finland, AMR', '2023-08-10', 'contact@thl.fi',
-'{"title": "Helsinki Bioaerosol Monitoring 2023", "institution": "THL", "geographic_coverage": "Finland", "license": "CC BY-NC 4.0", "version": "1.0"}',
-'Finland', 'Environment'),
+('ENT-RESC-HUNT-NO', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'regional', 'HUNT Study',
+'https://www.ntnu.no/hunt', 'The Trøndelag Health Study (HUNT), a large population health study in Norway.',
+'research, cohort, population health, Norway, human, epidemiology', '2024-01-01', 'hunt@medisin.ntnu.no',
+'{"title": "HUNT Study - Trøndelag Health Study", "institution": "NTNU", "geographic_coverage": "Norway (Trøndelag)", "license": "Restricted Access", "version": "Ongoing"}',
+'Norway', 'Human'),
 
--- Data -> environmental_data -> climatological -> temperature_records and anomalies (Level 4 is leaf here)
-('NMBU-ENV-CLI-TEMP-2020', 'Data', 'environmental_data', 'climatological', 'temperature_records and anomalies', NULL, 'NetCDF', 'regional', 'NMBU Climate Hub',
-'https://www.nmbu.no/data/climate-temp-2020', 'Regional temperature records and anomaly analysis for Southern Norway, 2020.',
-'environmental data, climatological, temperature, Norway, climate', '2020-12-31', 'contact@nmbu.no',
-'{"title": "Southern Norway Temperature Records 2020", "institution": "NMBU", "geographic_coverage": "Norway", "license": "CC BY 4.0", "version": "2020"}',
+('ENT-RESC-TROMSO-NO', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'regional', 'Tromsø Study',
+'https://uit.no/research/tromsostudy', 'Population-based health study conducted in the municipality of Tromsø, Norway.',
+'research, cohort, population health, Norway, human, epidemiology', '2024-01-01', 'tromsous@uit.no',
+'{"title": "The Tromsø Study", "institution": "UiT", "geographic_coverage": "Norway (Tromsø)", "license": "Restricted Access", "version": "Ongoing"}',
+'Norway', 'Human'),
+
+('ENT-LAB-MRSA-NO', 'Entities', 'public_health_agencies', 'national_health_institutes', NULL, NULL, 'Website', 'national', 'MRSA Reference Laboratory',
+'https://www.stolav.no/fag-og-forskning/lab/nasjonalt-referanselaboratorium-mrsa', 'National Reference Laboratory for MRSA at St. Olavs Hospital.',
+'laboratory, MRSA, reference, Norway, human, diagnostics', '2024-01-01', 'N/A',
+'{"title": "National Reference Laboratory for MRSA (Norway)", "institution": "St. Olavs Hospital", "geographic_coverage": "Norway", "license": "N/A", "version": "N/A"}',
+'Norway', 'Human'),
+
+('SYS-SURV-NOIS-NO', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'healthcare_associated_infections', NULL, 'Website/Database', 'national', 'NOIS',
+'https://helsedata.no/en/forvaltere/norwegian-institute-of-public-health/norwegian-surveillance-system-for-antibiotic-use-and-healthcare-associated-infections-nois/', 'Norwegian Surveillance System for Antibiotic Use and Healthcare-Associated Infections.',
+'surveillance, antibiotic use, HAI, Norway, human, consumption, infections', '2024-01-01', 'N/A',
+'{"title": "NOIS - Norwegian Surveillance System for Antibiotic Use and HAI", "institution": "FHI", "geographic_coverage": "Norway", "license": "Public/Restricted Data", "version": "Ongoing"}',
+'Norway', 'Human'),
+
+-- Norway - Animal Health / Food
+('SYS-SURV-NORMVET-NO', 'Systems', 'surveillance_network', 'zoonotic_monitoring', 'livestock_health_monitoring', NULL, 'Website/Reports', 'national', 'NORM-VET',
+'https://www.vetinst.no/overvaking/antibiotikaresistens-norm-vet', 'Norwegian monitoring programme for antimicrobial resistance in veterinary medicine and food production animals.',
+'surveillance, AMR, animal, food, Norway, veterinary, resistance', '2024-01-01', 'post@vetinst.no',
+'{"title": "NORM-VET - Norwegian Veterinary Antimicrobial Resistance Monitoring", "institution": "Veterinærinstituttet", "geographic_coverage": "Norway", "license": "Public Reports", "version": "Annual Reports"}',
+'Norway', 'Animal'),
+
+('ENT-RESC-HUNTOH-NO', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'regional', 'HUNT One Health',
+'https://www.nmbu.no/en/research/projects/hunt-one-health', 'One Health initiative linked to the HUNT study, focusing on interactions between human, animal, and environmental health.',
+'research, one health, cohort, Norway, human, animal, environment', '2024-01-01', 'N/A',
+'{"title": "HUNT One Health", "institution": "NMBU/NTNU", "geographic_coverage": "Norway (Trøndelag)", "license": "N/A", "version": "Ongoing"}',
+'Norway', 'Animal'), -- Primary Domain: Animal (as it extends HUNT)
+
+('ENT-GOV-NFSA-NO', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Norwegian Food Safety Authority',
+'https://www.mattilsynet.no/language/english/', 'Norwegian Food Safety Authority (Mattilsynet). Oversees food safety and animal health.',
+'food safety, animal health, government, Norway, regulation', '2024-01-01', 'postmottak@mattilsynet.no',
+'{"title": "Norwegian Food Safety Authority (Mattilsynet)", "institution": "Mattilsynet", "geographic_coverage": "Norway", "license": "Government Publication", "version": "N/A"}',
+'Norway', 'Animal'),
+
+-- Norway - Environment
+('ENT-GOV-NEA-NO', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Norwegian Environment Agency',
+'https://www.miljodirektoratet.no/english/', 'Norwegian Environment Agency (Miljødirektoratet). Manages environmental monitoring and regulations.',
+'environment, agency, government, Norway, monitoring, regulation', '2024-01-01', 'post@miljodir.no',
+'{"title": "Norwegian Environment Agency", "institution": "Miljødirektoratet", "geographic_coverage": "Norway", "license": "Government Publication", "version": "N/A"}',
 'Norway', 'Environment'),
 
--- Data -> environmental_data -> wastewater_infrastructure -> treatment_plant_locations (Level 4 is leaf here)
-('DTU-ENV-WW-LOC-2023', 'Data', 'environmental_data', 'wastewater_infrastructure', 'treatment_plant_locations', NULL, 'GeoJSON', 'national', 'DTU InfraMap',
-'https://www.dtu.dk/data/wwtp-locations-dk', 'Geospatial data for wastewater treatment plant locations across Denmark.',
-'environmental data, wastewater, infrastructure, locations, Denmark', '2023-01-15', 'contact@dtu.dk',
-'{"title": "Denmark WWTP Locations", "institution": "DTU", "geographic_coverage": "Denmark", "license": "Open Data Commons ODbL", "version": "2023.1"}',
-'Denmark', 'Environment'),
+('ENT-GOV-VKM-NO', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Norwegian Scientific Committee for Food and Environment',
+'https://vkm.no/english.html', 'Provides independent scientific risk assessments related to food safety, animal health, plant health and the environment.',
+'risk assessment, food, environment, animal, Norway, scientific committee', '2024-01-01', 'vkm@vkm.no',
+'{"title": "Norwegian Scientific Committee for Food and Environment (VKM)", "institution": "VKM", "geographic_coverage": "Norway", "license": "Public Reports", "version": "N/A"}',
+'Norway', 'Environment'), -- Primary Domain: Environment
 
--- Data -> environmental_data -> water_quality -> drinking_water (Level 4 is leaf here)
-('SLU-ENV-WQ-DW-2022', 'Data', 'environmental_data', 'water_quality', 'drinking_water', NULL, 'CSV', 'municipal', 'SLU WaterBase',
-'https://www.slu.se/data/drinking-water-quality-2022', 'Drinking water quality monitoring data from selected Swedish municipalities, 2022.',
-'environmental data, water quality, drinking water, Sweden, monitoring', '2022-12-31', 'contact@slu.se',
-'{"title": "Swedish Drinking Water Quality 2022", "institution": "SLU", "geographic_coverage": "Sweden", "license": "CC BY 4.0", "version": "2022"}',
-'Sweden', 'Environment'),
+-- Norway - Predictors
+('ENT-GOV-STATNO-NO', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Statistics Norway',
+'https://www.ssb.no/en/', 'Statistics Norway (Statistisk sentralbyrå), providing national statistics.',
+'statistics, demographics, societal factors, Norway, government', '2024-01-01', 'ssb@ssb.no',
+'{"title": "Statistics Norway (SSB)", "institution": "SSB", "geographic_coverage": "Norway", "license": "Public Data", "version": "N/A"}',
+'Norway', 'Human'), -- Domain: Human (societal factors)
 
--- Systems -> surveillance_network -> pathogen_tracking_systems -> wastewater_surveillance (Level 4 is leaf here)
-('SSI-SYS-SURV-WW-2024', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'wastewater_surveillance', NULL, 'Web Platform', 'national', 'SSI Surveillance Portal',
-'https://www.ssi.dk/surveillance/wastewater', 'National Danish system for wastewater-based surveillance of pathogens and AMR markers.',
-'systems, surveillance, wastewater, Denmark, pathogen tracking', '2024-01-01', 'contact@ssi.dk',
-'{"title": "Danish Wastewater Surveillance System", "institution": "SSI", "geographic_coverage": "Denmark", "license": "Proprietary", "version": "3.0"}',
-'Denmark', 'Environment'),
+('ENT-GOV-HEALTHMIN-NO', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Ministry of Health and Care Services (Norway)',
+'https://www.regjeringen.no/en/dep/hod/id421/', 'Norwegian Ministry of Health and Care Services (Helse- og omsorgsdepartementet).',
+'government, policy, health, Norway, ministry', '2024-01-01', 'postmottak@hod.dep.no',
+'{"title": "Ministry of Health and Care Services (Norway)", "institution": "HOD", "geographic_coverage": "Norway", "license": "Government Publication", "version": "N/A"}',
+'Norway', 'Human'),
 
--- Systems -> surveillance_network -> zoonotic_monitoring -> wildlife_disease_surveillance (Level 4 is leaf here)
-('SVA-SYS-ZOO-WILD-2023', 'Systems', 'surveillance_network', 'zoonotic_monitoring', 'wildlife_disease_surveillance', NULL, 'Database API', 'national', 'SVA Wildlife Health',
-'https://www.sva.se/api/wildlife-surveillance', 'Swedish national database and reporting system for wildlife disease surveillance.',
-'systems, zoonotic, wildlife, Sweden, surveillance', '2023-11-01', 'contact@sva.se',
-'{"title": "Swedish Wildlife Disease Surveillance System", "institution": "SVA", "geographic_coverage": "Sweden", "license": "Restricted Access", "version": "2.5"}',
+('SYS-SURV-MSIS-NO', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'disease_notification', NULL, 'Website/Database', 'national', 'MSIS',
+'https://www.fhi.no/ut/msis/', 'Norwegian Surveillance System for Communicable Diseases (Meldingssystem for smittsomme sykdommer).',
+'surveillance, infectious diseases, notification, Norway, human', '2024-01-01', 'msis@fhi.no',
+'{"title": "MSIS - Norwegian Surveillance System for Communicable Diseases", "institution": "FHI", "geographic_coverage": "Norway", "license": "Restricted Access", "version": "Ongoing"}',
+'Norway', 'Human'),
+
+-- Norway - Research Centers
+('ENT-RESC-CANS-NO', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'national', 'CANS',
+'https://uit.no/research/cans', 'Centre for new antibacterial strategies at UiT The Arctic University of Norway.',
+'research, AMR, antibiotics, strategies, Norway, centre', '2024-01-01', 'N/A',
+'{"title": "CANS - Centre for new antibacterial strategies", "institution": "UiT", "geographic_coverage": "Norway", "license": "N/A", "version": "N/A"}',
+'Norway', 'Human'),
+
+('ENT-RESC-CAMRIA-NO', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'national', 'CAMRIA',
+'https://camria.w.uib.no/', 'Combatting Anti-Microbial Resistance with Interdisciplinary Approaches at the University of Bergen.',
+'research, AMR, interdisciplinary, Norway, centre, one health', '2024-01-01', 'N/A',
+'{"title": "CAMRIA - Combatting Anti-Microbial Resistance with Interdisciplinary Approaches", "institution": "UiB", "geographic_coverage": "Norway", "license": "N/A", "version": "N/A"}',
+'Norway', 'Human'),
+
+-- Sweden - Human Health
+('SYS-SURV-SWEDRES-SE', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'clinical_isolate_registry', NULL, 'Website/Reports', 'national', 'Swedres-Svarm',
+'https://www.sva.se/en/what-we-do/antibiotics/svarm-resistance-monitoring/swedres-svarm-reports/', 'Swedish integrated monitoring of antimicrobial resistance and consumption (Human and Veterinary).',
+'surveillance, AMR, human, animal, Sweden, monitoring, consumption, resistance', '2024-01-01', 'N/A',
+'{"title": "Swedres-Svarm Report", "institution": "FOHM/SVA", "geographic_coverage": "Sweden", "license": "Public Reports", "version": "Annual Reports"}',
+'Sweden', 'Human'), -- Primary Domain: Human
+
+('ENT-PHA-FOHM-SE', 'Entities', 'public_health_agencies', 'national_health_institutes', NULL, NULL, 'Website', 'national', 'Public Health Agency of Sweden (FOHM)',
+'https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/', 'Folkhälsomyndigheten, the national public health agency.',
+'public health, Sweden, agency, government', '2024-01-01', 'info@folkhalsomyndigheten.se',
+'{"title": "Public Health Agency of Sweden (FOHM)", "institution": "FOHM", "geographic_coverage": "Sweden", "license": "Government Publication", "version": "N/A"}',
+'Sweden', 'Human'),
+
+-- Sweden - Animal Health / Food (Svarm covered by Swedres-Svarm entry)
+('ENT-GOV-SVA-SE', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Swedish Veterinary Agency (SVA)',
+'https://www.sva.se/en/', 'Statens veterinärmedicinska anstalt, responsible for animal health.',
+'animal health, veterinary, Sweden, agency, government', '2024-01-01', 'sva@sva.se',
+'{"title": "Swedish Veterinary Agency (SVA)", "institution": "SVA", "geographic_coverage": "Sweden", "license": "Government Publication", "version": "N/A"}',
 'Sweden', 'Animal'),
 
--- Systems -> surveillance_network -> environmental_monitoring -> air_quality_networks (Level 4 is leaf here)
-('NILU-SYS-ENV-AIR-2023', 'Systems', 'surveillance_network', 'environmental_monitoring', 'air_quality_networks', NULL, 'Web Dashboard', 'national', 'Luftkvalitet.info',
-'https://www.luftkvalitet.info', 'Norwegian national network and platform for monitoring air quality.',
-'systems, environmental, air quality, Norway, monitoring network', '2023-12-15', 'contact@nilu.no',
-'{"title": "Norwegian Air Quality Monitoring Network", "institution": "NILU", "geographic_coverage": "Norway", "license": "Public Domain", "version": "N/A"}',
-'Norway', 'Environment'),
+-- Sweden - Environment
+('PUB-POL-ENVAMR-SE', 'Publications', 'policy_documents', 'government_reports', NULL, NULL, 'Website/Report', 'national', 'Sweden Environmental AMR Approach',
+'https://www.folkhalsomyndigheten.se/the-public-health-agency-of-sweden/communicable-disease-control/antibiotics-and-antimicrobial-resistance/overview-of-swedens-one-health-response-to-antibiotic-resistance-in-the-environment-sector/', 'Overview of Sweden''s approach to antibiotic resistance in the environment sector.',
+'environment, AMR, policy, Sweden, government, report', '2024-01-01', 'N/A',
+'{"title": "Sweden''s Approach to Antibiotic Resistance in the Environment Sector", "institution": "FOHM/SEPA/MPA", "geographic_coverage": "Sweden", "license": "Government Publication", "version": "N/A"}',
+'Sweden', 'Environment'),
 
--- Systems -> annotation_platforms -> geospatial_mapping -> OpenStreetMap_integration (Level 4 is leaf here)
-('UTU-SYS-ANN-GEO-OSM-2023', 'Systems', 'annotation_platforms', 'geospatial_mapping', 'OpenStreetMap_integration', NULL, 'Web Service', 'regional', 'UTU GeoAnnotate',
-'https://geo.utu.fi/osm-integration', 'Platform integrating OpenStreetMap data for geospatial annotation of AMR samples in Finland.',
-'systems, annotation, geospatial, OpenStreetMap, Finland', '2023-07-01', 'contact@utu.fi',
-'{"title": "UTU Geospatial Annotation Platform (OSM)", "institution": "UTU", "geographic_coverage": "Finland", "license": "MIT", "version": "1.2"}',
-'Finland', 'Human'),
+('ENT-GOV-SEPA-SE', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Swedish Environmental Protection Agency',
+'https://www.naturvardsverket.se/en/', 'Naturvårdsverket, the Swedish environmental protection agency.',
+'environment, agency, government, Sweden, regulation, monitoring', '2024-01-01', 'registrator@naturvardsverket.se',
+'{"title": "Swedish Environmental Protection Agency", "institution": "Naturvårdsverket", "geographic_coverage": "Sweden", "license": "Government Publication", "version": "N/A"}',
+'Sweden', 'Environment'),
 
--- Systems -> annotation_platforms -> sequence_annotation -> variant_calling (Level 4 is leaf here)
-('NMBU-SYS-ANN-SEQ-VAR-2024', 'Systems', 'annotation_platforms', 'sequence_annotation', 'variant_calling', NULL, 'Galaxy Workflow', 'workflow', 'NMBU Galaxy',
-'https://galaxy.nmbu.no/workflows/variant-calling-amr', 'Automated variant calling workflow for AMR gene identification deployed on NMBU Galaxy.',
-'systems, annotation, sequence, variant calling, Norway, workflow', '2024-02-01', 'contact@nmbu.no',
-'{"title": "NMBU AMR Variant Calling Workflow", "institution": "NMBU", "geographic_coverage": "Norway", "license": "Apache 2.0", "version": "2.0"}',
-'Norway', 'Human'),
+('ENT-GOV-MPA-SE', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Swedish Medical Products Agency',
+'https://www.lakemedelsverket.se/en', 'Läkemedelsverket, responsible for regulation and surveillance of medical products.',
+'medical products, regulation, Sweden, agency, government', '2024-01-01', 'registrator@lakemedelsverket.se',
+'{"title": "Swedish Medical Products Agency", "institution": "Läkemedelsverket", "geographic_coverage": "Sweden", "license": "Government Publication", "version": "N/A"}',
+'Sweden', 'Human'), -- Domain: Human (related to health products)
 
--- Systems -> annotation_platforms -> data_visualization -> dashboard_systems (Level 4 is leaf here)
-('KI-SYS-ANN-VIS-DASH-2023', 'Systems', 'annotation_platforms', 'data_visualization', 'dashboard_systems', NULL, 'Web Application', 'national', 'AMR Dashboard Sweden',
-'https://amr-dashboard.ki.se', 'Interactive dashboard system for visualizing AMR trends in Sweden.',
-'systems, visualization, dashboard, Sweden, AMR trends', '2023-10-01', 'contact@ki.se',
-'{"title": "Swedish AMR Data Dashboard", "institution": "KI", "geographic_coverage": "Sweden", "license": "Proprietary", "version": "1.5"}',
+-- Sweden - Predictors
+('ENT-GOV-STATSE-SE', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Statistics Sweden',
+'https://www.scb.se/en/', 'Statistics Sweden (Statistiska centralbyrån), providing national statistics.',
+'statistics, demographics, societal factors, Sweden, government', '2024-01-01', 'scb@scb.se',
+'{"title": "Statistics Sweden (SCB)", "institution": "SCB", "geographic_coverage": "Sweden", "license": "Public Data", "version": "N/A"}',
+'Sweden', 'Human'), -- Domain: Human (societal factors)
+
+('ENT-GOV-HEALTHMIN-SE', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Ministry of Health and Social Affairs (Sweden)',
+'https://www.government.se/government-of-sweden/ministry-of-health-and-social-affairs/', 'Swedish Ministry of Health and Social Affairs (Socialdepartementet).',
+'government, policy, health, social affairs, Sweden, ministry', '2024-01-01', 'N/A',
+'{"title": "Ministry of Health and Social Affairs (Sweden)", "institution": "Socialdepartementet", "geographic_coverage": "Sweden", "license": "Government Publication", "version": "N/A"}',
 'Sweden', 'Human'),
 
--- Publications -> research_articles -> epidemiological_studies (Level 3 is leaf here)
-('PUB-RA-EPI-NOR-2022', 'Publications', 'research_articles', 'epidemiological_studies', NULL, NULL, 'Journal Article', 'N/A', 'The Lancet ID',
-'https://doi.org/10.1016/S1473-3099(22)00001-1', 'Epidemiological study on the spread of ESBL-producing E. coli in Norwegian nursing homes.',
-'publication, epidemiology, ESBL, Norway, nursing homes', '2022-05-15', 'author@niph.no',
-'{"title": "Spread of ESBL E. coli in Norwegian Nursing Homes", "institution": "NIPH", "geographic_coverage": "Norway", "license": "Journal Copyright", "version": "N/A"}',
-'Norway', 'Human'),
-
--- Publications -> policy_documents -> government_reports (Level 3 is leaf here)
-('PUB-PD-GOV-SWE-2023', 'Publications', 'policy_documents', 'government_reports', NULL, NULL, 'PDF Report', 'N/A', 'FOHM Website',
-'https://www.folkhalsomyndigheten.se/reports/amr-strategy-2023', 'Swedish government report outlining the national strategy against antimicrobial resistance 2023-2027.',
-'publication, policy, government report, Sweden, AMR strategy', '2023-06-30', 'contact@fohm.se',
-'{"title": "Swedish National AMR Strategy 2023-2027", "institution": "FOHM", "geographic_coverage": "Sweden", "license": "Government Publication", "version": "2023"}',
+-- Sweden - Research Centers
+('ENT-RESC-UAC-SE', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'national', 'Uppsala Antibiotic Center',
+'https://www.uu.se/en/centre/uppsala-antibiotic-center', 'Interdisciplinary research center focusing on antibiotic resistance at Uppsala University.',
+'research, AMR, antibiotics, Sweden, centre, Uppsala', '2024-01-01', 'uac@uu.se',
+'{"title": "Uppsala Antibiotic Center (UAC)", "institution": "Uppsala University", "geographic_coverage": "Sweden", "license": "N/A", "version": "N/A"}',
 'Sweden', 'Human'),
 
--- Publications -> educational_resources -> online_courses (Level 3 is leaf here)
-('PUB-ER-OC-DEN-2023', 'Publications', 'educational_resources', 'online_courses', NULL, NULL, 'MOOC Platform', 'N/A', 'Coursera',
-'https://www.coursera.org/learn/one-health-amr-dk', 'Online course on One Health approaches to AMR, developed by Danish universities.',
-'publication, education, online course, Denmark, One Health', '2023-09-01', 'contact@dtu.dk',
-'{"title": "One Health AMR Online Course (Denmark)", "institution": "DTU", "geographic_coverage": "Denmark", "license": "Coursera Terms", "version": "1.0"}',
-'Denmark', 'Human'),
-
--- Entities -> research_consortia -> international_initiatives (Level 3 is leaf here)
-('ENT-RC-INT-NORD-2020', 'Entities', 'research_consortia', 'international_initiatives', NULL, NULL, 'Consortium Website', 'N/A', 'NoMoReAMR Website',
-'https://nomoreamr.org', 'The NoMoReAMR consortium, a NordForsk funded international initiative.',
-'entity, consortium, international, Nordic, NoMoReAMR', '2020-01-01', 'info@nomoreamr.org',
-'{"title": "NoMoReAMR Consortium", "institution": "NordForsk", "geographic_coverage": "Nordic Countries", "license": "N/A", "version": "N/A"}',
-'Norway', 'Human'), -- Assigning a primary country for DB
-
--- Entities -> data_repositories -> genomic_databases (Level 3 is leaf here)
-('ENT-DR-GEN-ENA-1980', 'Entities', 'data_repositories', 'genomic_databases', NULL, NULL, 'Database Portal', 'N/A', 'ENA Website',
-'https://www.ebi.ac.uk/ena/browser/home', 'European Nucleotide Archive (ENA) providing access to annotated DNA and RNA sequences.',
-'entity, repository, genomic, ENA, international', '1980-01-01', 'datasubs@ebi.ac.uk',
-'{"title": "European Nucleotide Archive (ENA)", "institution": "EMBL-EBI", "geographic_coverage": "International", "license": "Various", "version": "N/A"}',
-'Sweden', 'Human'), -- Assigning a primary country for DB
-
--- Entities -> funding_bodies -> government_agencies (Level 3 is leaf here)
-('ENT-FB-GOV-NOR-1990', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Agency Website', 'N/A', 'Research Council Norway',
-'https://www.forskningsradet.no/en/', 'The Research Council of Norway, a major government funding agency for research.',
-'entity, funding, government agency, Norway, RCN', '1990-01-01', 'post@forskningsradet.no',
-'{"title": "Research Council of Norway (RCN)", "institution": "RCN", "geographic_coverage": "Norway", "license": "N/A", "version": "N/A"}',
-'Norway', 'Human'),
-
--- Entities -> public_health_agencies -> national_health_institutes (Level 3 is leaf here)
-('ENT-PHA-NAT-FIN-1982', 'Entities', 'public_health_agencies', 'national_health_institutes', NULL, NULL, 'Agency Website', 'N/A', 'THL Website',
-'https://thl.fi/en/web/thlfi-en', 'Finnish Institute for Health and Welfare (THL), the national public health agency.',
-'entity, public health, national institute, Finland, THL', '1982-01-01', 'info@thl.fi',
-'{"title": "Finnish Institute for Health and Welfare (THL)", "institution": "THL", "geographic_coverage": "Finland", "license": "N/A", "version": "N/A"}',
-'Finland', 'Human'),
-
--- Utilities -> bioinformatics -> sequence_assembly_pipelines (Level 3 is leaf here)
-('UTIL-BIO-ASS-SPA-2021', 'Utilities', 'bioinformatics', 'sequence_assembly_pipelines', NULL, NULL, 'Software Pipeline', 'N/A', 'GitHub',
-'https://github.com/ablab/spades', 'SPAdes genome assembler suitable for single-cell and standard datasets.',
-'utility, bioinformatics, assembly, SPAdes, software', '2021-01-01', 'spades.support@cab.spbu.ru',
-'{"title": "SPAdes Genome Assembler", "institution": "St. Petersburg State University", "geographic_coverage": "International", "license": "GPLv2", "version": "3.15.5"}',
-'Denmark', 'Human'), -- Assigning a primary country for DB
-
--- Utilities -> geospatial -> GIS_mapping_tools (Level 3 is leaf here)
-('UTIL-GEO-GIS-QGIS-2002', 'Utilities', 'geospatial', 'GIS_mapping_tools', NULL, NULL, 'Desktop Software', 'N/A', 'QGIS Website',
-'https://qgis.org/en/site/', 'QGIS: A Free and Open Source Geographic Information System.',
-'utility, geospatial, GIS, mapping, QGIS, software', '2002-01-01', 'info@qgis.org',
-'{"title": "QGIS Desktop", "institution": "QGIS.org", "geographic_coverage": "International", "license": "GPLv2", "version": "3.34"}',
-'Norway', 'Environment'), -- Assigning a primary country for DB
-
--- Utilities -> statistical -> machine_learning_algorithms (Level 3 is leaf here)
-('UTIL-STA-ML-SKL-2007', 'Utilities', 'statistical', 'machine_learning_algorithms', NULL, NULL, 'Python Library', 'N/A', 'Scikit-learn Website',
-'https://scikit-learn.org/stable/', 'Scikit-learn: Machine Learning in Python.',
-'utility, statistical, machine learning, Python, scikit-learn', '2007-01-01', 'N/A',
-'{"title": "Scikit-learn", "institution": "Inria", "geographic_coverage": "International", "license": "BSD-3-Clause", "version": "1.3.2"}',
-'Sweden', 'Human'), -- Assigning a primary country for DB
-
--- Utilities -> data_management -> metadata_standards (Level 3 is leaf here)
-('UTIL-DM-META-MIXS-2011', 'Utilities', 'data_management', 'metadata_standards', NULL, NULL, 'Standard Document', 'N/A', 'GSC Website',
-'https://gensc.org/mixs/', 'Minimum Information about any (x) Sequence (MIxS) standard from the Genomic Standards Consortium.',
-'utility, data management, metadata, standard, MIxS, GSC', '2011-01-01', 'info@gensc.org',
-'{"title": "MIxS Standard", "institution": "Genomic Standards Consortium", "geographic_coverage": "International", "license": "CC BY 4.0", "version": "6.0"}',
-'Finland', 'Human'), -- Assigning a primary country for DB
-
--- More Examples to reach 30+
--- Data -> omics_data -> genomic -> metagenomic -> human_fecal_metagenomes
-('DTU-MWGS-FECAL-2023', 'Data', 'omics_data', 'genomic', 'metagenomic', 'human_fecal_metagenomes', 'FASTQ', 'high', 'SRA',
-'https://www.ncbi.nlm.nih.gov/sra/PRJNA00002', 'Metagenomic sequencing of human fecal samples from a Danish cohort study on gut microbiome and AMR.',
-'metagenomics, fecal, gut microbiome, AMR, Denmark', '2023-05-20', 'contact@dtu.dk',
-'{"title": "Danish Gut Microbiome AMR Study (Fecal)", "institution": "DTU", "geographic_coverage": "Denmark", "license": "CC0", "version": "1.0"}',
-'Denmark', 'Human'),
-
--- Data -> population_data -> disease_incidence -> respiratory_diseases (Level 4 is leaf here)
-('THL-POP-DIS-RESP-2023', 'Data', 'population_data', 'disease_incidence', 'respiratory_diseases', NULL, 'API', 'national', 'THL Infectious Diseases Register',
-'https://thl.fi/api/infectious-diseases/respiratory', 'National register data on respiratory disease incidence in Finland, updated weekly.',
-'population data, disease incidence, respiratory, Finland, surveillance', '2023-12-31', 'contact@thl.fi',
-'{"title": "Finland Respiratory Disease Incidence Register", "institution": "THL", "geographic_coverage": "Finland", "license": "Restricted", "version": "Ongoing"}',
-'Finland', 'Human'),
-
--- Systems -> surveillance_network -> pathogen_tracking_systems -> syndromic_surveillance (Level 4 is leaf here)
-('FOHM-SYS-SURV-SYND-2022', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'syndromic_surveillance', NULL, 'Web Portal', 'national', 'Halsokoll',
-'https://www.folkhalsomyndigheten.se/halsokoll', 'Swedish system for syndromic surveillance based on web queries and healthcare contacts.',
-'systems, surveillance, syndromic, Sweden, public health', '2022-10-01', 'contact@fohm.se',
-'{"title": "Halsokoll Syndromic Surveillance System", "institution": "FOHM", "geographic_coverage": "Sweden", "license": "Proprietary", "version": "2.1"}',
+('ENT-RESC-UCMR-SE', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'national', 'Umeå Centre for Microbial Research (UCMR)',
+'https://www.umu.se/en/research/centres-and-networks/umea-centre-for-microbial-research/', 'Research center focusing on microbial research, including infection biology, at Umeå University.',
+'research, microbial, infection, Sweden, centre, Umeå', '2024-01-01', 'info.ucmr@umu.se',
+'{"title": "Umeå Centre for Microbial Research (UCMR)", "institution": "Umeå University", "geographic_coverage": "Sweden", "license": "N/A", "version": "N/A"}',
 'Sweden', 'Human'),
 
--- Publications -> research_articles -> methodology_papers (Level 3 is leaf here)
-('PUB-RA-METH-NMBU-2023', 'Publications', 'research_articles', 'methodology_papers', NULL, NULL, 'Journal Article', 'N/A', 'Bioinformatics Journal',
-'https://doi.org/10.1093/bioinformatics/btad001', 'A new methodology paper describing a pipeline for AMR gene detection in complex metagenomes.',
-'publication, methodology, bioinformatics, metagenomics, AMR detection', '2023-03-15', 'author@nmbu.no',
-'{"title": "Pipeline for AMR Gene Detection in Metagenomes", "institution": "NMBU", "geographic_coverage": "Norway", "license": "Journal Copyright", "version": "N/A"}',
-'Norway', 'Environment'),
+('ENT-RESC-CARE-SE', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'national', 'Centre for Antibiotic Resistance Research (Gothenburg)',
+'https://www.gu.se/en/care', 'Interdisciplinary research center focusing on antibiotic resistance at University of Gothenburg.',
+'research, AMR, antibiotics, Sweden, centre, Gothenburg', '2024-01-01', 'care@gu.se',
+'{"title": "Centre for Antibiotic Resistance Research (CARE)", "institution": "University of Gothenburg", "geographic_coverage": "Sweden", "license": "N/A", "version": "N/A"}',
+'Sweden', 'Human'),
 
--- Entities -> data_repositories -> antimicrobial_resistance_registry (Level 3 is leaf here)
-('ENT-DR-AMR-SSI-2010', 'Entities', 'data_repositories', 'antimicrobial_resistance_registry', NULL, NULL, 'Database Search', 'N/A', 'DANMAP',
-'https://www.danmap.org/search-database', 'DANMAP: Danish integrated antimicrobial resistance monitoring and research programme database.',
-'entity, repository, AMR, registry, Denmark, DANMAP', '2010-01-01', 'danmap@ssi.dk',
-'{"title": "DANMAP Database", "institution": "SSI/DTU", "geographic_coverage": "Denmark", "license": "Public Access", "version": "N/A"}',
-'Denmark', 'Human');
+-- Finland - Human Health
+('SYS-SURV-FIRE-FI', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'clinical_isolate_registry', NULL, 'Website/Reports', 'national', 'FIRe/FinRes',
+'https://thl.fi/en/main-page', 'Finnish national surveillance system for antimicrobial resistance (part of THL activities). Link points to THL main page, specific FIRe link might be internal or report-based.',
+'surveillance, AMR, human, Finland, monitoring, resistance', '2024-01-01', 'kirjaamo@thl.fi',
+'{"title": "FIRe/FinRes - Finnish Antimicrobial Resistance Surveillance", "institution": "THL", "geographic_coverage": "Finland", "license": "Public Reports", "version": "Annual Reports"}',
+'Finland', 'Human'),
 
--- Update metadata geographic_coverage just in case (redundant if done correctly above)
--- UPDATE data_points SET metadata = json_set(metadata, '$.geographic_coverage', country); -- This might fail if metadata is not valid JSON initially 
+('ENT-PHA-THL-FI', 'Entities', 'public_health_agencies', 'national_health_institutes', NULL, NULL, 'Website', 'national', 'Finnish Institute for Health and Welfare (THL)',
+'https://thl.fi/en/main-page', 'Terveyden ja hyvinvoinnin laitos, the national public health agency.',
+'public health, Finland, agency, government, welfare', '2024-01-01', 'kirjaamo@thl.fi',
+'{"title": "Finnish Institute for Health and Welfare (THL)", "institution": "THL", "geographic_coverage": "Finland", "license": "Government Publication", "version": "N/A"}',
+'Finland', 'Human'),
+
+-- Finland - Animal Health / Food
+('SYS-SURV-FINRESVET-FI', 'Systems', 'surveillance_network', 'zoonotic_monitoring', 'livestock_health_monitoring', NULL, 'Website/Reports', 'national', 'FinRes-Vet',
+'https://www.ruokavirasto.fi/en/animals/animal-medication/monitoring-of-antibiotic-resistance/finres-vet-reports/', 'Finnish monitoring programme for antimicrobial resistance in veterinary medicine and food production animals.',
+'surveillance, AMR, animal, food, Finland, veterinary, resistance', '2024-01-01', 'kirjaamo@ruokavirasto.fi',
+'{"title": "FinRes-Vet - Finnish Veterinary Antimicrobial Resistance Monitoring", "institution": "Ruokavirasto", "geographic_coverage": "Finland", "license": "Public Reports", "version": "Annual Reports"}',
+'Finland', 'Animal'),
+
+('ENT-GOV-FFA-FI', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Finnish Food Authority',
+'https://www.ruokavirasto.fi/en/', 'Ruokavirasto, responsible for food safety, animal health and welfare.',
+'food safety, animal health, Finland, agency, government', '2024-01-01', 'kirjaamo@ruokavirasto.fi',
+'{"title": "Finnish Food Authority (Ruokavirasto)", "institution": "Ruokavirasto", "geographic_coverage": "Finland", "license": "Government Publication", "version": "N/A"}',
+'Finland', 'Animal'),
+
+-- Finland - Environment
+('SYS-SURV-WASTPAN-FI', 'Systems', 'surveillance_network', 'environmental_monitoring', 'wastewater_surveillance', NULL, 'Project Website', 'national', 'WastPan',
+'https://thl.fi/en/research-and-development/research-and-projects/wastewater-based-surveillance-as-pandemic-preparedness-tool-wastpan-', 'Wastewater-based surveillance project for pandemic preparedness at THL.',
+'wastewater, surveillance, environment, Finland, pandemic, preparedness', '2024-01-01', 'kirjaamo@thl.fi',
+'{"title": "WastPan - Wastewater Surveillance Project", "institution": "THL", "geographic_coverage": "Finland", "license": "N/A", "version": "Ongoing"}',
+'Finland', 'Environment'),
+
+-- Finland - Predictors
+('ENT-GOV-FINDATA-FI', 'Entities', 'data_repositories', 'clinical_data_repositories', NULL, NULL, 'Website', 'national', 'Findata',
+'https://findata.fi/en/', 'Finnish social and health data permit authority, enabling secondary use of data.',
+'data access, health data, social data, Finland, permit authority, secondary use', '2024-01-01', 'info@findata.fi',
+'{"title": "Findata - Finnish Social and Health Data Permit Authority", "institution": "Findata", "geographic_coverage": "Finland", "license": "Permit Required", "version": "N/A"}',
+'Finland', 'Human'), -- Domain: Human (health/social data)
+
+('ENT-GOV-HEALTHMIN-FI', 'Entities', 'funding_bodies', 'government_agencies', NULL, NULL, 'Website', 'national', 'Ministry of Social Affairs and Health (Finland)',
+'https://stm.fi/en/frontpage', 'Finnish Ministry of Social Affairs and Health (Sosiaali- ja terveysministeriö).',
+'government, policy, health, social affairs, Finland, ministry', '2024-01-01', 'kirjaamo.stm@gov.fi',
+'{"title": "Ministry of Social Affairs and Health (Finland)", "institution": "STM", "geographic_coverage": "Finland", "license": "Government Publication", "version": "N/A"}',
+'Finland', 'Human'),
+
+-- Finland - Research Centers
+('ENT-RESC-COEAMR-FI', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'national', 'Finnish CoE in AMR Research',
+'https://www.aka.fi/en/research-funding/programmes-and-other-funding-schemes/finnish-centres-of-excellence/new-centres-of-excellence/multidisciplinary-centre-of-excellence-in-antimicrobial-resistance-research/', 'Finnish Multidisciplinary Centre of Excellence in Antimicrobial Resistance Research.',
+'research, AMR, multidisciplinary, Finland, centre of excellence', '2024-01-01', 'N/A',
+'{"title": "Finnish Multidisciplinary Centre of Excellence in AMR Research", "institution": "Academy of Finland", "geographic_coverage": "Finland", "license": "N/A", "version": "N/A"}',
+'Finland', 'Human'); 
