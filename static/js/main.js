@@ -505,359 +505,469 @@ function buildResourceHierarchy(data) {
         .then(hierarchy => {
             const hierarchyTree = document.getElementById('hierarchy-tree');
             hierarchyTree.innerHTML = '';
-            
+
             // Create top-level nodes for resource types
             for (const [resourceType, details] of Object.entries(hierarchy)) {
                 // Count resources in this type
                 const resourcesInType = data.filter(r => r.resource_type === resourceType).length;
-                
-                if (resourcesInType === 0) continue; // Skip if no resources of this type
-                
-                const node = document.createElement('div');
-                node.className = 'hierarchy-node';
+
+                if (resourcesInType === 0 && !Object.keys(details.sub_categories || {}).length) continue; // Skip if no resources AND no subcategories defined
+
+                const nodeLevel = details.level || 1; // Get level from YAML or default to 1
+                const node = createTreeNode(resourceType, `level-${nodeLevel}`, resourcesInType); // Use level for styling
+                node.className = `hierarchy-node level-${nodeLevel}-node`; // Ensure correct base class and level class
+                node.dataset.level = nodeLevel;
                 node.dataset.type = 'resource_type';
                 node.dataset.value = resourceType;
-                node.innerHTML = `
-                    <div class="node-header" data-type="resource_type" data-value="${resourceType}">
-                        ${resourceType} <span class="count">(${resourcesInType})</span>
-                    </div>
-                    <div class="node-children"></div>
-                `;
-                
+
+                // Add child container
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = 'node-children';
+                node.appendChild(childrenDiv);
+
                 hierarchyTree.appendChild(node);
-                
+
                 // Add subcategories if they exist
                 if (details.sub_categories) {
-                    const nodeChildren = node.querySelector('.node-children');
-                    
-                    for (const [category, subcategories] of Object.entries(details.sub_categories)) {
-                        // Count resources in this category
-                        const resourcesInCategory = data.filter(r => 
-                            r.resource_type === resourceType && r.category === category).length;
-                        
-                        if (resourcesInCategory === 0) continue; // Skip if no resources of this category
-                        
-                        const subnode = document.createElement('div');
-                        subnode.className = 'hierarchy-subnode';
-                        subnode.dataset.type = 'category';
-                        subnode.dataset.value = category;
-                        subnode.innerHTML = `
-                            <div class="subnode-header" data-type="category" data-value="${category}">
-                                ${category.replace(/_/g, ' ')} <span class="count">(${resourcesInCategory})</span>
-                            </div>
-                            <div class="node-children"></div>
-                        `;
-                        
-                        nodeChildren.appendChild(subnode);
-                        
-                        // Add subcategories of categories
-                        addSubcategories(subnode, subcategories, data, resourceType, category);
-                    }
+                    const initialPath = { resource_type: resourceType }; // Start path
+                    addSubcategories(node, details.sub_categories, data, initialPath, nodeLevel); // Pass level
                 }
             }
-            
+
             // Add click handlers for hierarchy filtering
             setupHierarchyFiltering(hierarchyTree);
-            
+
             // Expand all nodes by default to show full hierarchy
-            document.querySelectorAll('.node-children').forEach(node => {
-                node.style.display = 'block';
+            document.querySelectorAll('.hierarchy-node, .hierarchy-subnode, .hierarchy-deepnode').forEach(node => {
+                 const children = node.querySelector('.node-children');
+                 if (children && children.children.length > 0) {
+                     children.style.display = 'block';
+                     // Optionally add an expanded class if needed for styling toggles etc.
+                     // node.classList.add('node-expanded');
+                 }
             });
+             // Ensure toggle icons reflect expanded state if used (though expansion is default)
+             document.querySelectorAll('.node-toggle').forEach(toggle => {
+                 const parentNode = toggle.closest('.hierarchy-node, .hierarchy-subnode, .hierarchy-deepnode');
+                 const children = parentNode?.querySelector('.node-children');
+                 if (children && children.style.display === 'block') {
+                     // Update toggle icon style if necessary, e.g., rotate
+                     // toggle.style.transform = 'rotate(90deg)';
+                 }
+             });
         })
         .catch(error => console.error('Error building resource hierarchy:', error));
 }
 
-function addSubcategories(parentNode, subcategories, data, resourceType, category, currentPath = {}) {
+function addSubcategories(parentNode, hierarchyNodeData, data, currentPath, parentLevel) {
     const nodeChildren = parentNode.querySelector('.node-children');
-    
-    // Enhanced handling for different types of subcategory structures
-    if (Array.isArray(subcategories)) {
-        subcategories.forEach(item => {
-            if (typeof item === 'string') {
-                // Simple string subcategory
-                const resourcesInSubcategory = data.filter(r => {
-                    let matches = r.resource_type === resourceType && 
-                                r.category === category;
-                    
-                    // Add subcategory matching if the current path has one
-                    if (currentPath.subcategory) {
-                        matches = matches && r.subcategory === currentPath.subcategory;
-                    } else {
-                        matches = matches && r.subcategory === item;
-                    }
-                    
-                    // Add data_type matching if needed
-                    if (currentPath.data_type) {
-                        matches = matches && r.data_type === item;
-                    }
-                    
-                    return matches;
-                }).length;
-                
-                // Always create leaf nodes regardless of resource count to show full hierarchy
-                const leaf = document.createElement('div');
-                leaf.className = 'hierarchy-leafnode';
-                
-                // Set correct data attributes based on where we are in the hierarchy
-                if (currentPath.subcategory) {
-                    leaf.dataset.type = 'data_type';
-                    leaf.dataset.value = item;
-                    leaf.dataset.subcategory = currentPath.subcategory;
-                    leaf.dataset.category = category;
-                    leaf.dataset.resourceType = resourceType;
-                } else {
-                    leaf.dataset.type = 'subcategory';
-                    leaf.dataset.value = item;
-                    leaf.dataset.category = category;
-                    leaf.dataset.resourceType = resourceType;
-                }
-                
-                leaf.innerHTML = `
-                    <div class="leafnode-header" data-type="${leaf.dataset.type}" data-value="${item}">
-                        ${item.replace(/_/g, ' ')} <span class="count">(${resourcesInSubcategory})</span>
-                    </div>
-                `;
-                
-                nodeChildren.appendChild(leaf);
-            } else if (typeof item === 'object') {
-                // Handle complex nested structures
-                for (const [subcat, details] of Object.entries(item)) {
-                    // Handle objects with title property
-                    const displayName = details.title || subcat.replace(/_/g, ' ');
-                    
-                    // Count resources with this subcategory
-                    const resourcesInSubcategory = data.filter(r => {
-                        return r.resource_type === resourceType && 
-                               r.category === category && 
-                               r.subcategory === subcat;
-                    }).length;
-                    
-                    // Always show subcategories from the hierarchy, even if they have no data
-                    // This helps users see the complete structure
-                    
-                    const deepNode = document.createElement('div');
-                    deepNode.className = 'hierarchy-deepnode';
-                    deepNode.dataset.type = 'subcategory';
-                    deepNode.dataset.value = subcat;
-                    deepNode.dataset.category = category;
-                    deepNode.dataset.resourceType = resourceType;
-                    
-                    deepNode.innerHTML = `
-                        <div class="deepnode-header" data-type="subcategory" data-value="${subcat}">
-                            ${displayName} <span class="count">(${resourcesInSubcategory})</span>
-                        </div>
-                        <div class="node-children"></div>
-                    `;
-                    
-                    nodeChildren.appendChild(deepNode);
-                    
-                    // Recursively process deeper items
-                    if (Array.isArray(details)) {
-                        // If details is an array, process it
-                        const newPath = {
-                            ...currentPath,
-                            subcategory: subcat
-                        };
-                        addSubcategories(deepNode, details, data, resourceType, category, newPath);
-                    } else if (typeof details === 'object') {
-                        // Handle non-array objects (might have nested items or just title)
-                        // Skip the title property when processing
-                        const nestedItems = Object.entries(details)
-                            .filter(([key]) => key !== 'title')
-                            .reduce((obj, [key, val]) => {
-                                obj[key] = val;
-                                return obj;
-                            }, {});
+    if (!nodeChildren) return; // Safety check
 
-                        if (Object.keys(nestedItems).length > 0) {
-                            // Process nested items
-                            for (const [deepKey, deepValue] of Object.entries(nestedItems)) {
-                                // Handle items as arrays
-                                if (Array.isArray(deepValue)) {
-                                    const newPath = {
-                                        ...currentPath,
-                                        subcategory: subcat
-                                    };
-                                    addSubcategories(deepNode, deepValue, data, resourceType, category, newPath);
-                                } else if (typeof deepValue === 'object') {
-                                    // Creating a node for this deeper subcategory
-                                    const displayDeepName = deepValue.title || deepKey.replace(/_/g, ' ');
-                                    
-                                    const resourcesInDeepCategory = data.filter(r => 
-                                        r.resource_type === resourceType && 
-                                        r.category === category && 
-                                        r.subcategory === subcat &&
-                                        r.data_type === deepKey
-                                    ).length;
-                                    
-                                    const deepestNode = document.createElement('div');
-                                    deepestNode.className = 'hierarchy-deepestnode';
-                                    deepestNode.dataset.type = 'data_type';
-                                    deepestNode.dataset.value = deepKey;
-                                    deepestNode.dataset.subcategory = subcat;
-                                    deepestNode.dataset.category = category;
-                                    deepestNode.dataset.resourceType = resourceType;
-                                    
-                                    deepestNode.innerHTML = `
-                                        <div class="deepestnode-header" data-type="data_type" data-value="${deepKey}">
-                                            ${displayDeepName} <span class="count">(${resourcesInDeepCategory})</span>
-                                        </div>
-                                        <div class="node-children"></div>
-                                    `;
-                                    
-                                    deepNode.querySelector('.node-children').appendChild(deepestNode);
-                                    
-                                    // Process even deeper levels
-                                    // Filter out title and process the rest
-                                    const evenDeeperItems = Object.entries(deepValue)
-                                        .filter(([key]) => key !== 'title')
-                                        .reduce((obj, [key, val]) => {
-                                            obj[key] = val;
-                                            return obj;
-                                        }, {});
-                                    
-                                    if (Object.keys(evenDeeperItems).length > 0) {
-                                        const deeperPath = {
-                                            ...currentPath,
-                                            subcategory: subcat,
-                                            data_type: deepKey
-                                        };
-                                        
-                                        // For each deeper item, recursively process
-                                        for (const [deepestKey, deepestValue] of Object.entries(evenDeeperItems)) {
-                                            if (Array.isArray(deepestValue)) {
-                                                addSubcategories(deepestNode, deepestValue, data, resourceType, category, deeperPath);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    const processNode = (key, details, currentLevel) => {
+        if (currentLevel > 5) return; // Stop recursion at level 5
+
+        const nodeLevel = details.level || currentLevel; // Use YAML level or inferred level
+        if (nodeLevel > 5) return; // Stop if YAML level exceeds 5
+
+        const displayName = details.title || key.replace(/_/g, ' ');
+        const hasChildren = details.sub_categories || (details.items && details.items.length > 0);
+        const nodeClass = hasChildren ? 'hierarchy-deepnode' : 'hierarchy-leafnode'; // Use deepnode if it has children, otherwise leafnode
+
+        // Determine data-type based on level
+        let nodeDataType;
+        if (nodeLevel === 2) nodeDataType = 'category';
+        else if (nodeLevel === 3) nodeDataType = 'subcategory';
+        else if (nodeLevel === 4) nodeDataType = 'data_type'; // Assuming level 4 maps to data_type
+        else nodeDataType = `level_${nodeLevel}_item`; // Generic for level 5 or others if structure changes
+
+        // --- Resource Counting Logic (Simplified - needs refinement based on DB structure) ---
+        let resourcesCount = 0;
+        const countPath = { ...currentPath, [nodeDataType]: key };
+         resourcesCount = data.filter(r => {
+             let match = true;
+             // Check if resource matches the full path constructed so far
+             for(const pathKey in countPath) {
+                 const resourceKey = pathKey === 'resource_type' ? 'resource_type' : // Map path keys to DB fields
+                                   pathKey === 'category' ? 'category' :
+                                   pathKey === 'subcategory' ? 'subcategory' :
+                                   pathKey === 'data_type' ? 'data_type' : null; // How to match level 5?
+
+                 if (resourceKey && r[resourceKey] !== countPath[pathKey]) {
+                     match = false;
+                     break;
+                 }
+                 // If resourceKey is null (e.g. for level 5), we can't directly filter yet
+                 // unless there's a corresponding DB field.
+             }
+             return match;
+         }).length;
+        // --- End Resource Counting Logic ---
+
+
+        // Create the node element
+        const node = document.createElement('div');
+        node.className = `${nodeClass} level-${nodeLevel}-node`; // Add level class for styling
+        node.dataset.level = nodeLevel;
+        node.dataset.type = nodeDataType;
+        node.dataset.value = key;
+
+        // Add parent path data attributes for context during filtering
+        Object.keys(currentPath).forEach(pathKey => {
+            // Sanitize keys for dataset attributes if necessary (e.g., replace underscores)
+            const datasetKey = pathKey.replace(/_/g, ''); // Example: resource_type -> resourcetype
+            node.dataset[datasetKey] = currentPath[pathKey];
         });
-    }
-}
 
-function setupHierarchyFiltering(hierarchyTree) {
-    // Get all clickable elements in the hierarchy
-    const headerElements = hierarchyTree.querySelectorAll('.node-header, .subnode-header, .deepnode-header, .leafnode-header');
-    
-    headerElements.forEach(header => {
-        header.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const filterType = this.getAttribute('data-type');
-            const filterValue = this.getAttribute('data-value');
-            const parentElement = this.parentElement;
-            
-            // Toggle selection state
-            const isSelected = parentElement.classList.contains('selected');
-            
-            // Clear selected class from all elements at the same level in the hierarchy
-            if (filterType === 'resource_type') {
-                hierarchyTree.querySelectorAll('.hierarchy-node').forEach(node => {
-                    node.classList.remove('selected');
-                });
-            } else if (filterType === 'category') {
-                const resourceTypeNode = parentElement.closest('.hierarchy-node');
-                resourceTypeNode.querySelectorAll('.hierarchy-subnode').forEach(node => {
-                    node.classList.remove('selected');
-                });
-            } else if (filterType === 'subcategory') {
-                const categoryNode = parentElement.closest('.hierarchy-subnode');
-                categoryNode.querySelectorAll('.hierarchy-deepnode, .hierarchy-leafnode').forEach(node => {
-                    if (node.dataset.type === 'subcategory') {
-                        node.classList.remove('selected');
-                    }
-                });
-            } else if (filterType === 'data_type' || filterType === 'deep_subcategory') {
-                const subcategoryNode = parentElement.closest('.hierarchy-deepnode');
-                if (subcategoryNode) {
-                    subcategoryNode.querySelectorAll('.hierarchy-leafnode').forEach(node => {
-                        if (node.dataset.type === filterType) {
-                            node.classList.remove('selected');
+        // Determine header class based on whether it's a leaf or not
+        const headerClass = nodeClass === 'hierarchy-leafnode' ? 'leafnode-header' : 'deepnode-header';
+
+        node.innerHTML = `
+            <div class="${headerClass}" data-type="${node.dataset.type}" data-value="${key}">
+                ${displayName} <span class="count">(${resourcesCount})</span>
+            </div>
+            ${hasChildren ? '<div class="node-children" style="display: block;"></div>' : ''}
+        `; // Add children div only if needed, default to display: block
+
+        nodeChildren.appendChild(node);
+
+        // Recursively process sub_categories
+        if (details.sub_categories) {
+            const newPath = { ...currentPath, [nodeDataType]: key };
+            addSubcategories(node, details.sub_categories, data, newPath, nodeLevel);
+        }
+
+        // Process items array (leaf nodes for this category/subcategory)
+        if (details.items && Array.isArray(details.items)) {
+            const itemLevel = nodeLevel + 1;
+            if (itemLevel <= 5) {
+                const itemContainer = node.querySelector('.node-children'); // Items go inside the current node's children
+                if (itemContainer) {
+                     details.items.forEach(item => {
+                        let itemName, itemValue;
+                        if (typeof item === 'string') {
+                            itemName = item;
+                            itemValue = item;
+                        } else if (typeof item === 'object' && item !== null && item.name) {
+                            itemName = item.name;
+                            itemValue = item.name; // Assuming name is the value
+                        } else {
+                            return; // Skip invalid items
                         }
+
+                        const itemDataType = `level_${itemLevel}_item`; // e.g., level_5_item
+
+                        // --- Item Resource Counting (Simplified) ---
+                        let itemResourcesCount = 0;
+                        // This count is difficult without knowing how level 5 items map to DB fields.
+                        // For now, inheriting parent count or setting to 0.
+                        // itemResourcesCount = resourcesCount; // Or 0
+                        // --- End Item Counting ---
+
+                        const leafNode = document.createElement('div');
+                        leafNode.className = `hierarchy-leafnode level-${itemLevel}-node`; // Item is a leaf
+                        leafNode.dataset.level = itemLevel;
+                        leafNode.dataset.type = itemDataType;
+                        leafNode.dataset.value = itemValue;
+
+                        // Add parent path data attributes
+                         Object.keys(currentPath).forEach(pathKey => {
+                            const datasetKey = pathKey.replace(/_/g, '');
+                            leafNode.dataset[datasetKey] = currentPath[pathKey];
+                         });
+                         // Add immediate parent's value (e.g., the data_type for a level 5 item)
+                         leafNode.dataset[nodeDataType.replace(/_/g, '')] = key;
+
+
+                        leafNode.innerHTML = `
+                            <div class="leafnode-header" data-type="${itemDataType}" data-value="${itemValue}">
+                                ${itemName.replace(/_/g, ' ')} <span class="count">(${itemResourcesCount})</span>
+                            </div>
+                        `;
+                        itemContainer.appendChild(leafNode);
                     });
                 }
             }
-            
-            // Toggle selection on the clicked element
-            if (!isSelected) {
-                parentElement.classList.add('selected');
-                
-                // Add to active filters
-                addActiveFilter(filterType, filterValue);
-            } else {
-                // Remove from active filters
-                removeActiveFilter(filterType, filterValue);
+        }
+    };
+
+    // Iterate through the keys in the current hierarchy level data
+    if (typeof hierarchyNodeData === 'object' && !Array.isArray(hierarchyNodeData) && hierarchyNodeData !== null) {
+        for (const [key, details] of Object.entries(hierarchyNodeData)) {
+            // Skip metadata keys like 'level' or 'title' when iterating categories
+            if (key === 'level' || key === 'title') continue;
+
+            // Assume 'details' is an object describing the node (category/subcategory)
+            if (typeof details === 'object' && details !== null) {
+                 processNode(key, details, parentLevel + 1);
             }
-            
-            // Apply filtering
+        }
+    }
+    // Note: This rewrite assumes hierarchyNodeData is an object containing category/subcategory keys,
+    // and each key maps to an object ('details') containing 'level', 'title', 'sub_categories', 'items'.
+    // It does not explicitly handle the case where hierarchyNodeData might be an array directly.
+}
+
+function createTreeNode(name, cssClass, count = 0) {
+    const node = document.createElement('div');
+    // Keep base class 'tree-node' for potential general styling, add specific type class
+    node.className = `tree-node ${cssClass}-node`; // e.g., tree-node level-1-node
+
+    // Extract level from cssClass if it's a level class (e.g., "level-3-node")
+    const levelMatch = cssClass.match(/level-(\d+)/);
+    const level = levelMatch ? parseInt(levelMatch[1]) : 1; // Default to 1 if no level class found
+    node.setAttribute('data-level', level);
+
+    // Add visual indentation based on level using padding
+    node.style.paddingLeft = `${(level -1) * 15}px`; // Adjust multiplier for desired indent
+
+    // Add level-specific styling class if needed beyond padding
+    node.classList.add(`level-${level}`);
+
+
+    const nodeContent = document.createElement('div');
+    nodeContent.className = 'node-content'; // Keep node-content wrapper
+
+    // Remove the level indicator span
+    // const levelIndicator = document.createElement('span');
+    // levelIndicator.className = 'level-indicator';
+    // levelIndicator.textContent = `L${level}: `;
+    // nodeContent.appendChild(levelIndicator);
+
+    // Keep toggle span if interactive expansion/collapse is desired later, hide if not needed
+    const nodeToggle = document.createElement('span');
+    nodeToggle.className = 'node-toggle';
+    nodeToggle.innerHTML = '▶'; // Use CSS to hide if tree is always expanded
+    nodeToggle.style.visibility = 'hidden'; // Hide toggle as it's always expanded now
+
+    const nodeName = document.createElement('span');
+    nodeName.className = 'node-name';
+    nodeName.textContent = name; // Name already has underscores replaced
+
+    const nodeCount = document.createElement('span');
+    nodeCount.className = 'node-count';
+    nodeCount.textContent = count;
+
+    nodeContent.appendChild(nodeToggle); // Keep in DOM for structure, but hidden
+    nodeContent.appendChild(nodeName);
+    nodeContent.appendChild(nodeCount);
+
+    node.appendChild(nodeContent);
+
+    // Child nodes div will be added by the calling function (buildResourceHierarchy/addSubcategories) if needed
+
+    return node;
+}
+
+function setupHierarchyFiltering(hierarchyTree) {
+    // Get all clickable header elements in the hierarchy
+    const headerElements = hierarchyTree.querySelectorAll('.node-header, .subnode-header, .deepnode-header, .leafnode-header');
+
+    headerElements.forEach(header => {
+        header.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent clicks bubbling up the tree
+
+            const filterType = this.getAttribute('data-type');
+            const filterValue = this.getAttribute('data-value');
+            const parentElement = this.parentElement; // The node div (e.g., hierarchy-node, hierarchy-leafnode)
+
+            // Toggle selection state
+            const isSelected = parentElement.classList.contains('selected');
+
+            // --- Clear Selection Logic (Needs careful review based on desired behavior) ---
+            // Option 1: Clear all other selections at any level
+             // document.querySelectorAll('.hierarchy-node.selected, .hierarchy-subnode.selected, .hierarchy-deepnode.selected, .hierarchy-leafnode.selected').forEach(node => {
+             //     if (node !== parentElement) node.classList.remove('selected');
+             // });
+
+            // Option 2: Clear only siblings at the same level (more complex to implement)
+            // Example for category level:
+            // if (filterType === 'category') {
+            //     const siblings = parentElement.parentElement.querySelectorAll('.hierarchy-subnode');
+            //     siblings.forEach(sib => {
+            //         if (sib !== parentElement) sib.classList.remove('selected');
+            //     });
+            // }
+            // --- End Clear Selection Logic ---
+
+             // Simple toggle: Remove selection if clicking again, add if not selected
+            if (isSelected) {
+                 parentElement.classList.remove('selected');
+                 removeActiveFilter(filterType, filterValue); // Remove from top display
+            } else {
+                 // Clear previous selections before adding a new one (single selection mode)
+                 document.querySelectorAll('.hierarchy-node.selected, .hierarchy-subnode.selected, .hierarchy-deepnode.selected, .hierarchy-leafnode.selected').forEach(node => {
+                     node.classList.remove('selected');
+                     // Also remove corresponding active filter tags
+                     removeActiveFilter(node.dataset.type, node.dataset.value);
+                 });
+
+                 parentElement.classList.add('selected');
+                 // Add to active filters display - pass context
+                 const filterContext = { ...parentElement.dataset }; // Pass all data attributes
+                 addActiveFilter(filterType, filterValue, null, filterContext);
+            }
+
+
+            // Apply filtering based on all currently selected nodes
             const selectedFilters = getSelectedHierarchyFilters();
             filterDisplayedResults(selectedFilters);
         });
     });
 }
 
-function addActiveFilter(filterType, filterValue) {
+function getSelectedHierarchyFilters() {
+    const selectedFilters = []; // Store filters as objects with full path
+
+    document.querySelectorAll('.hierarchy-node.selected, .hierarchy-subnode.selected, .hierarchy-deepnode.selected, .hierarchy-leafnode.selected').forEach(node => {
+        const filter = {
+            type: node.dataset.type,
+            value: node.dataset.value,
+            level: node.dataset.level,
+            // Capture parent context from data attributes
+            resource_type: node.dataset.resourcetype, // Note: dataset keys are lowercased
+            category: node.dataset.category,
+            subcategory: node.dataset.subcategory,
+            data_type: node.dataset.datatype // Assuming level 4 maps to this
+            // Add more levels if needed and available in dataset
+        };
+        // Clean up undefined properties
+        Object.keys(filter).forEach(key => filter[key] === undefined && delete filter[key]);
+        selectedFilters.push(filter);
+    });
+
+    return selectedFilters;
+}
+
+function filterDisplayedResults(selectedFilters) {
+    const dataRows = document.querySelectorAll('.data-row');
+    let visibleRowCount = 0;
+
+    if (selectedFilters.length === 0) {
+        // No filters selected, show all rows within the initially fetched results
+        dataRows.forEach(row => {
+            row.style.display = '';
+            visibleRowCount++;
+        });
+    } else {
+        // Apply the selected filters (currently supports single selection)
+        const filter = selectedFilters[0]; // Assuming single selection for simplicity
+
+        dataRows.forEach(row => {
+            let shouldDisplay = true;
+
+            // Check against the filter's path properties
+            if (filter.resource_type && row.closest('.resource-type-section').querySelector('h3').textContent !== filter.resource_type) {
+                shouldDisplay = false;
+            }
+            if (shouldDisplay && filter.category && row.dataset.category !== filter.category) {
+                shouldDisplay = false;
+            }
+            if (shouldDisplay && filter.subcategory && row.dataset.subcategory !== filter.subcategory) {
+                shouldDisplay = false;
+            }
+            if (shouldDisplay && filter.data_type && row.dataset.dataType !== filter.data_type) { // Check data-data-type attribute on row
+                shouldDisplay = false;
+            }
+            // How to filter based on level 5 items? Requires a corresponding field in the row's data attributes.
+            // Example: if (shouldDisplay && filter.type === 'level_5_item' && row.dataset.level5Item !== filter.value) { shouldDisplay = false; }
+
+
+            // Final check: ensure the row's own type matches the filter type if it's a leaf filter
+            // This logic might be too restrictive depending on desired behavior.
+            // Example: If filtering by 'category', only show rows matching that category.
+            // If filtering by 'level_5_item', only show rows matching that specific item *and* its parents.
+            // The path check above handles the parent matching.
+
+            row.style.display = shouldDisplay ? '' : 'none';
+            if (shouldDisplay) {
+                visibleRowCount++;
+            }
+        });
+    }
+
+    // Update section visibility
+    document.querySelectorAll('.resource-type-section').forEach(section => {
+        const visibleRows = section.querySelectorAll('.data-row:not([style*="display: none"])').length;
+        section.style.display = visibleRows > 0 ? '' : 'none';
+    });
+
+    // Update count display
+    document.getElementById('results-count').textContent = visibleRowCount;
+}
+
+function addActiveFilter(filterType, filterValue, displayValue = null, filterInfo = null) {
     const activeFiltersContainer = document.getElementById('active-filter-tags');
-    
-    // Check if filter already exists
-    if (document.querySelector(`.filter-tag[data-type="${filterType}"][data-value="${filterValue}"]`)) {
+
+    // Use a unique key combining type and value for checking existence
+    const filterKey = `${filterType}-${filterValue}`;
+    if (document.querySelector(`.filter-tag[data-filter-key="${filterKey}"]`)) {
         return;
     }
-    
-    // Format display names
+
     const displayType = formatFilterType(filterType);
-    
-    // Create filter tag
+    // Use context to create a more descriptive display value if needed
+    let valueToShow = displayValue || formatFilterValue(filterValue);
+    // Example: if (filterInfo && filterInfo.category) { valueToShow += ` (in ${formatFilterValue(filterInfo.category)})`; }
+
     const tag = document.createElement('div');
     tag.className = 'filter-tag';
+    tag.dataset.filterKey = filterKey; // Use unique key
     tag.dataset.type = filterType;
     tag.dataset.value = filterValue;
+
+    // Store context in data attributes if provided
+    if (filterInfo) {
+        Object.keys(filterInfo).forEach(key => {
+            // Avoid storing large objects or redundant info like 'type', 'value', 'level' if already present
+            if (key !== 'type' && key !== 'value' && key !== 'level' && filterInfo[key]) {
+                 tag.dataset[key] = filterInfo[key];
+            }
+        });
+    }
+
+
     tag.innerHTML = `
         <span class="filter-type">${displayType}:</span>
-        <span class="filter-value">${formatFilterValue(filterValue)}</span>
+        <span class="filter-value">${valueToShow}</span>
         <span class="remove-filter" data-type="${filterType}" data-value="${filterValue}">&times;</span>
     `;
-    
+
     activeFiltersContainer.appendChild(tag);
-    
-    // Show active filters container
     document.querySelector('.active-filters').style.display = 'flex';
-    
-    // Add remove handler
+
     tag.querySelector('.remove-filter').addEventListener('click', function() {
         const type = this.getAttribute('data-type');
         const value = this.getAttribute('data-value');
-        
+
         // Deselect the corresponding item in hierarchy
-        const selector = `.hierarchy-node[data-type="${type}"][data-value="${value}"], 
-                           .hierarchy-subnode[data-type="${type}"][data-value="${value}"],
-                           .hierarchy-deepnode[data-type="${type}"][data-value="${value}"],
-                           .hierarchy-leafnode[data-type="${type}"][data-value="${value}"]`;
-        const hierarchyItem = document.querySelector(selector);
+        // Find the specific node using context if possible, otherwise just type/value
+        let selector = `.hierarchy-node[data-type="${type}"][data-value="${value}"],
+                       .hierarchy-subnode[data-type="${type}"][data-value="${value}"],
+                       .hierarchy-deepnode[data-type="${type}"][data-value="${value}"],
+                       .hierarchy-leafnode[data-type="${type}"][data-value="${value}"]`;
+        // Refine selector using context if needed, e.g., find node with matching parent data attributes
+
+        const hierarchyItem = document.querySelector(selector); // Might select wrong one if values repeat
         if (hierarchyItem) {
             hierarchyItem.classList.remove('selected');
         }
-        
-        removeActiveFilter(type, value);
-        
-        // Apply filtering
+
+        removeActiveFilter(type, value); // Remove the tag itself
+
+        // Re-apply filtering (which will now be empty or based on other selections)
         const selectedFilters = getSelectedHierarchyFilters();
         filterDisplayedResults(selectedFilters);
     });
 }
 
 function removeActiveFilter(filterType, filterValue) {
-    const tag = document.querySelector(`.filter-tag[data-type="${filterType}"][data-value="${filterValue}"]`);
+    const filterKey = `${filterType}-${filterValue}`;
+    const tag = document.querySelector(`.filter-tag[data-filter-key="${filterKey}"]`);
     if (tag) {
         tag.remove();
     }
-    
-    // Hide active filters container if empty
+
     const activeFiltersContainer = document.getElementById('active-filter-tags');
     if (activeFiltersContainer.children.length === 0) {
         document.querySelector('.active-filters').style.display = 'none';
@@ -869,104 +979,19 @@ function formatFilterType(type) {
         'resource_type': 'Resource Type',
         'category': 'Category',
         'subcategory': 'Subcategory',
-        'data_type': 'Data Type',
-        'deep_subcategory': 'Data Type'
+        'data_type': 'Data Type', // Level 4
+        'level_5_item': 'Detail', // Level 5
+        // Add mappings for other level_X_item types if needed
     };
-    
-    return typeMap[type] || type;
+
+    // Basic formatting for unmapped types like 'level_4_item'
+    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
 function formatFilterValue(value) {
     // Replace underscores with spaces and capitalize words
     return value.replace(/_/g, ' ')
         .replace(/\b\w/g, l => l.toUpperCase());
-}
-
-function getSelectedHierarchyFilters() {
-    const selectedFilters = {
-        resource_type: [],
-        category: [],
-        subcategory: [],
-        data_type: []
-    };
-    
-    document.querySelectorAll('.hierarchy-node.selected').forEach(node => {
-        selectedFilters.resource_type.push(node.dataset.value);
-    });
-    
-    document.querySelectorAll('.hierarchy-subnode.selected').forEach(node => {
-        selectedFilters.category.push(node.dataset.value);
-    });
-    
-    document.querySelectorAll('.hierarchy-deepnode.selected, .hierarchy-leafnode.selected').forEach(node => {
-        if (node.dataset.type === 'subcategory') {
-            selectedFilters.subcategory.push(node.dataset.value);
-        } else if (node.dataset.type === 'data_type') {
-            selectedFilters.data_type.push({
-                value: node.dataset.value,
-                subcategory: node.dataset.subcategory
-            });
-        }
-    });
-    
-    return selectedFilters;
-}
-
-function filterDisplayedResults(filters) {
-    // Get all data rows
-    const dataRows = document.querySelectorAll('.data-row');
-    let visibleRowCount = 0;
-    
-    dataRows.forEach(row => {
-        const resourceType = row.closest('.resource-type-section').querySelector('h3').textContent;
-        const category = row.dataset.category || '';
-        const subcategory = row.dataset.subcategory || '';
-        const dataType = row.dataset.dataType || '';
-        
-        let shouldDisplay = true;
-        
-        // Apply resource type filter
-        if (filters.resource_type.length > 0 && !filters.resource_type.includes(resourceType)) {
-            shouldDisplay = false;
-        }
-        
-        // Apply category filter
-        if (shouldDisplay && filters.category.length > 0 && !filters.category.includes(category)) {
-            shouldDisplay = false;
-        }
-        
-        // Apply subcategory filter
-        if (shouldDisplay && filters.subcategory.length > 0 && !filters.subcategory.includes(subcategory)) {
-            shouldDisplay = false;
-        }
-        
-        // Apply data type filter (needs to match both value and parent subcategory)
-        if (shouldDisplay && filters.data_type.length > 0) {
-            const matchesDataType = filters.data_type.some(filter => 
-                filter.value === dataType && filter.subcategory === subcategory
-            );
-            
-            if (!matchesDataType) {
-                shouldDisplay = false;
-            }
-        }
-        
-        // Update row visibility
-        row.style.display = shouldDisplay ? '' : 'none';
-        
-        if (shouldDisplay) {
-            visibleRowCount++;
-        }
-    });
-    
-    // Update section visibility
-    document.querySelectorAll('.resource-type-section').forEach(section => {
-        const visibleRows = section.querySelectorAll('.data-row:not([style*="display: none"])').length;
-        section.style.display = visibleRows > 0 ? '' : 'none';
-    });
-    
-    // Update count display
-    document.getElementById('results-count').textContent = visibleRowCount;
 }
 
 function setupTableSorting() {
@@ -1320,155 +1345,6 @@ function fetchAndBuildTypeTree(container) {
         });
 }
 
-// Update the processDeepHierarchy function to properly show all levels of the hierarchy
-function processDeepHierarchy(hierarchyNode, parentDomNode, resourceType, category, resources, path = {}) {
-    if (!hierarchyNode) return;
-    
-    const childContainer = document.createElement('div');
-    childContainer.className = 'child-nodes';
-    
-    // Process arrays (leaf nodes or collections of items)
-    if (Array.isArray(hierarchyNode)) {
-        hierarchyNode.forEach(item => {
-            if (typeof item === 'string') {
-                // Simple string item
-                const itemNode = createTreeNode(formatCategoryName(item), 'subcategory', 0);
-                childContainer.appendChild(itemNode);
-                
-                itemNode.querySelector('.node-content').addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const type = path.subcategory ? 'data_type' : 'subcategory';
-                    selectInHierarchy(type, item, path);
-                });
-            } else if (typeof item === 'object') {
-                // Object with name and level properties
-                const itemName = item.name || 'unnamed';
-                const itemLevel = item.level || 0;
-                
-                const itemNode = createTreeNode(formatCategoryName(itemName), `level-${itemLevel}`, 0);
-                childContainer.appendChild(itemNode);
-                
-                // Add specific data attributes for filtering
-                itemNode.dataset.type = 'level-item';
-                itemNode.dataset.value = itemName;
-                itemNode.dataset.level = itemLevel;
-                
-                // Make clickable for filtering
-                itemNode.querySelector('.node-content').addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    selectInHierarchy('level-item', itemName, {...path, level: itemLevel});
-                });
-            }
-        });
-    } 
-    // Process items array directly
-    else if (hierarchyNode.items && Array.isArray(hierarchyNode.items)) {
-        // Process the items array
-        processDeepHierarchy(hierarchyNode.items, parentDomNode, resourceType, category, resources, path);
-    }
-    // Process level property and sub_categories
-    else if (typeof hierarchyNode === 'object') {
-        // Get the level if it exists
-        const nodeLevel = hierarchyNode.level || 0;
-        
-        // Process sub_categories if they exist
-        if (hierarchyNode.sub_categories) {
-            // For each subcategory
-            for (const [subCatKey, subCatValue] of Object.entries(hierarchyNode.sub_categories)) {
-                // Create a node with the proper level
-                const subCatLevel = subCatValue.level || nodeLevel + 1;
-                const subNode = createTreeNode(formatCategoryName(subCatKey), `level-${subCatLevel}`, 0);
-                
-                // Add specific data attributes for filtering
-                subNode.dataset.type = 'category-item';
-                subNode.dataset.value = subCatKey;
-                subNode.dataset.level = subCatLevel;
-                
-                // Recursively process this subcategory
-                const newPath = {...path};
-                if (subCatLevel === 2) {
-                    newPath.category = subCatKey;
-                } else if (subCatLevel === 3) {
-                    newPath.subcategory = subCatKey;
-                } else if (subCatLevel === 4) {
-                    newPath.data_type = subCatKey;
-                }
-                
-                processDeepHierarchy(subCatValue, subNode, resourceType, category, resources, newPath);
-                
-                // Add click handler for expansion
-                subNode.querySelector('.node-content').addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    toggleNode(this.parentNode);
-                });
-                
-                childContainer.appendChild(subNode);
-            }
-        }
-        
-        // Process items if they exist (typically at leaf nodes)
-        if (hierarchyNode.items && Array.isArray(hierarchyNode.items)) {
-            processDeepHierarchy(hierarchyNode.items, parentDomNode, resourceType, category, resources, path);
-        }
-    }
-    
-    // Only append if we have children
-    if (childContainer.children.length > 0) {
-        parentDomNode.appendChild(childContainer);
-    }
-}
-
-// Update the createTreeNode function to better handle level-specific styling
-function createTreeNode(name, cssClass, count = 0) {
-    const node = document.createElement('div');
-    node.className = `tree-node ${cssClass}-node`;
-    
-    // Extract level from cssClass if it's a level class
-    if (cssClass.startsWith('level-')) {
-        const level = parseInt(cssClass.split('-')[1]);
-        node.setAttribute('data-level', level);
-        
-        // Add visual indentation based on level
-        node.style.paddingLeft = `${level * 12}px`;
-        
-        // Add level-specific styling class
-        node.classList.add('hierarchy-level');
-        node.classList.add(`level-${level}`);
-    }
-    
-    const nodeContent = document.createElement('div');
-    nodeContent.className = 'node-content';
-    
-    const nodeToggle = document.createElement('span');
-    nodeToggle.className = 'node-toggle';
-    nodeToggle.innerHTML = '▶';
-    
-    // Add level indicator before the name for clarity
-    if (cssClass.startsWith('level-')) {
-        const level = parseInt(cssClass.split('-')[1]);
-        const levelIndicator = document.createElement('span');
-        levelIndicator.className = 'level-indicator';
-        levelIndicator.textContent = `L${level}: `;
-        nodeContent.appendChild(levelIndicator);
-    }
-    
-    const nodeName = document.createElement('span');
-    nodeName.className = 'node-name';
-    nodeName.textContent = name;
-    
-    const nodeCount = document.createElement('span');
-    nodeCount.className = 'node-count';
-    nodeCount.textContent = count;
-    
-    nodeContent.appendChild(nodeToggle);
-    nodeContent.appendChild(nodeName);
-    nodeContent.appendChild(nodeCount);
-    
-    node.appendChild(nodeContent);
-    
-    return node;
-}
-
 // Toggle node expansion
 function toggleNode(node) {
     node.classList.toggle('node-expanded');
@@ -1602,118 +1478,4 @@ function addHierarchyStyles() {
         }
     `;
     document.head.appendChild(style);
-}
-
-// Update selectInHierarchy function to better handle the hierarchy filtering
-function selectInHierarchy(type, value, path) {
-    // Create full filter path based on the hierarchy level
-    let filterInfo = {
-        type: type,
-        value: value
-    };
-    
-    // Add parent category info
-    if (path.category) filterInfo.category = path.category;
-    if (path.subcategory) filterInfo.subcategory = path.subcategory;
-    if (path.data_type) filterInfo.data_type = path.data_type;
-    if (path.level) filterInfo.level = path.level;
-    
-    // Add to active filters with more detailed info
-    const displayValue = path.level ? `${formatFilterValue(value)} (L${path.level})` : formatFilterValue(value);
-    addActiveFilter(type, value, displayValue, filterInfo);
-    
-    // Apply filtering with the complete path info
-    const selectedFilters = getSelectedHierarchyFilters();
-    filterDisplayedResults(selectedFilters);
-}
-
-// Modify addActiveFilter to include more contextual information
-function addActiveFilter(filterType, filterValue, displayValue = null, filterInfo = null) {
-    const activeFiltersContainer = document.getElementById('active-filter-tags');
-    
-    // Check if filter already exists
-    if (document.querySelector(`.filter-tag[data-type="${filterType}"][data-value="${filterValue}"]`)) {
-        return;
-    }
-    
-    // Format display names
-    const displayType = formatFilterType(filterType);
-    const valueToShow = displayValue || formatFilterValue(filterValue);
-    
-    // Create filter tag
-    const tag = document.createElement('div');
-    tag.className = 'filter-tag';
-    tag.dataset.type = filterType;
-    tag.dataset.value = filterValue;
-    
-    // Store additional context if provided
-    if (filterInfo) {
-        if (filterInfo.category) tag.dataset.category = filterInfo.category;
-        if (filterInfo.subcategory) tag.dataset.subcategory = filterInfo.subcategory;
-        if (filterInfo.data_type) tag.dataset.dataType = filterInfo.data_type;
-        if (filterInfo.level) tag.dataset.level = filterInfo.level;
-    }
-    
-    tag.innerHTML = `
-        <span class="filter-type">${displayType}:</span>
-        <span class="filter-value">${valueToShow}</span>
-        <span class="remove-filter" data-type="${filterType}" data-value="${filterValue}">&times;</span>
-    `;
-    
-    activeFiltersContainer.appendChild(tag);
-    
-    // Show active filters container
-    document.querySelector('.active-filters').style.display = 'flex';
-    
-    // Add remove handler
-    tag.querySelector('.remove-filter').addEventListener('click', function() {
-        const type = this.getAttribute('data-type');
-        const value = this.getAttribute('data-value');
-        
-        // Deselect corresponding hierarchy item
-        deselectHierarchyItem(type, value, filterInfo);
-        
-        // Remove this filter tag
-        tag.remove();
-        
-        // Hide container if empty
-        if (activeFiltersContainer.children.length === 0) {
-            document.querySelector('.active-filters').style.display = 'none';
-        }
-        
-        // Apply filtering
-        const selectedFilters = getSelectedHierarchyFilters();
-        filterDisplayedResults(selectedFilters);
-    });
-}
-
-// Helper function to deselect items in the hierarchy
-function deselectHierarchyItem(type, value, filterInfo) {
-    // Build selector based on available info
-    let selector = `.tree-node[data-type="${type}"][data-value="${value}"]`;
-    
-    // Add level to selector if available
-    if (filterInfo && filterInfo.level) {
-        selector += `[data-level="${filterInfo.level}"]`;
-    }
-    
-    // Add parent category constraints if available
-    if (filterInfo && filterInfo.category) {
-        // We need more complex logic to find nodes within a specific category
-        document.querySelectorAll(selector).forEach(node => {
-            let parent = node.parentNode;
-            while (parent && !parent.matches(`.tree-node[data-value="${filterInfo.category}"]`)) {
-                parent = parent.parentNode;
-            }
-            
-            if (parent) {
-                node.classList.remove('selected');
-            }
-        });
-    } else {
-        // Simple case - just deselect all matching nodes
-        document.querySelectorAll(selector).forEach(node => {
-            node.classList.remove('selected');
-        });
-    }
 }
