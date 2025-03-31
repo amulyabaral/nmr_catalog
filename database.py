@@ -37,7 +37,7 @@ def init_db():
     # c.execute('DROP TABLE IF EXISTS data_points')
     # c.execute('DROP TABLE IF EXISTS pending_submissions') # Also consider if you want to drop this
 
-    # Create enhanced data points table with level columns
+    # Create enhanced data points table with level columns AND year range
     c.execute('''CREATE TABLE IF NOT EXISTS data_points (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     data_source_id TEXT NOT NULL UNIQUE, -- Made unique for better ID generation
@@ -46,13 +46,15 @@ def init_db():
                     subcategory TEXT NOT NULL,          -- Level 3 from YAML
                     data_type TEXT,                     -- Level 4 from YAML (can be NULL if hierarchy stops at L3)
                     level5 TEXT,                        -- Level 5 from YAML (can be NULL)
+                    year_start INTEGER,                 -- <<< ADDED: Start year of data availability
+                    year_end INTEGER,                   -- <<< ADDED: End year of data availability
                     data_format TEXT,                   -- File format
                     data_resolution TEXT NOT NULL,      -- From metadata_keys (or could be derived)
                     repository TEXT NOT NULL,
                     repository_url TEXT NOT NULL,
                     data_description TEXT NOT NULL,
                     keywords TEXT NOT NULL,
-                    last_updated DATE NOT NULL,
+                    last_updated DATE NOT NULL,         -- Date the entry was last updated/approved
                     contact_information TEXT NOT NULL,
                     metadata JSON,                      -- Additional metadata as JSON
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -120,17 +122,17 @@ def generate_data_source_id(data):
     # Extract Level 2 prefix (first 4 letters uppercase)
     # data tuple indices need adjustment based on the new structure passed to add_data_point
     # Assuming the order in add_data_point's execute call:
-    # (data_source_id, resource_type, category, subcategory, data_type, level5, data_format, ...)
+    # (data_source_id, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format, ...)
     # category is at index 2
     category_prefix = data[2][:4].upper() if data[2] else "DATA" # Use L2 (category)
 
-    # Extract year from last_updated (index 11)
-    year = data[11].split('-')[0] if data[11] else "YYYY"
+    # Extract year from year_end (index 7) or last_updated (index 13) as fallback
+    year = str(data[7]) if data[7] else (data[13].split('-')[0] if data[13] else "YYYY")
 
-    # Extract institution from metadata (index 13)
+    # Extract institution from metadata (index 15)
     institution = "UNKNOWN"
     try:
-        metadata = json.loads(data[13])
+        metadata = json.loads(data[15]) # Adjusted index
         institution = metadata.get('institution', 'UNKNOWN').upper().replace(" ", "")[:4]
     except (json.JSONDecodeError, TypeError):
         pass # Keep UNKNOWN if metadata is invalid or missing
@@ -162,45 +164,43 @@ def check_duplicate_entry(data):
     c = conn.cursor()
     
     # Check for duplicate based on repository_url
-    # Indices adjusted for assumed data tuple order: repository_url is index 9
-    c.execute('SELECT 1 FROM data_points WHERE repository_url = ?', (data[9],))
+    # Indices adjusted for assumed data tuple order: repository_url is index 11
+    c.execute('SELECT 1 FROM data_points WHERE repository_url = ?', (data[11],)) # Adjusted index
     
     exists = c.fetchone() is not None
     conn.close()
     return exists
 
 def add_data_point(data):
-    """Add a new data point with auto-generated ID"""
+    """Add a new data point with auto-generated ID and year range"""
     # The input 'data' tuple structure is assumed to be:
-    # (None, resource_type, category, subcategory, data_type, level5, data_format,
+    # (None, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format,
     #  data_resolution, repository, repository_url, data_description, keywords,
     #  last_updated, contact_information, metadata, country, domain)
-    # Indices:   1           2          3            4          5        6
-    #            7              8           9              10                 11
-    #            12             13                  14         15       16
+    # Indices:   1           2          3            4          5        6           7          8
+    #            9              10          11             12                 13
+    #            14             15                  16         17       18
 
     # Check for duplicates first (using adjusted index for repository_url)
     if check_duplicate_entry(data):
-        # Consider logging this instead of raising an error that stops the app
-        print(f"Warning: Duplicate entry detected based on repository_url: {data[9]}")
-        # raise ValueError("A similar entry already exists in the database based on URL")
+        print(f"Warning: Duplicate entry detected based on repository_url: {data[11]}") # Adjusted index
         return None # Indicate failure without crashing
 
     # Generate unique ID (pass the relevant parts of the data tuple)
-    # Need category (idx 2), last_updated (idx 12), metadata (idx 14)
+    # Need category (idx 2), year_end (idx 7), last_updated (idx 14), metadata (idx 16)
     id_gen_data = (
-        None, None, data[2], None, None, None, None, None, None, None, None, None,
-        data[12], None, data[14]
+        None, None, data[2], None, None, None, None, data[7], None, None, None, None, None,
+        data[14], None, data[16] # Adjusted indices
     )
     data_source_id = generate_data_source_id(id_gen_data)
 
 
     # Create new data tuple with generated ID, matching the table columns
-    # Order: data_source_id, resource_type, category, subcategory, data_type, level5, data_format, ...
+    # Order: data_source_id, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format, ...
     new_data = (
-        data_source_id, data[1], data[2], data[3], data[4], data[5], data[6],
-        data[7], data[8], data[9], data[10], data[11], data[12], data[13],
-        data[14], data[15], data[16]
+        data_source_id, data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
+        data[9], data[10], data[11], data[12], data[13], data[14], data[15],
+        data[16], data[17], data[18] # Adjusted indices
     )
 
     conn = get_db()
@@ -208,9 +208,10 @@ def add_data_point(data):
     try:
         c.execute('''INSERT INTO data_points (
                         data_source_id, resource_type, category, subcategory, data_type, level5,
-                        data_format, data_resolution, repository, repository_url, data_description,
-                        keywords, last_updated, contact_information, metadata, country, domain
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data)
+                        year_start, year_end, data_format, data_resolution, repository, repository_url,
+                        data_description, keywords, last_updated, contact_information, metadata,
+                        country, domain
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data) # Added two placeholders
         conn.commit()
         print(f"Added data point with ID: {data_source_id}")
     except sqlite3.IntegrityError as e:
@@ -229,7 +230,7 @@ def add_data_point(data):
 def get_all_data_points():
     conn = get_db()
     c = conn.cursor()
-    # Select all columns including the new level5
+    # Select all columns including the new year columns
     c.execute('SELECT * FROM data_points ORDER BY created_at DESC')
     data_points = c.fetchall()
     conn.close()

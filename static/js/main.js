@@ -307,7 +307,7 @@ function displayResults(data) {
                             <th>Resource</th>
                             <th data-sort="country" class="sortable">Country <span class="sort-icon">↓</span></th>
                             <th data-sort="domain" class="sortable">Domain <span class="sort-icon">↓</span></th>
-                            <th data-sort="year" class="sortable">Year <span class="sort-icon">↓</span></th>
+                            <th data-sort="year-end" class="sortable">Year Range <span class="sort-icon">↓</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -315,18 +315,28 @@ function displayResults(data) {
                             // Parse metadata for additional info
                             let metadata = {};
                             try {
-                                metadata = JSON.parse(resource.metadata);
+                                metadata = typeof resource.metadata === 'string' ? JSON.parse(resource.metadata) : resource.metadata || {};
                             } catch(e) {
                                 console.error('Failed to parse metadata:', e);
                             }
-                            
-                            // Extract year from last_updated
-                            const year = resource.last_updated ? resource.last_updated.split('-')[0] : '';
-                            
+
+                            // --- Create Year Range Display ---
+                            const start = resource.year_start;
+                            const end = resource.year_end;
+                            let yearDisplay = 'N/A';
+                            if (start && end) {
+                                yearDisplay = start === end ? start.toString() : `${start}-${end}`;
+                            } else if (start) {
+                                yearDisplay = `${start}-Present`; // Or handle as needed
+                            } else if (end) {
+                                yearDisplay = `Up to ${end}`; // Or handle as needed
+                            }
+                            // --- End Year Range Display ---
+
                             return `
-                                <tr class="data-row" data-id="${resource.data_source_id}" 
-                                    data-category="${resource.category}" 
-                                    data-subcategory="${resource.subcategory}"
+                                <tr class="data-row" data-id="${resource.data_source_id}"
+                                    data-category="${resource.category || ''}"
+                                    data-subcategory="${resource.subcategory || ''}"
                                     data-data-type="${resource.data_type || ''}">
                                     <td>
                                         <a href="${resource.repository_url}" class="resource-link" target="_blank">
@@ -335,11 +345,13 @@ function displayResults(data) {
                                         <div class="resource-metadata">
                                             ${resource.category ? `<span class="metadata-item">${resource.category.replace(/_/g, ' ')}</span>` : ''}
                                             ${resource.subcategory ? `<span class="metadata-item">${resource.subcategory.replace(/_/g, ' ')}</span>` : ''}
+                                            ${resource.data_type ? `<span class="metadata-item">${resource.data_type.replace(/_/g, ' ')}</span>` : ''}
+                                            ${resource.level5 ? `<span class="metadata-item">${resource.level5.replace(/_/g, ' ')}</span>` : ''}
                                         </div>
                                     </td>
                                     <td>${resource.country}</td>
                                     <td>${resource.domain}</td>
-                                    <td data-year="${year}">${year}</td>
+                                    <td data-year-end="${end || 0}">${yearDisplay}</td>
                                 </tr>
                             `;
                         }).join('')}
@@ -360,25 +372,43 @@ function displayResults(data) {
 
 function showResourceDetails(resourceId) {
     fetch(`/api/resource/${resourceId}`)
-        .then(response => response.json())
-        .then(resource => {
-            // Parse metadata
-            let metadataObj = {};
-            try {
-                metadataObj = JSON.parse(resource.metadata);
-            } catch(e) {
-                console.error('Failed to parse metadata:', e);
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+            return response.json();
+         })
+        .then(resource => {
+            // Metadata might already be an object from the API
+            let metadataObj = resource.metadata || {};
+            if (typeof metadataObj === 'string') {
+                try {
+                    metadataObj = JSON.parse(metadataObj);
+                } catch(e) {
+                    console.error('Failed to parse metadata in modal:', e);
+                    metadataObj = {};
+                }
+            }
+
             // Update modal title with resource name from metadata if available
             document.getElementById('modal-title').textContent = metadataObj.title || resource.data_source_id;
-            
+
             // Build a more comprehensive and well-organized display
             const detailsContainer = document.getElementById('modal-details');
-            
-            // Extract year from last_updated
-            const year = resource.last_updated ? resource.last_updated.split('-')[0] : '';
-            
+
+            // --- Create Year Range Display ---
+            const start = resource.year_start;
+            const end = resource.year_end;
+            let yearDisplay = 'N/A';
+             if (start && end) {
+                yearDisplay = start === end ? start.toString() : `${start}-${end}`;
+            } else if (start) {
+                yearDisplay = `${start}-Present`;
+            } else if (end) {
+                yearDisplay = `Up to ${end}`;
+            }
+            // --- End Year Range Display ---
+
             detailsContainer.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-column">
@@ -393,8 +423,8 @@ function showResourceDetails(resourceId) {
                                 <div class="detail-value">${resource.repository}</div>
                             </div>
                             <div class="detail-row">
-                                <div class="detail-label">Year:</div>
-                                <div class="detail-value">${year}</div>
+                                <div class="detail-label">Year Range:</div>
+                                <div class="detail-value">${yearDisplay}</div>
                             </div>
                             <div class="detail-row">
                                 <div class="detail-label">Last Updated:</div>
@@ -405,7 +435,7 @@ function showResourceDetails(resourceId) {
                                 <div class="detail-value">${resource.data_format || 'Not specified'}</div>
                             </div>
                         </div>
-                        
+
                         <div class="detail-section">
                             <h3>Categories</h3>
                             <div class="detail-tags">
@@ -414,44 +444,46 @@ function showResourceDetails(resourceId) {
                                 <div class="detail-tag resource-type">${resource.resource_type}</div>
                             </div>
                             <div class="subcategory-tags">
-                                <div class="detail-tag category">${resource.category.replace(/_/g, ' ')}</div>
-                                <div class="detail-tag subcategory">${resource.subcategory.replace(/_/g, ' ')}</div>
+                                ${resource.category ? `<div class="detail-tag category">${resource.category.replace(/_/g, ' ')}</div>` : ''}
+                                ${resource.subcategory ? `<div class="detail-tag subcategory">${resource.subcategory.replace(/_/g, ' ')}</div>` : ''}
                                 ${resource.data_type ? `<div class="detail-tag data-type">${resource.data_type.replace(/_/g, ' ')}</div>` : ''}
+                                ${resource.level5 ? `<div class="detail-tag level5">${resource.level5.replace(/_/g, ' ')}</div>` : ''}
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="detail-column">
                         <div class="detail-section">
                             <h3>Description</h3>
                             <div class="detail-description">
-                                ${resource.data_description}
+                                ${resource.data_description || 'No description provided.'}
                             </div>
                         </div>
-                        
+
                         <div class="detail-section">
                             <h3>Contact Information</h3>
                             <div class="detail-contact">
-                                ${resource.contact_information}
+                                ${resource.contact_information || 'N/A'}
                             </div>
                         </div>
-                        
+
                         <div class="detail-section">
                             <h3>Keywords</h3>
                             <div class="keyword-tags">
-                                ${resource.keywords.split(',').map(keyword => 
+                                ${resource.keywords ? resource.keywords.split(',').map(keyword =>
                                     `<span class="keyword-tag">${keyword.trim()}</span>`
-                                ).join('')}
+                                ).join('') : 'None'}
                             </div>
                         </div>
-                        
-                        ${metadataObj.institution ? `
+
+                        ${metadataObj && Object.keys(metadataObj).length > 0 ? `
                         <div class="detail-section">
                             <h3>Additional Information</h3>
+                            ${metadataObj.institution ? `
                             <div class="detail-row">
                                 <div class="detail-label">Institution:</div>
                                 <div class="detail-value">${metadataObj.institution}</div>
-                            </div>
+                            </div>` : ''}
                             ${metadataObj.creator ? `
                             <div class="detail-row">
                                 <div class="detail-label">Creator:</div>
@@ -467,20 +499,34 @@ function showResourceDetails(resourceId) {
                                 <div class="detail-label">Version:</div>
                                 <div class="detail-value">${metadataObj.version}</div>
                             </div>` : ''}
+                            ${metadataObj.geographic_coverage && Array.isArray(metadataObj.geographic_coverage) ? `
+                            <div class="detail-row">
+                                <div class="detail-label">Geo Coverage:</div>
+                                <div class="detail-value">${metadataObj.geographic_coverage.join(', ')}</div>
+                            </div>` : ''}
                         </div>` : ''}
                     </div>
                 </div>
             `;
-            
+
             // Set resource link
             const resourceLink = document.getElementById('resource-link');
-            resourceLink.href = resource.repository_url;
-            resourceLink.textContent = 'Go to Resource Repository';
-            
+            if (resource.repository_url) {
+                resourceLink.href = resource.repository_url;
+                resourceLink.textContent = 'Go to Resource Repository';
+                resourceLink.style.display = 'inline-block';
+            } else {
+                 resourceLink.style.display = 'none';
+            }
+
             // Show modal
             document.getElementById('resource-modal').style.display = 'block';
         })
-        .catch(error => console.error('Error fetching resource details:', error));
+        .catch(error => {
+            console.error('Error fetching resource details:', error);
+            // Optionally show an error message to the user
+            alert(`Could not load details for resource ${resourceId}. ${error.message}`);
+        });
 }
 
 function groupByResourceType(data) {
@@ -975,6 +1021,7 @@ function setupTableSorting() {
                 if (h !== this) {
                     h.removeAttribute('data-direction');
                     h.classList.remove('active');
+                    h.querySelector('.sort-icon').textContent = '↓'; // Reset icon
                 }
             });
             
@@ -991,26 +1038,22 @@ function setupTableSorting() {
                 rows.sort((a, b) => {
                     let aValue, bValue;
                     
-                    if (sortKey === 'year') {
-                        aValue = a.querySelector(`td[data-year]`).getAttribute('data-year');
-                        bValue = b.querySelector(`td[data-year]`).getAttribute('data-year');
-                        
-                        // Convert to numbers for year comparison
-                        aValue = parseInt(aValue) || 0;
-                        bValue = parseInt(bValue) || 0;
+                    // --- Updated Sorting Logic ---
+                    if (sortKey === 'year-end') { // Sort by year-end
+                        aValue = parseInt(a.querySelector(`td[data-year-end]`)?.getAttribute('data-year-end') || '0');
+                        bValue = parseInt(b.querySelector(`td[data-year-end]`)?.getAttribute('data-year-end') || '0');
                     } else {
-                        // Get cell index for this column
-                        const cellIndex = Array.from(table.querySelectorAll('th')).findIndex(th => 
-                            th.getAttribute('data-sort') === sortKey);
-                        
+                        // Get cell index for other columns
+                        const cellIndex = Array.from(this.parentNode.children).indexOf(this);
                         if (cellIndex !== -1) {
-                            aValue = a.cells[cellIndex].textContent.trim().toLowerCase();
-                            bValue = b.cells[cellIndex].textContent.trim().toLowerCase();
+                            aValue = a.cells[cellIndex]?.textContent.trim().toLowerCase() || '';
+                            bValue = b.cells[cellIndex]?.textContent.trim().toLowerCase() || '';
                         } else {
-                            return 0;
+                            return 0; // Should not happen
                         }
                     }
-                    
+                    // --- End Updated Sorting Logic ---
+
                     // Compare values
                     if (aValue < bValue) return newDirection === 'asc' ? -1 : 1;
                     if (aValue > bValue) return newDirection === 'asc' ? 1 : -1;

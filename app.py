@@ -641,6 +641,8 @@ def approve_submission(submission_id):
         primary_hierarchy = json.loads(submission.get('primary_hierarchy_path', '{}'))
         related_metadata_paths = json.loads(submission.get('related_metadata', '[]'))
         related_resource_ids = json.loads(submission.get('related_resources', '[]'))
+        year_start = submission.get('year_start')
+        year_end = submission.get('year_end')
 
         # Simplification: Use first country/domain for the main table columns
         country = countries[0] if countries else 'Unknown'
@@ -657,9 +659,13 @@ def approve_submission(submission_id):
         if not resource_name:
              flash(f'Submission {submission_id} missing Resource Name. Cannot approve.', 'error')
              return redirect(url_for('admin_review'))
-        if not resource_type or not category or not subcategory:
-             flash(f'Submission {submission_id} missing required hierarchy levels (Type, Category, Subcategory). Cannot approve.', 'error')
+        if not resource_type:
+             flash(f'Submission {submission_id} missing required hierarchy level (Resource Type). Cannot approve.', 'error')
              return redirect(url_for('admin_review'))
+        if year_start is None or year_end is None:
+             flash(f'Submission {submission_id} missing Year Start or Year End. Cannot approve.', 'error')
+             return redirect(url_for('admin_review'))
+
 
         # Generate other fields
         repository_url = submission.get('resource_url')
@@ -677,7 +683,6 @@ def approve_submission(submission_id):
             "institution": "Unknown", # Consider adding to form
             "geographic_coverage": countries,
             "license": submission.get('license'),
-            "version": f"{submission.get('year_start')}-{submission.get('year_end')}",
             "original_url": repository_url,
             "related_metadata_categories": related_metadata_paths,
             "related_resource_ids": related_resource_ids,
@@ -686,12 +691,12 @@ def approve_submission(submission_id):
         metadata_json = json.dumps(metadata_dict)
 
         # Prepare tuple for add_data_point (order matters!)
-        # (None, resource_type, category, subcategory, data_type, level5, data_format,
+        # (None, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format,
         #  data_resolution, repository, repository_url, data_description, keywords,
         #  last_updated, contact_information, metadata, country, domain)
         data_point_tuple = (
-            None, resource_type, category, subcategory, data_type, level5, data_format,
-            data_resolution, repository, repository_url, data_description, keywords,
+            None, resource_type, category, subcategory, data_type, level5,
+            year_start, year_end, data_format, data_resolution, repository, repository_url, data_description, keywords,
             last_updated, contact_information, metadata_json, country, domain
         )
 
@@ -706,7 +711,8 @@ def approve_submission(submission_id):
             delete_pending_submission(submission_id)
             flash(f'Submission {submission_id} approved and added with ID: {new_data_source_id}.', 'success')
         else:
-            flash(f'Failed to add approved submission {submission_id} to main database.', 'error')
+            flash(f'Failed to add approved submission {submission_id} to main database (possibly duplicate URL).', 'error')
+
 
     except json.JSONDecodeError as e:
         flash(f'Error parsing JSON data for submission {submission_id}: {e}. Cannot approve.', 'error')

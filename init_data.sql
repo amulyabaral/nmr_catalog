@@ -9,6 +9,8 @@ INSERT INTO data_points (
     subcategory,        -- Level 3
     data_type,          -- Level 4
     level5,             -- Level 5
+    year_start,         -- <<< ADDED
+    year_end,           -- <<< ADDED
     data_format,
     data_resolution,
     repository,
@@ -23,13 +25,13 @@ INSERT INTO data_points (
 ) VALUES
 
 -- Denmark - Human Health
-('SYS-SURV-DANMAP-DK', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'clinical_isolate_registry', NULL, 'Web Platform/Database', 'national', 'DANMAP',
+('SYS-SURV-DANMAP-DK', 'Systems', 'surveillance_network', 'pathogen_tracking_systems', 'clinical_isolate_registry', NULL, 1995, 2023, 'Web Platform/Database', 'national', 'DANMAP',
 'https://www.danmap.org/', 'Danish Integrated Antimicrobial Resistance Monitoring and Research Programme. Monitors antimicrobial consumption and resistance in humans and animals.',
 'surveillance, AMR, human, animal, Denmark, monitoring, consumption, resistance', '2024-01-01', 'danmap@ssi.dk',
 '{"title": "DANMAP", "institution": "SSI/DTU", "geographic_coverage": "Denmark", "license": "Public Access", "version": "Annual Reports"}',
 'Denmark', 'Human'), -- Primary Domain: Human
 
-('ENT-RESC-COPSAC-DK', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'cohort', 'COPSAC',
+('ENT-RESC-COPSAC-DK', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 2000, 2024, 'Website', 'cohort', 'COPSAC',
 'https://copsac.com/', 'Copenhagen Prospective Studies on Asthma in Childhood. Research includes microbiome and potential links to health outcomes.',
 'research, cohort, asthma, microbiome, children, Denmark, human', '2024-01-01', 'info@copsac.com',
 '{"title": "COPSAC - Copenhagen Prospective Studies on Asthma in Childhood", "institution": "COPSAC", "geographic_coverage": "Denmark", "license": "N/A", "version": "Ongoing"}',
@@ -307,7 +309,7 @@ INSERT INTO data_points (
 'Finland', 'Human'),
 
 -- Finland - Research Centers
-('ENT-RESC-COEAMR-FI', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 'Website', 'national', 'Finnish CoE in AMR Research',
+('ENT-RESC-COEAMR-FI', 'Entities', 'research_consortia', 'academic_partnerships', NULL, NULL, 2022, 2029, 'Website', 'national', 'Finnish CoE in AMR Research',
 'https://www.aka.fi/en/research-funding/programmes-and-other-funding-schemes/finnish-centres-of-excellence/new-centres-of-excellence/multidisciplinary-centre-of-excellence-in-antimicrobial-resistance-research/', 'Finnish Multidisciplinary Centre of Excellence in Antimicrobial Resistance Research.',
 'research, AMR, multidisciplinary, Finland, centre of excellence', '2024-01-01', 'N/A',
 '{"title": "Finnish Multidisciplinary Centre of Excellence in AMR Research", "institution": "Academy of Finland", "geographic_coverage": "Finland", "license": "N/A", "version": "N/A"}',

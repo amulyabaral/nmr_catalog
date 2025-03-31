@@ -303,7 +303,7 @@
                     <div class="year-range-selector">
                         <label for="year_start">From:</label>
                         <select id="year_start" name="year_start" required class="year-select">
-                            {% set current_year = 2024 %} {# Or get dynamically #}
+                            {% set current_year = 2025 %} {# Or get dynamically #}
                             {% for year in range(1990, current_year + 1) | reverse %}
                                 <option value="{{ year }}" {% if year == form_data.get('year_start', current_year - 1)|int %}selected{% endif %}>{{ year }}</option>
                             {% endfor %}
