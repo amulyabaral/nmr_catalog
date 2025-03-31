@@ -2,6 +2,10 @@ import sqlite3
 import os
 import json
 import yaml
+import logging # <<< Add logging import
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define database path - UPDATED TO USE RENDER DISK PATH
 DB_PATH = os.path.join('/database_nomoreamr', 'amr.db') # Use the Render mount path
@@ -411,13 +415,29 @@ def update_data_point(data_id, updated_data):
 
     query = f"UPDATE data_points SET {set_clause} WHERE id = ?"
 
+    # <<< Add Logging >>>
+    logging.info(f"Executing DB Update for ID: {data_id}")
+    logging.info(f"Update Query: {query}")
+    # Be cautious logging values in production if they contain sensitive info
+    # logging.info(f"Update Values: {values}")
+    logging.info(f"Updating columns: {list(updated_data.keys())}")
+
+
     try:
         c.execute(query, values)
+        # Check if any row was actually updated
+        if c.rowcount == 0:
+             logging.warning(f"No rows updated for ID: {data_id}. ID might not exist.")
+             # Optionally return False here if no update occurred, although the query itself didn't fail
+             # return False
         conn.commit()
-        print(f"Updated data point with ID: {data_id}")
+        logging.info(f"Successfully updated data point with ID: {data_id}")
         return True
     except sqlite3.Error as e:
-        print(f"Error updating data point {data_id}: {e}")
+        # <<< Log the specific SQLite error >>>
+        logging.error(f"SQLite error updating data point {data_id}: {e}")
+        logging.error(f"Failed Query: {query}")
+        # logging.error(f"Failed Values: {values}") # Be cautious logging values
         conn.rollback()
         return False
     finally:

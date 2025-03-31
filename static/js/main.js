@@ -1786,3 +1786,13 @@ function setupNetworkGraph() {
             container.innerHTML = `<p>Error loading network graph: ${error.message}. Please try again later.</p>`;
         });
 }
+
+$(document).ready(function() {
+    // Initialize Select2 for multi-selects (including countries/domains)
+    $('.multi-select-tags').select2({
+         placeholder: "Select one or more...",
+         allowClear: true,
+         tags: false // Prevent creation of new tags
+    });
+    // ... rest of the JS ...
+});

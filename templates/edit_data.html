@@ -91,7 +91,6 @@
                     {# Use getlist to handle multiple selections from form_data #}
                     {% set selected_countries = form_data.getlist('countries') %}
                     <select id="countries" name="countries" required class="multi-select-tags" multiple>
-                        {# <option value="" disabled>-- Select Country --</option> #} {# Remove placeholder for multi-select #}
                         {% for country in vocabularies.main_categories.Country %}
                             <option value="{{ country }}" {% if country in selected_countries %}selected{% endif %}>{{ country }}</option>
                         {% endfor %}
@@ -103,7 +102,6 @@
                     {# Use getlist to handle multiple selections from form_data #}
                     {% set selected_domains = form_data.getlist('domains') %}
                      <select id="domains" name="domains" required class="multi-select-tags" multiple>
-                         {# <option value="" disabled>-- Select Domain --</option> #} {# Remove placeholder for multi-select #}
                         {% for domain in vocabularies.main_categories.Domain %}
                             <option value="{{ domain }}" {% if domain in selected_domains %}selected{% endif %}>{{ domain }}</option>
                         {% endfor %}
