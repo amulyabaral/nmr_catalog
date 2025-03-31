@@ -117,6 +117,20 @@
         .hierarchy-path span:last-child::after {
             content: '';
         }
+        .download-button {
+            background-color: var(--secondary-color); /* Blue */
+            color: white;
+            text-decoration: none; /* Remove underline from link */
+            display: inline-block; /* Allow padding and margins */
+            vertical-align: middle; /* Align with logout link */
+        }
+        .download-button:hover {
+            background-color: #1a54f7;
+        }
+        .admin-header > div { /* Target the new div containing buttons */
+             display: flex;
+             align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -140,7 +154,10 @@
     <div class="review-container">
         <div class="admin-header">
             <h1>Pending Submissions</h1>
-            <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
+            <div>
+                <a href="{{ url_for('download_db') }}" class="action-button download-button" style="margin-right: 1rem;">Download Database Backup</a>
+                <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
+            </div>
         </div>
 
         <!-- Flash messages -->

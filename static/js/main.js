@@ -686,23 +686,57 @@ function addSubcategories(parentNode, hierarchyNodeData, data, currentPath, pare
                             itemName = item.name; itemValue = item.name;
                         } else { return; }
 
-                        const itemDataType = `level_${itemLevel}_item`;
-                        let itemResourcesCount = 0; // Simplified count
+                        // --- Determine the data type/field for this item level ---
+                        let itemDataType;
+                        if (itemLevel === 2) itemDataType = 'category';
+                        else if (itemLevel === 3) itemDataType = 'subcategory';
+                        else if (itemLevel === 4) itemDataType = 'data_type';
+                        else if (itemLevel === 5) itemDataType = 'level5'; // Map level 5 to 'level5' field
+                        else itemDataType = `level_${itemLevel}_item`; // Fallback, might need adjustment
+
+                        // --- Calculate Resource Count for this specific item ---
+                        let itemResourcesCount = 0;
+                        const itemPath = { ...currentPath, [nodeDataType]: key, [itemDataType]: itemValue }; // Path includes parent AND item
+                        itemResourcesCount = data.filter(r => {
+                            let match = true;
+                            for(const pathKey in itemPath) {
+                                // Map pathKey to the actual resource data field name
+                                const resourceKey = pathKey === 'resource_type' ? 'resource_type' :
+                                                  pathKey === 'category' ? 'category' :
+                                                  pathKey === 'subcategory' ? 'subcategory' :
+                                                  pathKey === 'data_type' ? 'data_type' :
+                                                  pathKey === 'level5' ? 'level5' : // Check level5 field
+                                                  null; // Add more mappings if hierarchy goes deeper or uses different fields
+
+                                // If we have a valid mapping and the resource field doesn't match the path value
+                                if (resourceKey && r[resourceKey] !== itemPath[pathKey]) {
+                                    match = false;
+                                    break;
+                                }
+                                // Handle cases where the pathKey doesn't map directly (e.g., 'level_3_item') - this might need refinement
+                                // For now, we rely on direct field mappings (resource_type, category, etc.)
+                            }
+                            return match;
+                        }).length;
+                        // --- End Item Resource Counting Logic ---
+
 
                         const leafNode = document.createElement('div');
                         leafNode.className = `hierarchy-leafnode level-${itemLevel}-node`;
                         leafNode.dataset.level = itemLevel;
-                        leafNode.dataset.type = itemDataType;
+                        leafNode.dataset.type = itemDataType; // Use the determined type (e.g., 'subcategory', 'data_type')
                         leafNode.dataset.value = itemValue;
 
+                        // Add parent context to dataset
                         Object.keys(currentPath).forEach(pathKey => {
                             const datasetKey = pathKey.replace(/_/g, '');
                             leafNode.dataset[datasetKey] = currentPath[pathKey];
                          });
+                         // Add the parent node's key/value to the dataset as well
                          leafNode.dataset[nodeDataType.replace(/_/g, '')] = key;
 
                         leafNode.innerHTML = `
-                            <div class="leafnode-header" data-type="${itemDataType}" data-value="${itemValue}">
+                            <div class="leafnode-header" data-type="${leafNode.dataset.type}" data-value="${itemValue}">
                                 <span class="node-toggle-placeholder"></span> ${itemName.replace(/_/g, ' ')} <span class="count">(${itemResourcesCount})</span>
                             </div>
                         `; // Leaf nodes get placeholder

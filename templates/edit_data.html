@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Resource - {{ data_point.metadata_obj.get('title', data_point.data_source_id) }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Copy styles from add_data.html -->
+    <style>
+        .form-container { max-width: 800px; margin: 2rem auto; padding: 2rem; background: #f9f9f9; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
+        input[type="text"], input[type="url"], input[type="number"], select, textarea { width: 100%; padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 1rem; box-sizing: border-box; }
+        textarea { min-height: 120px; resize: vertical; }
+        select[multiple] { min-height: 100px; }
+        .submit-button { background: var(--primary-color); color: white; border: none; padding: 0.9rem 2.5rem; border-radius: var(--border-radius); font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-block; margin-top: 1rem; }
+        .submit-button:hover { background: #00b046; transform: translateY(-1px); }
+        .error-message, .success-message, .info-message, .warning-message { margin-bottom: 1rem; padding: 1rem; border-radius: 4px; font-weight: 500; }
+        .error-message { color: #a94442; background-color: #f2dede; border: 1px solid #ebccd1; }
+        .success-message { color: #3c763d; background-color: #dff0d8; border: 1px solid #d6e9c6; }
+        .info-message { color: #31708f; background-color: #d9edf7; border: 1px solid #bce8f1; }
+        .warning-message { color: #8a6d3b; background-color: #fcf8e3; border: 1px solid #faebcc; }
+        .back-link { display: inline-block; margin-bottom: 1.5rem; color: var(--secondary-color); text-decoration: none; font-weight: 500; }
+        .back-link:hover { text-decoration: underline; }
+        fieldset { border: 1px solid #ddd; padding: 1.5rem; border-radius: 4px; margin-bottom: 2rem; background-color: #fff; }
+        legend { padding: 0 0.8rem; font-weight: 600; font-size: 1.1em; color: #555; }
+        .year-range-selector { display: flex; align-items: center; gap: 1rem; }
+        .year-range-selector label { margin-bottom: 0; margin-right: 0.5rem; font-weight: normal; }
+        .year-select { width: auto; min-width: 100px; }
+        .selected-items { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .selected-tag { background-color: #e0e0e0; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.9em; display: flex; align-items: center; }
+        .remove-tag { margin-left: 0.5rem; cursor: pointer; font-weight: bold; color: #777; }
+        .remove-tag:hover { color: #333; }
+        .select2-container .select2-selection--multiple { min-height: 40px; border: 1px solid #ccc !important; padding: 0.3rem; }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice { background-color: var(--primary-color); border-color: var(--primary-color); color: white; padding: 3px 6px; font-size: 0.9em; }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove { color: rgba(255, 255, 255, 0.7); margin-right: 5px; }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover { color: white; }
+        .hierarchy-select-group { display: flex; flex-direction: column; gap: 1rem; }
+        .hierarchy-select-group select { display: none; }
+        .hierarchy-select-group select.visible { display: block; }
+        .related-metadata-container { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 1rem; background: #fff; border-radius: 4px; }
+        .related-metadata-container .hierarchy-node { margin-left: calc(var(--level, 1) * 15px - 15px); padding: 3px 0; }
+        .related-metadata-container label { font-weight: normal; display: inline-flex; align-items: center; cursor: pointer; }
+        .related-metadata-container input[type="checkbox"] { width: auto; margin-right: 8px; }
+        /* Style for single select Country/Domain if used */
+        .single-select { /* Adjust as needed */ }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <!-- ... (nav content) ... -->
+    </nav>
+
+    <div class="form-container">
+        <h1>Edit Resource: {{ data_point.metadata_obj.get('title', data_point.data_source_id) }}</h1>
+        <a href="{{ url_for('admin_manage') }}" class="back-link">← Back to Manage Resources</a>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="{{ category }}-message">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {# Use the data_id from the original data_point for the form action #}
+        <form method="POST" id="edit-resource-form" action="{{ url_for('update_data', data_id=data_point.id) }}">
+            <!-- Main Categories -->
+            <fieldset>
+                <legend>Main Categories</legend>
+                {# Assuming single select for edit based on DB schema #}
+                <div class="form-group">
+                    <label for="countries">Country:</label>
+                    <select id="countries" name="countries" required class="single-select">
+                        <option value="" disabled>-- Select Country --</option>
+                        {% for country in vocabularies.main_categories.Country %}
+                            <option value="{{ country }}" {% if country == form_data.get('countries') %}selected{% endif %}>{{ country }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="domains">Domain:</label>
+                     <select id="domains" name="domains" required class="single-select">
+                         <option value="" disabled>-- Select Domain --</option>
+                        {% for domain in vocabularies.main_categories.Domain %}
+                            <option value="{{ domain }}" {% if domain == form_data.get('domains') %}selected{% endif %}>{{ domain }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- Primary Hierarchy Path -->
+            <fieldset>
+                <legend>Primary Classification</legend>
+                <p>Select the single, most specific classification for this resource.</p>
+                <div class="form-group hierarchy-select-group">
+                    {# Level 1 #}
+                    <label for="level1_resource_type">Level 1: Resource Type</label>
+                    <select id="level1_resource_type" name="level1_resource_type" required class="hierarchy-select visible" data-level="1">
+                        <option value="" disabled selected>-- Select Resource Type --</option>
+                        {% for type_key, type_details in vocabularies.resource_type_hierarchy.items() %}
+                            <option value="{{ type_key }}" {% if type_key == form_data.get('level1_resource_type') %}selected{% endif %}>
+                                {{ type_details.get('title', type_key.replace('_', ' ').title()) }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {# Level 2 #}
+                    <label for="level2_category">Level 2: Category</label>
+                    <select id="level2_category" name="level2_category" class="hierarchy-select" data-level="2">
+                        <option value="" disabled selected>-- Select Category --</option>
+                        {# Options populated by JS #}
+                    </select>
+                    {# Level 3 #}
+                    <label for="level3_subcategory">Level 3: Subcategory</label>
+                    <select id="level3_subcategory" name="level3_subcategory" class="hierarchy-select" data-level="3">
+                        <option value="" disabled selected>-- Select Subcategory --</option>
+                         {# Options populated by JS #}
+                    </select>
+                    {# Level 4 #}
+                    <label for="level4_data_type">Level 4: Data Type / Item</label>
+                    <select id="level4_data_type" name="level4_data_type" class="hierarchy-select" data-level="4">
+                        <option value="" disabled selected>-- Select Data Type / Item --</option>
+                         {# Options populated by JS #}
+                    </select>
+                    {# Level 5 #}
+                    <label for="level5_item">Level 5: Item / Detail</label>
+                    <select id="level5_item" name="level5_item" class="hierarchy-select" data-level="5">
+                        <option value="" disabled selected>-- Select Item / Detail --</option>
+                         {# Options populated by JS #}
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- Resource Details -->
+            <fieldset>
+                <legend>Resource Details</legend>
+                {# Pre-fill fields using form_data which holds the current values #}
+                <div class="form-group">
+                    <label for="resource_name">Resource Name / Title:</label>
+                    <input type="text" id="resource_name" name="resource_name" required value="{{ form_data.get('resource_name', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="year_start">Year Range:</label>
+                    <div class="year-range-selector">
+                        <label for="year_start">From:</label>
+                        <select id="year_start" name="year_start" required class="year-select">
+                            {% set current_year = 2025 %}
+                            {% for year in range(1990, current_year + 1) | reverse %}
+                                <option value="{{ year }}" {% if year == form_data.get('year_start')|int %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                        <label for="year_end">To:</label>
+                        <select id="year_end" name="year_end" required class="year-select">
+                             {% for year in range(1990, current_year + 1) | reverse %}
+                                <option value="{{ year }}" {% if year == form_data.get('year_end')|int %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="resource_url">Resource URL:</label>
+                    <input type="url" id="resource_url" name="resource_url" required value="{{ form_data.get('resource_url', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="contact_info">Contact Information:</label>
+                    <input type="text" id="contact_info" name="contact_info" value="{{ form_data.get('contact_info', '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" required>{{ form_data.get('description', '') }}</textarea>
+                </div>
+
+                 <div class="form-group">
+                    <label for="keywords">Keywords:</label>
+                    <input type="text" id="keyword-input" placeholder="Type keywords separated by commas" value=""> {# Input cleared by JS #}
+                    <input type="hidden" id="keywords" name="keywords" value="{{ form_data.get('keywords', '') }}"> {# Hidden field holds current value #}
+                    <div id="selected-keywords" class="selected-items"></div> {# Populated by JS #}
+                 </div>
+
+                 <div class="form-group">
+                    <label for="license">License (Optional):</label>
+                    <input type="text" id="license" name="license" value="{{ form_data.get('license', '') }}">
+                 </div>
+            </fieldset>
+
+            <!-- Related Metadata -->
+            <fieldset>
+                <legend>Related Metadata Categories (Optional)</legend>
+                <div class="form-group">
+                    <div id="related-metadata-tree" class="related-metadata-container">Loading hierarchy...</div>
+                    {# Hidden input holds current JSON string value #}
+                    <input type="hidden" id="related_metadata" name="related_metadata" value="{{ form_data.get('related_metadata', '[]') }}">
+                </div>
+            </fieldset>
+
+            <!-- Link Existing Resources -->
+            <fieldset>
+                <legend>Link to Existing Resources (Optional)</legend>
+                <div class="form-group">
+                    <label for="related-resources-select">Search and Select Resources:</label>
+                    <select id="related-resources-select" class="related-resources-select" multiple="multiple" style="width: 100%;"></select>
+                    {# Hidden input holds current JSON string value #}
+                    <input type="hidden" id="related_resources" name="related_resources" value="{{ form_data.get('related_resources', '[]') }}">
+                </div>
+            </fieldset>
+
+            <button type="submit" class="submit-button">Update Resource</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    {# Use the same JS logic as add_data.html, it should handle pre-filling #}
+    <script>
+        // Store hierarchy data globally after fetching
+        let resourceHierarchy = {};
+        let allHierarchyNodes = []; // Flat list for related metadata selection
+
+        // Function to format display name
+        function formatDisplayName(key, details) {
+            if (!details) return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return details?.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // Function to recursively build the checkbox tree for related metadata
+        function buildRelatedMetadataOptions(levelData, parentPath = '', level = 1, container, selectedPaths = []) {
+             if (level > 5) return;
+             const selectedSet = new Set(selectedPaths); // Use Set for faster lookup
+
+             for (const key in levelData) {
+                 if (key === 'level' || key === 'title') continue;
+                 const details = levelData[key];
+                 if (typeof details !== 'object' || details === null) continue;
+
+                 const displayName = formatDisplayName(key, details);
+                 const currentPath = parentPath ? `${parentPath} > ${displayName}` : displayName;
+                 const nodeId = `related_${level}_${key}`;
+
+                 allHierarchyNodes.push({ id: nodeId, text: currentPath, level: level, key: key });
+
+                 const nodeDiv = document.createElement('div');
+                 nodeDiv.className = 'hierarchy-node';
+                 nodeDiv.style.setProperty('--level', level);
+
+                 const label = document.createElement('label');
+                 label.setAttribute('for', nodeId);
+
+                 const checkbox = document.createElement('input');
+                 checkbox.type = 'checkbox';
+                 checkbox.id = nodeId;
+                 checkbox.value = currentPath;
+                 checkbox.dataset.key = key;
+                 checkbox.dataset.level = level;
+                 // Check if this path should be pre-selected
+                 if (selectedSet.has(currentPath)) {
+                     checkbox.checked = true;
+                 }
+
+
+                 label.appendChild(checkbox);
+                 label.appendChild(document.createTextNode(` ${displayName}`));
+                 nodeDiv.appendChild(label);
+                 container.appendChild(nodeDiv);
+
+                 // Recurse for sub_categories
+                 if (details.sub_categories && typeof details.sub_categories === 'object') {
+                     buildRelatedMetadataOptions(details.sub_categories, currentPath, level + 1, container, selectedPaths);
+                 }
+
+                 // Recurse for items
+                 if (details.items && Array.isArray(details.items)) {
+                     const itemLevel = level + 1;
+                     if (itemLevel <= 5) {
+                         details.items.forEach(item => {
+                             let itemName = '', itemKey = '', itemDetails = {};
+                             if (typeof item === 'string') { itemName = item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); itemKey = item; }
+                             else if (typeof item === 'object' && item !== null && item.name) { itemName = item.title || item.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); itemKey = item.name; itemDetails = item; }
+
+                             if (itemName) {
+                                 const itemPath = `${currentPath} > ${itemName}`;
+                                 const itemId = `related_${itemLevel}_${itemKey}`;
+                                 allHierarchyNodes.push({ id: itemId, text: itemPath, level: itemLevel, key: itemKey });
+
+                                 const itemNodeDiv = document.createElement('div');
+                                 itemNodeDiv.className = 'hierarchy-node';
+                                 itemNodeDiv.style.setProperty('--level', itemLevel);
+                                 const itemLabel = document.createElement('label');
+                                 itemLabel.setAttribute('for', itemId);
+                                 const itemCheckbox = document.createElement('input');
+                                 itemCheckbox.type = 'checkbox';
+                                 itemCheckbox.id = itemId;
+                                 itemCheckbox.value = itemPath;
+                                 itemCheckbox.dataset.key = itemKey;
+                                 itemCheckbox.dataset.level = itemLevel;
+                                 // Check if this item path should be pre-selected
+                                 if (selectedSet.has(itemPath)) {
+                                     itemCheckbox.checked = true;
+                                 }
+
+                                 itemLabel.appendChild(itemCheckbox);
+                                 itemLabel.appendChild(document.createTextNode(` ${itemName}`));
+                                 itemNodeDiv.appendChild(itemLabel);
+                                 container.appendChild(itemNodeDiv);
+                             }
+                         });
+                     }
+                 }
+             }
+         }
+
+        // Function to populate dependent dropdowns (same as add_data.html)
+        function populateHierarchyDropdown(level, parentKey = null) {
+            const selectElement = document.getElementById(`level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`);
+            if (!selectElement) return;
+
+            for (let i = level + 1; i <= 5; i++) { /* ... (clear subsequent levels) ... */
+                const nextSelect = document.getElementById(`level${i}_${i === 2 ? 'category' : i === 3 ? 'subcategory' : i === 4 ? 'data_type' : 'item'}`);
+                 if (nextSelect) {
+                     nextSelect.innerHTML = `<option value="" disabled selected>-- Select ${i === 2 ? 'Category' : i === 3 ? 'Subcategory' : i === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
+                     nextSelect.classList.remove('visible');
+                     nextSelect.value = "";
+                 }
+            }
+
+            let currentLevelData = {};
+            if (level === 1) { currentLevelData = resourceHierarchy; }
+            else { /* ... (find currentLevelData based on parent selections) ... */
+                const selectedValues = [];
+                 for (let i = 1; i < level; i++) {
+                     const parentSelect = document.getElementById(`level${i}_${i === 1 ? 'resource_type' : i === 2 ? 'category' : i === 3 ? 'subcategory' : 'data_type'}`);
+                     if (parentSelect && parentSelect.value) { selectedValues.push(parentSelect.value); }
+                     else { selectedValues.length = 0; break; }
+                 }
+                 let currentPointer = resourceHierarchy;
+                 if (selectedValues.length === level - 1) {
+                     for(let i = 0; i < selectedValues.length; i++) {
+                         const key = selectedValues[i];
+                         if (!currentPointer || !currentPointer[key]) { currentPointer = null; break; }
+                         if (i === selectedValues.length - 1) {
+                             if (currentPointer[key].sub_categories) { currentLevelData = currentPointer[key].sub_categories; }
+                             else if (currentPointer[key].items) { currentLevelData = currentPointer[key].items; }
+                         } else {
+                             if (currentPointer[key].sub_categories) { currentPointer = currentPointer[key].sub_categories; }
+                             else { currentPointer = null; break; }
+                         }
+                     }
+                 }
+            }
+
+            selectElement.innerHTML = `<option value="" disabled selected>-- Select ${level === 1 ? 'Resource Type' : level === 2 ? 'Category' : level === 3 ? 'Subcategory' : level === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
+            let hasOptions = false;
+            if (Array.isArray(currentLevelData)) { /* ... (populate options from items array) ... */
+                currentLevelData.forEach(item => {
+                     let itemName = '', itemKey = '', itemDetails = {};
+                     if (typeof item === 'string') { itemKey = item; itemName = formatDisplayName(item, null); }
+                     else if (typeof item === 'object' && item !== null && item.name) { itemKey = item.name; itemDetails = item; itemName = formatDisplayName(itemKey, itemDetails); }
+                     if (itemName) {
+                         const option = document.createElement('option');
+                         option.value = itemKey; option.textContent = itemName;
+                         selectElement.appendChild(option); hasOptions = true;
+                     }
+                 });
+            } else if (typeof currentLevelData === 'object' && Object.keys(currentLevelData).length > 0) { /* ... (populate options from sub_categories object) ... */
+                for (const key in currentLevelData) {
+                     if (key === 'level' || key === 'title') continue;
+                     const details = currentLevelData[key];
+                     if (typeof details !== 'object' || details === null) continue;
+                     const displayName = formatDisplayName(key, details);
+                     const option = document.createElement('option');
+                     option.value = key; option.textContent = displayName;
+                     selectElement.appendChild(option); hasOptions = true;
+                 }
+            }
+
+            if (hasOptions) { selectElement.classList.add('visible'); }
+            else { selectElement.classList.remove('visible'); }
+        }
+
+        // --- Document Ready ---
+        $(document).ready(function() {
+            // Initialize Select2 for multi-selects (if any are used in edit form)
+            // $('.multi-select-tags').select2({ placeholder: "Select one or more...", allowClear: true, tags: false });
+
+            // Initialize Select2 for Related Resources (AJAX)
+            $('#related-resources-select').select2({ /* ... (same AJAX setup as add_data.html) ... */
+                placeholder: 'Search by name or ID...',
+                 minimumInputLength: 2,
+                 allowClear: true,
+                 ajax: {
+                     url: '/api/search-resources', // Ensure this endpoint exists
+                     dataType: 'json',
+                     delay: 250,
+                     data: function (params) { return { q: params.term }; },
+                     processResults: function (data) {
+                         return { results: data.map(item => ({ id: item.data_source_id, text: `${item.title} (${item.data_source_id})` })) };
+                     },
+                     cache: true
+                 }
+            });
+
+            // Update hidden field when related resources selection changes
+            $('#related-resources-select').on('change', function() {
+                const selectedIds = $(this).val() || [];
+                $('#related_resources').val(JSON.stringify(selectedIds));
+            });
+
+            // --- Pre-fill related resources ---
+            try {
+                // Get initial IDs from the hidden input field which has the current value
+                const initialRelatedIdsJson = $('#related_resources').val();
+                const initialRelatedIds = JSON.parse(initialRelatedIdsJson || '[]');
+
+                if (Array.isArray(initialRelatedIds) && initialRelatedIds.length > 0) {
+                    // Fetch details for these specific IDs to populate the select field initially
+                    // This requires an endpoint that accepts multiple IDs, e.g., /api/resources-by-ids?ids=id1,id2
+                    // Let's assume such an endpoint exists or adapt the search endpoint if possible.
+                    // For simplicity, we'll try fetching one by one (less efficient but works)
+                    const promises = initialRelatedIds.map(id =>
+                        fetch(`/api/resource/${id}`).then(res => res.ok ? res.json() : Promise.reject(`Failed to fetch ${id}`))
+                    );
+
+                    Promise.all(promises)
+                        .then(resources => {
+                            resources.forEach(resource => {
+                                // Create a new option element if it doesn't exist
+                                const resourceId = resource.data_source_id;
+                                const resourceText = `${resource.metadata?.title || resourceId} (${resourceId})`;
+                                if ($('#related-resources-select').find("option[value='" + resourceId + "']").length === 0) {
+                                    var newOption = new Option(resourceText, resourceId, true, true);
+                                    $('#related-resources-select').append(newOption);
+                                }
+                            });
+                            $('#related-resources-select').trigger('change'); // Notify Select2 of changes
+                        })
+                        .catch(error => console.error("Error pre-fetching related resources:", error));
+                }
+            } catch (e) {
+                console.error("Error parsing or pre-filling initial related resources:", e);
+            }
+            // --- End Pre-fill Related Resources ---
+
+
+            // Fetch hierarchy data
+            fetch('/api/resource-hierarchy')
+                .then(response => response.ok ? response.json() : Promise.reject('Failed to load hierarchy'))
+                .then(hierarchy => {
+                    resourceHierarchy = hierarchy;
+
+                    // --- Restore previous selections and populate dependent dropdowns ---
+                    function restoreAndPopulate(level) {
+                        const selectId = `level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`;
+                        const selectElement = $(`#${selectId}`);
+                        // Get initial value directly from the element (set by Jinja)
+                        const initialValue = selectElement.val();
+
+                        // Populate the *current* level's dropdown first based on its parent's selection (if not level 1)
+                        if (level > 1) {
+                             const parentSelectId = `level${level-1}_${level-1 === 1 ? 'resource_type' : level-1 === 2 ? 'category' : level-1 === 3 ? 'subcategory' : 'data_type'}`;
+                             if ($(`#${parentSelectId}`).val()) { // Check if parent has a value
+                                 populateHierarchyDropdown(level);
+                                 // Now that options are populated, re-set the value for the current level
+                                 selectElement.val(initialValue);
+                             }
+                        }
+
+                        // Trigger population for the *next* level if this level has a value and is not the last level
+                        if (initialValue && level < 5) {
+                            restoreAndPopulate(level + 1);
+                        }
+                    }
+
+                    // Start the population/restoration process from Level 1
+                    restoreAndPopulate(1);
+                    // --- End Restoration Logic ---
+
+
+                    // Setup change listeners for hierarchy dropdowns
+                    $('.hierarchy-select').on('change', function() {
+                        const currentLevel = parseInt($(this).data('level'));
+                        if (currentLevel < 5) { populateHierarchyDropdown(currentLevel + 1); }
+                    });
+
+                    // Populate related metadata checkboxes and pre-select based on hidden input
+                    const relatedContainer = document.getElementById('related-metadata-tree');
+                    relatedContainer.innerHTML = ''; // Clear loading message
+                    try {
+                        const initialRelatedMetaJson = $('#related_metadata').val();
+                        const initialRelatedMeta = JSON.parse(initialRelatedMetaJson || '[]');
+                        buildRelatedMetadataOptions(resourceHierarchy, '', 1, relatedContainer, initialRelatedMeta);
+                    } catch(e) {
+                         console.error("Error parsing or building related metadata:", e);
+                         relatedContainer.innerHTML = 'Error loading related metadata options.';
+                         buildRelatedMetadataOptions(resourceHierarchy, '', 1, relatedContainer, []); // Build empty tree on error
+                    }
+
+
+                    // Add listener to update hidden related_metadata field
+                    $('#related-metadata-tree').on('change', 'input[type="checkbox"]', function() {
+                        const selectedPaths = [];
+                        $('#related-metadata-tree input[type="checkbox"]:checked').each(function() {
+                            selectedPaths.push($(this).val());
+                        });
+                        $('#related_metadata').val(JSON.stringify(selectedPaths));
+                    });
+
+                })
+                .catch(error => { /* ... (error handling) ... */
+                    console.error('Error fetching resource hierarchy:', error);
+                    $('#related-metadata-tree').text('Error loading hierarchy.');
+                });
+
+
+            // --- Keyword Input Handling (same as add_data.html) ---
+            const keywordInput = document.getElementById('keyword-input');
+            const selectedKeywordsContainer = document.getElementById('selected-keywords');
+            const keywordsHiddenField = document.getElementById('keywords');
+            // Initialize from hidden field's value
+            let keywords = new Set(keywordsHiddenField.value ? keywordsHiddenField.value.split(',').map(k => k.trim()).filter(Boolean) : []);
+
+            function renderKeywords() { /* ... (same renderKeywords function) ... */
+                selectedKeywordsContainer.innerHTML = '';
+                 keywords.forEach(keyword => {
+                     const tag = document.createElement('div');
+                     tag.className = 'selected-tag';
+                     tag.innerHTML = `${keyword} <span class="remove-tag" data-value="${keyword}">&times;</span>`;
+                     selectedKeywordsContainer.appendChild(tag);
+                 });
+                 keywordsHiddenField.value = Array.from(keywords).join(',');
+            }
+            renderKeywords(); // Initial render
+
+            keywordInput.addEventListener('keydown', function(e) { /* ... (same keydown listener) ... */
+                if (e.key === ',' || e.key === 'Enter') {
+                     e.preventDefault();
+                     const newKeywords = this.value.split(',').map(k => k.trim()).filter(k => k && !keywords.has(k));
+                     if (newKeywords.length > 0) { newKeywords.forEach(k => keywords.add(k)); renderKeywords(); }
+                     this.value = '';
+                 }
+            });
+            keywordInput.addEventListener('blur', function(e) { /* ... (same blur listener) ... */
+                const keyword = this.value.trim();
+                 if (keyword && !keywords.has(keyword)) { keywords.add(keyword); renderKeywords(); }
+                 this.value = '';
+            });
+            selectedKeywordsContainer.addEventListener('click', function(e) { /* ... (same click listener) ... */
+                if (e.target.classList.contains('remove-tag')) {
+                     const value = e.target.getAttribute('data-value');
+                     keywords.delete(value); renderKeywords();
+                 }
+            });
+
+            // Update hidden fields on form submit
+            $('#edit-resource-form').on('submit', function() {
+                 const finalKeyword = keywordInput.value.trim();
+                 if (finalKeyword && !keywords.has(finalKeyword)) { keywords.add(finalKeyword); }
+                 keywordsHiddenField.value = Array.from(keywords).join(',');
+                 const selectedIds = $('#related-resources-select').val() || [];
+                 $('#related_resources').val(JSON.stringify(selectedIds));
+                 // Update related metadata just in case checkboxes were changed without triggering change event
+                 const selectedPaths = [];
+                 $('#related-metadata-tree input[type="checkbox"]:checked').each(function() { selectedPaths.push($(this).val()); });
+                 $('#related_metadata').val(JSON.stringify(selectedPaths));
+            });
+
+        });
+    </script>
+</body>
+</html> 

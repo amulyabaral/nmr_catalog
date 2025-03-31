@@ -1,12 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session # Added session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session, send_file # Added send_file
 from dotenv import load_dotenv # Import dotenv
 import yaml
 import json
 from database import (
-    init_db, add_pending_submission, get_all_data_points, load_initial_data,
+    init_db, add_pending_submission, get_all_data_points, # REMOVED load_initial_data
     get_main_categories, get_resource_type_hierarchy, get_data_point_by_id, get_db,
     get_pending_submissions, get_pending_submission_by_id, delete_pending_submission, # Added DB functions
-    add_data_point, update_pending_submission_status # Added DB functions
+    add_data_point, update_pending_submission_status,
+    update_data_point # <<< Import the new update function
 )
 import random # Import random for color generation
 import os # Import os for secret key
@@ -24,7 +25,7 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') # Load admin password from env
 
 # Initialize database at startup
 init_db()
-load_initial_data() # Load initial data into data_points if empty
+# load_initial_data() # <<< REMOVE THIS CALL
 
 def load_vocabularies():
     try:
@@ -736,11 +737,224 @@ def reject_submission(submission_id):
 
     return redirect(url_for('admin_review'))
 
+# --- NEW ROUTE: Download Database ---
+@app.route('/admin/download-db')
+@admin_required
+def download_db():
+    """Allows admin to download the current database file."""
+    try:
+        # Get the absolute path to the database file from database.py
+        db_path = DB_PATH # Use the DB_PATH defined in database.py
+        if not os.path.exists(db_path):
+            flash('Database file not found.', 'error')
+            return redirect(url_for('admin_review'))
+
+        # Send the file to the user
+        return send_file(
+            db_path,
+            as_attachment=True,
+            download_name=f'nomoreamr_backup_{datetime.date.today().isoformat()}.db' # Suggest a filename
+        )
+    except Exception as e:
+        app.logger.error(f"Error downloading database: {e}", exc_info=True)
+        flash(f'An error occurred while trying to download the database: {e}', 'error')
+        return redirect(url_for('admin_review'))
+# --- END NEW ROUTE ---
+
+# --- NEW: Admin Manage Approved Resources ---
+@app.route('/admin/manage')
+@admin_required
+def admin_manage():
+    """Displays a list of approved resources for editing or deletion."""
+    approved_resources = get_all_data_points() # Fetch all approved points
+    # Parse metadata for display if needed (optional, can be done in template)
+    for resource in approved_resources:
+        try:
+            resource['metadata_obj'] = json.loads(resource.get('metadata', '{}'))
+        except json.JSONDecodeError:
+            resource['metadata_obj'] = {'Error': 'Invalid JSON'}
+    return render_template('admin_manage.html', resources=approved_resources)
+
+# --- NEW: Edit Resource (GET - Show Form) ---
+@app.route('/admin/edit/<int:data_id>', methods=['GET'])
+@admin_required
+def edit_data_form(data_id):
+    """Displays the form to edit an existing resource."""
+    data_point = get_data_point_by_id(data_id) # Fetch by primary key ID
+    if not data_point:
+        flash(f'Resource with ID {data_id} not found.', 'error')
+        return redirect(url_for('admin_manage'))
+
+    # Prepare data for the form (similar to how it's done for add_data errors)
+    # Convert JSON strings back to lists/dicts for easier template logic
+    try:
+        # Metadata needs careful handling - extract specific fields for the form
+        metadata = json.loads(data_point.get('metadata', '{}'))
+        data_point['resource_name'] = metadata.get('title', data_point.get('data_source_id')) # Use title from metadata
+        data_point['license'] = metadata.get('license')
+        # Add other metadata fields if you want them editable separately
+
+        # Related resources/metadata might need pre-loading for Select2 (more complex)
+        # For now, we pass the raw JSON strings; JS will need to parse them.
+        data_point['related_resources_json'] = json.dumps(metadata.get('related_resource_ids', []))
+        data_point['related_metadata_json'] = json.dumps(metadata.get('related_metadata_categories', []))
+
+        # Keywords are stored as a comma-separated string
+        # Countries/Domains are single values in data_points, but add_data uses lists.
+        # For editing, we might stick to single Country/Domain for simplicity,
+        # or modify the edit form/logic to handle multiple if needed.
+        # Let's assume single Country/Domain for now based on data_points schema.
+        # The add_data form uses MultiDict, edit needs similar structure if reusing template logic
+        form_data = MultiDict({
+            'resource_name': data_point['resource_name'],
+            'countries': [data_point.get('country')], # Wrap in list for consistency?
+            'domains': [data_point.get('domain')],   # Wrap in list for consistency?
+            'level1_resource_type': data_point.get('resource_type'),
+            'level2_category': data_point.get('category'),
+            'level3_subcategory': data_point.get('subcategory'),
+            'level4_data_type': data_point.get('data_type'),
+            'level5_item': data_point.get('level5'),
+            'year_start': data_point.get('year_start'),
+            'year_end': data_point.get('year_end'),
+            'resource_url': data_point.get('repository_url'),
+            'contact_info': data_point.get('contact_information'),
+            'description': data_point.get('data_description'),
+            'keywords': data_point.get('keywords', ''),
+            'license': data_point.get('license', ''),
+            'related_metadata': data_point['related_metadata_json'], # Pass JSON string
+            'related_resources': data_point['related_resources_json'] # Pass JSON string
+        })
+
+
+    except json.JSONDecodeError:
+        flash('Error parsing metadata for editing.', 'error')
+        # Provide default empty structure
+        form_data = MultiDict(data_point) # Fallback to raw data_point dict
+
+    return render_template('edit_data.html',
+                           vocabularies=VOCABULARIES,
+                           data_point=data_point, # Pass the original data point too
+                           form_data=form_data) # Pass the pre-filled form data
+
+# --- NEW: Edit Resource (POST - Handle Update) ---
+@app.route('/admin/edit/<int:data_id>', methods=['POST'])
+@admin_required
+def update_data(data_id):
+    """Handles the submission of the edit form."""
+    # Fetch the original data point to compare or use defaults if needed
+    original_data_point = get_data_point_by_id(data_id)
+    if not original_data_point:
+        flash(f'Resource with ID {data_id} not found.', 'error')
+        return redirect(url_for('admin_manage'))
+
+    form_data = request.form # Use request.form for POST
+
+    try:
+        # --- Collect Form Data (similar to add_data) ---
+        resource_name = form_data.get('resource_name')
+        # Assuming single country/domain selection in edit form for simplicity matching DB
+        country = form_data.get('countries') # Assuming single value select/input
+        domain = form_data.get('domains')   # Assuming single value select/input
+        # If using multi-select in edit form, use getlist and handle appropriately
+
+        primary_hierarchy = {
+            'resource_type': form_data.get('level1_resource_type'),
+            'category': form_data.get('level2_category'),
+            'subcategory': form_data.get('level3_subcategory'),
+            'data_type': form_data.get('level4_data_type'),
+            'level5': form_data.get('level5_item')
+        }
+        primary_hierarchy = {k: v for k, v in primary_hierarchy.items() if v} # Clean empty values
+
+        year_start = form_data.get('year_start', type=int)
+        year_end = form_data.get('year_end', type=int)
+        resource_url = form_data.get('resource_url')
+        contact_info = form_data.get('contact_info')
+        description = form_data.get('description')
+        related_metadata_json = form_data.get('related_metadata', '[]')
+        related_resources_json = form_data.get('related_resources', '[]')
+        keywords = form_data.get('keywords')
+        license_info = form_data.get('license')
+
+        # --- Basic Validation ---
+        if not resource_name or not country or not domain or not primary_hierarchy.get('resource_type') or not resource_url or year_start is None or year_end is None or year_start > year_end:
+             flash('Missing required fields or invalid year range.', 'error')
+             # Re-render edit form with submitted data
+             return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=form_data) # Pass original and submitted
+
+        # --- Prepare Data for Update ---
+        # Extract hierarchy levels
+        resource_type = primary_hierarchy.get('resource_type')
+        category = primary_hierarchy.get('category')
+        subcategory = primary_hierarchy.get('subcategory')
+        data_type = primary_hierarchy.get('data_type')
+        level5 = primary_hierarchy.get('level5')
+
+        # Reconstruct metadata JSON
+        try:
+            parsed_url = urlparse(resource_url)
+            repository = parsed_url.netloc if parsed_url.netloc else 'Unknown'
+            related_metadata_list = json.loads(related_metadata_json)
+            related_resources_list = json.loads(related_resources_json)
+        except (json.JSONDecodeError, Exception) as e:
+             flash(f'Invalid format for related data or URL: {e}', 'error')
+             return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=form_data)
+
+        metadata_dict = {
+            "title": resource_name,
+            "institution": original_data_point.get('metadata_obj', {}).get('institution', "Unknown"), # Preserve original institution for now
+            "license": license_info,
+            "original_url": resource_url,
+            "related_metadata_categories": related_metadata_list,
+            "related_resource_ids": related_resources_list,
+            "submitted_description": description # Or use data_description directly?
+        }
+        metadata_json_updated = json.dumps(metadata_dict)
+
+        # Dictionary of fields to update in data_points table
+        update_payload = {
+            'resource_type': resource_type,
+            'category': category,
+            'subcategory': subcategory,
+            'data_type': data_type,
+            'level5': level5,
+            'year_start': year_start,
+            'year_end': year_end,
+            # 'data_format': form_data.get('data_format', original_data_point.get('data_format')), # If editable
+            # 'data_resolution': form_data.get('data_resolution', original_data_point.get('data_resolution')), # If editable
+            'repository': repository,
+            'repository_url': resource_url,
+            'data_description': description,
+            'keywords': keywords,
+            'last_updated': datetime.date.today().isoformat(), # Update timestamp
+            'contact_information': contact_info,
+            'metadata': metadata_json_updated,
+            'country': country,
+            'domain': domain
+        }
+        # Remove None values to avoid overwriting with NULL unintentionally if not desired
+        update_payload = {k: v for k, v in update_payload.items() if v is not None}
+
+        # --- Call Database Update Function ---
+        if update_data_point(data_id, update_payload):
+            flash(f'Resource {data_id} updated successfully!', 'success')
+            return redirect(url_for('admin_manage'))
+        else:
+            flash(f'Failed to update resource {data_id}.', 'error')
+            # Re-render edit form with submitted data
+            return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=form_data)
+
+    except Exception as e:
+        app.logger.error(f"Error updating resource {data_id}: {e}", exc_info=True)
+        flash(f'An unexpected error occurred: {e}', 'error')
+        # Re-render edit form with submitted data
+        return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=form_data)
+
 
 if __name__ == '__main__':
     if not ADMIN_PASSWORD:
         print("Warning: ADMIN_PASSWORD environment variable not set. Admin login will not work.")
     # Ensure DB is initialized when running directly
     init_db()
-    load_initial_data()
+    # load_initial_data() # <<< REMOVE THIS CALL
     app.run(debug=True)

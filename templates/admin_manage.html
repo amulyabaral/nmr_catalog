@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Resources</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        .manage-container {
+            max-width: 1400px; /* Wider container */
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .logout-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .logout-link:hover {
+            text-decoration: underline;
+        }
+        .flash-message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .error-message { color: #a94442; background-color: #f2dede; border: 1px solid #ebccd1; }
+        .success-message { color: #3c763d; background-color: #dff0d8; border: 1px solid #d6e9c6; }
+
+        .resource-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .resource-table th, .resource-table td {
+            border: 1px solid #e0e0e0;
+            padding: 0.8rem 1rem;
+            text-align: left;
+            vertical-align: top; /* Align content to top */
+        }
+        .resource-table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+        }
+        .resource-table tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        .resource-table tr:hover {
+            background-color: #f0f7ff;
+        }
+        .action-button {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            text-decoration: none; /* For link buttons */
+            display: inline-block;
+            margin-right: 0.5rem;
+            font-size: 0.9em;
+        }
+        .edit-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        .edit-button:hover {
+            background-color: #1a54f7;
+        }
+        .delete-button {
+            background-color: #e53935; /* Red */
+            color: white;
+        }
+        .delete-button:hover {
+            background-color: #c62828;
+        }
+        .no-resources {
+            text-align: center;
+            color: #777;
+            font-size: 1.1em;
+            padding: 2rem;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .hierarchy-display { font-size: 0.85em; color: #555; }
+        .hierarchy-display span { margin-right: 3px; }
+        .hierarchy-display span:not(:last-child)::after { content: '>'; margin-left: 3px; color: #999; }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <a href="/">NoMoReAMR</a>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}">Home</a>
+                {% if session.get('is_admin') %}
+                    <a href="{{ url_for('admin_review') }}">Review Submissions</a>
+                    <a href="{{ url_for('admin_manage') }}">Manage Resources</a> <!-- Link to this page -->
+                    <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('admin_login') }}">Admin Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="manage-container">
+        <div class="admin-header">
+            <h1>Manage Approved Resources</h1>
+            <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash-message {{ category }}-message">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% if resources %}
+            <table class="resource-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Country</th>
+                        <th>Domain</th>
+                        <th>Hierarchy</th>
+                        <th>Years</th>
+                        <th>URL</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for res in resources %}
+                    <tr>
+                        <td>{{ res.data_source_id }}</td>
+                        <td>{{ res.metadata_obj.get('title', res.data_source_id) }}</td>
+                        <td>{{ res.country }}</td>
+                        <td>{{ res.domain }}</td>
+                        <td class="hierarchy-display">
+                            {% if res.resource_type %}<span>{{ res.resource_type|replace('_', ' ')|title }}</span>{% endif %}
+                            {% if res.category %}<span>{{ res.category|replace('_', ' ')|title }}</span>{% endif %}
+                            {% if res.subcategory %}<span>{{ res.subcategory|replace('_', ' ')|title }}</span>{% endif %}
+                            {% if res.data_type %}<span>{{ res.data_type|replace('_', ' ')|title }}</span>{% endif %}
+                            {% if res.level5 %}<span>{{ res.level5|replace('_', ' ')|title }}</span>{% endif %}
+                        </td>
+                        <td>{{ res.year_start }} - {{ res.year_end }}</td>
+                        <td><a href="{{ res.repository_url }}" target="_blank" title="{{ res.repository_url }}">Link</a></td>
+                        <td>
+                            <a href="{{ url_for('edit_data_form', data_id=res.id) }}" class="action-button edit-button">Edit</a>
+                            <!-- Optional: Add Delete Button Here -->
+                            <!-- <form action="{{ url_for('delete_data', data_id=res.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this resource?');">
+                                <button type="submit" class="action-button delete-button">Delete</button>
+                            </form> -->
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="no-resources">No approved resources found.</p>
+        {% endif %}
+    </div>
+
+</body>
+</html> 

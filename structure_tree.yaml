@@ -91,7 +91,7 @@ Resource_type_hierarchy:
         items:
           - name: population_density
             level: 3
-          - name: human_mobility
+          - name: mobility
             level: 3
           - name: antimicrobial_consumption
             level: 3
@@ -257,15 +257,6 @@ Resource_type_hierarchy:
           - name: regulatory_frameworks
             level: 3
           - name: best_practice_guidelines
-            level: 3
-      educational_resources:
-        level: 2
-        items:
-          - name: training_manuals
-            level: 3
-          - name: online_courses
-            level: 3
-          - name: infographics
             level: 3
 
   Entities:

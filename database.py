@@ -86,30 +86,28 @@ def init_db():
     conn.commit()
     conn.close()
 
-def load_initial_data():
-    """Load initial data from SQL file if database is empty"""
-    conn = get_db()
-    c = conn.cursor()
-    
-    # Check if database is empty
-    c.execute('SELECT COUNT(*) FROM data_points')
-    count = c.fetchone()[0]
-    
-    if count == 0:
-        try:
-            # Load and execute initial data SQL file
-            with open('init_data.sql', 'r') as f:
-                sql = f.read()
-                c.executescript(sql)
-                conn.commit()
-            print("Initial data loaded successfully.")
-        except sqlite3.Error as e:
-            print(f"Error loading initial data: {e}")
-            conn.rollback() # Rollback changes if error occurs
-        except FileNotFoundError:
-            print("Error: init_data.sql not found.")
-    
-    conn.close()
+# Comment out or remove the entire function below
+# def load_initial_data():
+#     """Load initial data from SQL file if database is empty"""
+#     conn = get_db()
+#     c = conn.cursor()
+#     # Check if database is empty
+#     c.execute('SELECT COUNT(*) FROM data_points')
+#     count = c.fetchone()[0]
+#     if count == 0:
+#         try:
+#             # Load and execute initial data SQL file
+#             with open('init_data.sql', 'r') as f:
+#                 sql = f.read()
+#                 c.executescript(sql)
+#                 conn.commit()
+#             print("Initial data loaded successfully.")
+#         except sqlite3.Error as e:
+#             print(f"Error loading initial data: {e}")
+#             conn.rollback() # Rollback changes if error occurs
+#         except FileNotFoundError:
+#             print("Error: init_data.sql not found.")
+#     conn.close()
 
 def generate_data_source_id(data):
     """
@@ -290,13 +288,14 @@ def get_resource_type_hierarchy():
         return {}
 
 def get_data_point_by_id(data_id):
-    """Get a single data point by ID"""
+    """Get a single data point by its primary key ID"""
     conn = get_db()
     c = conn.cursor()
     c.execute('SELECT * FROM data_points WHERE id = ?', (data_id,))
     data_point = c.fetchone()
     conn.close()
-    return data_point
+    # Convert to dict for easier use in templates/logic
+    return dict(data_point) if data_point else None
 
 def get_data_point_by_source_id(source_id):
     """Get a single data point by data_source_id"""
@@ -393,5 +392,33 @@ def add_pending_submission(submission_data):
         print(f"Error adding pending submission: {e}")
         conn.rollback()
         return None # Indicate failure
+    finally:
+        conn.close()
+
+def update_data_point(data_id, updated_data):
+    """
+    Update an existing data point in the database.
+    'data_id' is the primary key integer ID.
+    'updated_data' is a dictionary where keys are column names and values are the new values.
+    """
+    conn = get_db()
+    c = conn.cursor()
+
+    # Construct the SET part of the SQL query dynamically
+    set_clause = ", ".join([f"{key} = ?" for key in updated_data.keys()])
+    values = list(updated_data.values())
+    values.append(data_id) # Add the id for the WHERE clause
+
+    query = f"UPDATE data_points SET {set_clause} WHERE id = ?"
+
+    try:
+        c.execute(query, values)
+        conn.commit()
+        print(f"Updated data point with ID: {data_id}")
+        return True
+    except sqlite3.Error as e:
+        print(f"Error updating data point {data_id}: {e}")
+        conn.rollback()
+        return False
     finally:
         conn.close()
