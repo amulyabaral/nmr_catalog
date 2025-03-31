@@ -198,6 +198,7 @@ def get_network_data():
     nodes = []
     edges = []
     added_nodes = set() # Keep track of added node IDs
+    base_font_size = 14 # Increased base font size
 
     # 1. Load Hierarchy Definition
     hierarchy_definition = VOCABULARIES.get('resource_type_hierarchy', {})
@@ -222,30 +223,31 @@ def get_network_data():
             node_label = details.get('title', node_name.replace('_', ' ').title())
             node_color = '#CCCCCC' # Default grey
             node_shape = 'ellipse'
-            node_size = 15 - (current_level * 2) # Decrease size with level
-            node_mass = 5 - current_level # Decrease mass with level
+            # Adjust size based on level (make less drastic change)
+            node_size = 22 - (current_level * 2)
+            node_mass = 5 - current_level # Keep mass for physics if re-enabled
 
             # Assign colors/shapes based on level (customize as needed)
             if current_level == 1: # Resource Type
                 node_color = '#87CEEB' # Sky Blue
                 node_shape = 'database'
-                node_size = 20
+                node_size = 24
                 node_mass = 10
             elif current_level == 2: # Category
                 node_color = '#90EE90' # Light Green
-                node_size = 16
+                node_size = 20
                 node_mass = 8
             elif current_level == 3: # Subcategory
                 node_color = '#FFB6C1' # Light Pink
-                node_size = 12
+                node_size = 16
                 node_mass = 6
             elif current_level == 4: # Data Type
                 node_color = '#FFD700' # Gold
-                node_size = 10
+                node_size = 14
                 node_mass = 4
             elif current_level == 5: # Item/Leaf
                 node_color = '#FFA07A' # Light Salmon
-                node_size = 8
+                node_size = 12
                 node_mass = 2
 
             # Add the hierarchy node if not already added
@@ -253,13 +255,13 @@ def get_network_data():
                 nodes.append({
                     'id': node_id,
                     'label': node_label,
-                    'title': f"Level {current_level}: {node_label}",
+                    'title': f"Level {current_level}: {node_label}", # Tooltip indicates level
                     'group': f"level_{current_level}",
                     'color': node_color,
                     'shape': node_shape,
                     'size': node_size,
                     'mass': node_mass,
-                    'font': {'size': 12}
+                    'font': {'size': base_font_size} # Apply base font size
                 })
                 added_nodes.add(node_id)
 
@@ -293,7 +295,7 @@ def get_network_data():
                             item_label = item_name.replace('_', ' ').title()
                             item_color = '#FFA07A' # Light Salmon for L5
                             item_shape = 'ellipse'
-                            item_size = 8
+                            item_size = 12 # Slightly larger L5
                             item_mass = 2
 
                             if item_id not in added_nodes:
@@ -306,7 +308,7 @@ def get_network_data():
                                     'shape': item_shape,
                                     'size': item_size,
                                     'mass': item_mass,
-                                    'font': {'size': 10}
+                                    'font': {'size': base_font_size - 2} # Slightly smaller font for L5
                                 })
                                 added_nodes.add(item_id)
 
@@ -370,7 +372,7 @@ def get_network_data():
         domain = point_dict.get('domain')
         country_info = COUNTRY_INFO.get(country, default_country_info)
         dp_color = country_info['color']
-        dp_shape = 'dot' # Keep data points as dots
+        dp_shape = 'dot'
         tooltip = f"<b>{dp_label}</b><br>ID: {point_dict['data_source_id']}<br>Country: {country}<br>Domain: {domain}<br>Type: {point_dict.get('resource_type', 'N/A')}"
 
         if dp_node_id not in added_nodes:
@@ -381,8 +383,9 @@ def get_network_data():
                 'group': 'data_point',
                 'color': dp_color,
                 'shape': dp_shape,
-                'size': 15, # Make data points reasonably visible
-                'mass': 3
+                'size': 18, # Slightly larger data points
+                'mass': 3,
+                'font': {'size': base_font_size} # Apply base font size
             })
             added_nodes.add(dp_node_id)
 
@@ -409,9 +412,9 @@ def get_network_data():
                     'group': 'country_node',
                     'color': country_info['color'],
                     'shape': 'hexagon',
-                    'size': 25,
-                    'mass': 15, # High mass to keep them central
-                    'font': {'size': 14}
+                    'size': 30, # Larger country nodes
+                    'mass': 15,
+                    'font': {'size': base_font_size + 2} # Larger font for countries
                 })
                 added_nodes.add(country_node_id)
             # Edge from Data Point to Country
@@ -428,7 +431,7 @@ def get_network_data():
         if domain_node_id:
              if domain_node_id not in added_nodes:
                 domain_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
-                domain_color = '#FFA500' # Orange for domain
+                domain_color = '#FFA500' # Keep domain color neutral orange
                 nodes.append({
                     'id': domain_node_id,
                     'label': domain,
@@ -436,9 +439,9 @@ def get_network_data():
                     'group': 'domain_node',
                     'color': domain_color,
                     'shape': domain_shape,
-                    'size': 18,
+                    'size': 22, # Larger domain nodes
                     'mass': 8,
-                    'font': {'size': 12}
+                    'font': {'size': base_font_size} # Apply base font size
                 })
                 added_nodes.add(domain_node_id)
              # Edge from Data Point to Domain

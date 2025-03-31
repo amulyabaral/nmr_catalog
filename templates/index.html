@@ -159,41 +159,45 @@
         <!-- Network Graph Section -->
         <section id="network-graph-section" class="network-graph-section">
             <h2>Resource Network</h2>
-            <p class="section-intro">Explore the connections between resources, countries, domains, and categories. Countries are central.</p>
+            <p class="section-intro">Explore the connections between resources, countries, domains, and categories. Hierarchy flows top-down.</p>
             <div id="network-graph-container" class="network-container">
                 <!-- Vis Network Graph will be rendered here -->
                 <div class="loading-indicator">Loading Network...</div>
             </div>
-            <!-- Restore 2D Legend -->
+            <!-- Updated Legend -->
             <div class="network-legend">
                 <h3>Legend</h3>
-                 <div class="legend-item">
-                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 50%;"></span> Data Point (Color by Country)
+                <div class="legend-column">
+                    <strong>Nodes:</strong>
+                    <div class="legend-item">
+                        <span class="legend-shape hexagon" style="border-color: #999999;"></span> Country (Colored by Country)
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background-color: #FFA500;"></span> Domain (Orange)
+                    </div>
+                     <div class="legend-item">
+                        <span class="legend-dot" style="background-color: #CCCCCC; border: 1px solid #888;"></span> Data Point (Colored by Country)
+                    </div>
                 </div>
-                 <div class="legend-item">
-                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 0; width: 12px; height: 12px; border: 1px solid #666;"></span> Animal Domain
+                <div class="legend-column">
+                    <strong>Hierarchy Levels:</strong>
+                    <div class="legend-item">
+                        <span class="legend-shape database" style="border-color: #87CEEB;"></span> Level 1: Resource Type
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background-color: #90EE90;"></span> Level 2: Category
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background-color: #FFB6C1;"></span> Level 3: Subcategory
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background-color: #FFD700;"></span> Level 4: Data Type
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background-color: #FFA07A;"></span> Level 5: Item/Detail
+                    </div>
                 </div>
-                 <div class="legend-item">
-                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 50%;"></span> Human Domain
-                </div>
-                 <div class="legend-item">
-                    <span class="legend-dot" style="border-bottom: 15px solid #CCCCCC; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; height: 0; width: 0; background: none;"></span> Environment Domain
-                </div>
-                 <div class="legend-item">
-                    <span class="legend-dot" style="background-color: #CCCCCC; transform: rotate(45deg); -webkit-transform: rotate(45deg); width: 12px; height: 12px; border-radius: 3px;"></span> Other Domain
-                </div>
-                <div class="legend-item">
-                    <span class="legend-shape hexagon" style="border-color: #999999;"></span> Country (Central Nodes)
-                </div>
-                 <div class="legend-item">
-                    <span class="legend-shape database" style="border-color: #87CEEB;"></span> Resource Type
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background-color: #90EE90;"></span> Category
-                </div>
-                 <div class="legend-item">
-                    <span class="legend-dot" style="background-color: #FFB6C1;"></span> Subcategory
-                </div>
+                 <!-- Removed old domain shape specifics -->
             </div>
         </section>
 

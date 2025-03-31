@@ -1517,6 +1517,7 @@ function setupNetworkGraph() {
                     borderWidth: 1,
                     borderWidthSelected: 2,
                     font: { // Default font settings (can be overridden per node)
+                        // Size is now set per node in app.py, keep a smaller default here if needed
                         size: 12,
                         face: 'Inter',
                         color: '#333333'
@@ -1527,79 +1528,71 @@ function setupNetworkGraph() {
                 },
                 edges: {
                     width: 0.5,
-                    // color: { inherit: 'from' }, // Inheriting color can be noisy, use default subtle color set in API
+                    color: { inherit: false }, // Don't inherit color for clarity
                     smooth: {
                         enabled: true,
-                        type: "continuous", // Smoother edges
-                        roundness: 0.5
+                        type: "cubicBezier", // Good for hierarchical
+                        forceDirection: "vertical", // Ensure vertical flow
+                        roundness: 0.4
                     },
                     arrows: {
-                        to: { enabled: false } // Disable arrows for less clutter, enable if needed
+                        to: { enabled: true, scaleFactor: 0.5 } // Enable arrows, make smaller
                     }
                 },
                 physics: {
-                    enabled: true,
-                    solver: 'barnesHut', // Good general-purpose solver
-                    barnesHut: {
-                        gravitationalConstant: -15000, // Increase repulsion to spread nodes
-                        centralGravity: 0.15, // Slightly stronger pull to center
-                        springLength: 150, // Desired edge length
-                        springConstant: 0.04,
-                        damping: 0.09,
-                        avoidOverlap: 0.1 // Helps prevent node overlap
-                    },
-                    stabilization: { // Speed up initial stabilization
-                        iterations: 1000,
-                        fit: true
-                    }
+                    enabled: false // Disable physics for hierarchical layout
                 },
                 interaction: {
-                    hover: true, // Show hover effects (like edge thickening)
-                    tooltipDelay: 200, // Delay before tooltip appears
-                    navigationButtons: true, // Add zoom/fit buttons
-                    keyboard: true // Enable keyboard navigation
+                    hover: true,
+                    tooltipDelay: 200,
+                    navigationButtons: true,
+                    keyboard: true
                 },
-                // Layout options (hierarchical is an alternative if force-directed isn't ideal)
-                // layout: {
-                //     hierarchical: {
-                //         enabled: false, // Set to true to use hierarchical layout
-                //         levelSeparation: 200,
-                //         nodeSpacing: 150,
-                //         treeSpacing: 250,
-                //         direction: 'UD', // UD, DU, LR, RL
-                //         sortMethod: 'hubsize' // hubsize, directed
-                //     }
-                // }
+                // Configure Hierarchical Layout
+                layout: {
+                    hierarchical: {
+                        enabled: true,
+                        levelSeparation: 150, // Increase vertical separation between levels
+                        nodeSpacing: 120,     // Increase horizontal separation between nodes in same level
+                        treeSpacing: 250,     // Increase separation between different trees (if any)
+                        direction: 'UD',      // UD = Up-Down (Top to Bottom)
+                        sortMethod: 'directed', // Use edge direction to determine levels
+                        shakeTowards: 'roots' // Stabilize layout towards the top
+                    }
+                }
             };
 
             const networkData = { nodes: nodes, edges: edges };
             const network = new vis.Network(container, networkData, options);
 
-            // Event listener for clicking nodes
+            // Event listener for clicking nodes (keep existing logic)
             network.on("click", function (params) {
                 if (params.nodes.length > 0) {
                     const nodeId = params.nodes[0];
                     console.log('Clicked node:', nodeId);
-                    const nodeData = nodes.get(nodeId); // Get node data if needed
+                    const nodeData = nodes.get(nodeId);
 
                     // Example: Open resource modal if a data point node is clicked
                     if (nodeId.startsWith('dp_')) {
-                        const resourceId = nodeId.substring(3); // Extract data_source_id
+                        const dbId = nodeId.substring(3); // This is the DB primary key 'id'
                         if (typeof showResourceDetails === 'function') {
-                             console.log("Attempting to show details for data_source_id:", resourceId);
-                             // Find the corresponding DB primary key 'id' if needed by showResourceDetails
-                             // This might require an extra lookup or adjusting showResourceDetails
-                             // For now, just logging. You might need to fetch the full details again.
-                             // showResourceDetails(resourceId); // This likely needs the integer ID, not the string ID
+                             console.log("Attempting to show details for DB id:", dbId);
+                             // Assuming showResourceDetails takes the DB primary key (integer)
+                             showResourceDetails(parseInt(dbId));
+                        } else {
+                             console.error("showResourceDetails function not found");
                         }
+                    } else if (nodeData && nodeData.title) {
+                        // Log info for hierarchy/country/domain nodes
+                        console.log("Clicked Node Info:", nodeData.title);
                     }
                 }
             });
 
-            // Turn off physics after stabilization for performance
-            network.on("stabilizationIterationsDone", function () {
-                network.setOptions( { physics: false } );
-            });
+            // No physics stabilization needed
+            // network.on("stabilizationIterationsDone", function () {
+            //     network.setOptions( { physics: false } );
+            // });
 
         })
         .catch(error => {
