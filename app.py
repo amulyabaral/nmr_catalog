@@ -30,13 +30,12 @@ def generate_color(seed_string):
     b = random.randint(50, 200)
     return f'rgb({r},{g},{b})'
 
-# --- Define shapes for domains ---
-DOMAIN_SHAPES = {
-    'Human': 'dot',
-    'Animal': 'square',
-    'Environment': 'triangle',
-    # Add more if needed, or a default
-    'default': 'ellipse'
+# --- Define shapes for domains (less relevant for 3D, but keep for potential mapping) ---
+DOMAIN_SHAPES_3D = { # Using different shapes might be complex in 3D, often color/size are primary
+    'Human': 'sphere',
+    'Animal': 'cube',
+    'Environment': 'tetrahedron',
+    'default': 'sphere'
 }
 
 @app.route('/')
@@ -177,7 +176,7 @@ def get_resource(resource_id):
         
     return jsonify(dict(result))
 
-# --- New route for network data ---
+# --- Updated route for network data (for 3D) ---
 @app.route('/api/network-data')
 def get_network_data():
     conn = get_db()
@@ -213,17 +212,18 @@ def get_network_data():
 
         # --- Add Data Point Node ---
         node_color = country_colors.get(country, default_country_color)
-        node_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
+        # Shape mapping is harder in 3D, primarily use color/size
+        # node_shape = DOMAIN_SHAPES_3D.get(domain, DOMAIN_SHAPES_3D['default'])
         tooltip = f"<b>{label}</b><br>Type: {resource_type}<br>Country: {country}<br>Domain: {domain}<br>Category: {category}"
 
         nodes.append({
             'id': node_id,
-            'label': label,
-            'title': tooltip,
-            'group': 'data_point', # General group for data points
+            'name': label, # Use 'name' for label in 3d-force-graph
+            'title': tooltip, # Keep title for potential tooltips
+            'group': 'data_point',
             'color': node_color,
-            'shape': node_shape,
-            'size': 15 # Base size for data points
+            # 'shape3d': node_shape, # If attempting custom shapes
+            'val': 1.5 # Use 'val' for size (adjust value as needed)
         })
 
         # --- Add Category Nodes and Edges ---
@@ -242,21 +242,17 @@ def get_network_data():
                 # Add category node if not already added
                 if cat_node_id not in added_nodes:
                     cat_label = cat_value.replace('_', ' ')
-                    cat_shape = 'ellipse' # Default shape for category nodes
                     cat_color = '#CCCCCC' # Default color
-                    cat_size = 10 # Smaller size for category nodes
+                    cat_size_val = 0.8 # Smaller size for category nodes
 
                     if cat_type == 'country':
                         cat_color = country_colors.get(cat_value, default_country_color)
-                        cat_shape = 'hexagon'
-                        cat_size = 12
+                        cat_size_val = 1.2
                     elif cat_type == 'domain':
                         cat_color = '#FFA500' # Orange for domain
-                        cat_shape = DOMAIN_SHAPES.get(cat_value, DOMAIN_SHAPES['default'])
-                        cat_size = 12
+                        cat_size_val = 1.0
                     elif cat_type == 'resource_type':
                         cat_color = '#87CEEB' # Sky blue for resource type
-                        cat_shape = 'database'
                     elif cat_type == 'category':
                         cat_color = '#90EE90' # Light green for category
                     elif cat_type == 'subcategory':
@@ -264,24 +260,23 @@ def get_network_data():
 
                     nodes.append({
                         'id': cat_node_id,
-                        'label': cat_label,
+                        'name': cat_label,
                         'title': f"{cat_type.replace('_', ' ').title()}: {cat_label}",
                         'group': f"{cat_type}_node",
                         'color': cat_color,
-                        'shape': cat_shape,
-                        'size': cat_size
+                        'val': cat_size_val
                     })
                     added_nodes.add(cat_node_id)
 
-                # Add edge from data point to category node
+                # Add edge using source/target
                 edges.append({
-                    'from': node_id,
-                    'to': cat_node_id,
-                    'arrows': 'to',
-                    'length': 150 # Adjust edge length as needed
+                    'source': node_id, # Changed from 'from'
+                    'target': cat_node_id, # Changed from 'to'
+                    # Other properties like arrows, length are handled by the 3D layout
                 })
 
-    return jsonify({'nodes': nodes, 'edges': edges})
+    # Rename 'edges' to 'links' as expected by 3d-force-graph
+    return jsonify({'nodes': nodes, 'links': edges})
 
 if __name__ == '__main__':
     app.run(debug=True)

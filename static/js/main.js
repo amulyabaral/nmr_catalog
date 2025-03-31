@@ -1481,14 +1481,14 @@ function addHierarchyStyles() {
     document.head.appendChild(style);
 }
 
-// --- New Function for Network Graph ---
+// --- Updated Function for 3D Network Graph ---
 function setupNetworkGraph() {
     const container = document.getElementById('network-graph-container');
     const loadingIndicator = container.querySelector('.loading-indicator');
 
-    if (!vis || !container) {
-        console.error("Vis.js library or graph container not found.");
-        if(loadingIndicator) loadingIndicator.textContent = "Error loading graph.";
+    if (typeof ForceGraph3D === 'undefined' || !container) {
+        console.error("3D Force Graph library or graph container not found.");
+        if(loadingIndicator) loadingIndicator.textContent = "Error loading 3D graph library.";
         return;
     }
 
@@ -1499,106 +1499,103 @@ function setupNetworkGraph() {
             }
             return response.json();
         })
-        .then(data => {
+        .then(graphData => {
             if (loadingIndicator) loadingIndicator.style.display = 'none'; // Hide loading indicator
 
-            if (!data || !data.nodes || !data.edges) {
-                 console.error('Invalid data received for network graph:', data);
-                 container.innerHTML = '<p>Error: Could not load network data.</p>';
+            if (!graphData || !graphData.nodes || !graphData.links) {
+                 console.error('Invalid data received for 3D network graph:', graphData);
+                 container.innerHTML = '<p>Error: Could not load 3D network data.</p>';
                  return;
             }
 
-            const nodes = new vis.DataSet(data.nodes);
-            const edges = new vis.DataSet(data.edges);
+            // Initialize the 3D graph
+            const Graph = ForceGraph3D()
+                (container) // Bind to the container element
+                .graphData(graphData) // Load nodes and links
 
-            const options = {
-                nodes: {
-                    borderWidth: 1,
-                    borderWidthSelected: 2,
-                    font: {
-                        size: 12,
-                        face: 'Inter',
-                        color: '#333'
-                    },
-                    shapeProperties: {
-                        interpolation: false // 'true' for smooth node shapes
+                // --- Node Configuration ---
+                .nodeId('id') // Property to use for node identification
+                .nodeLabel('name') // Property to display as label (on hover)
+                .nodeVal('val') // Property determining node size
+                .nodeColor('color') // Property determining node color
+                .nodeOpacity(0.9)
+                .nodeResolution(16) // Higher value = smoother spheres (more polygons)
+
+                // --- Link Configuration ---
+                .linkSource('source') // Property for link start node ID
+                .linkTarget('target') // Property for link end node ID
+                .linkColor(() => 'rgba(100, 100, 100, 0.3)') // Link color
+                .linkWidth(0.3) // Link thickness
+                // .linkDirectionalArrowLength(3.5) // Optional: Add arrows
+                // .linkDirectionalArrowRelPos(1)
+                // .linkCurvature(0.1) // Optional: Curve links slightly
+
+                // --- Interaction ---
+                .onNodeHover(node => container.style.cursor = node ? 'pointer' : null) // Change cursor on hover
+                .onNodeClick(node => {
+                    // Example: Center view on node and log info
+                    console.log('Clicked node:', node);
+                    const distance = 100; // Distance to keep from node
+                    const lookAtPos = node ? new THREE.Vector3(node.x, node.y, node.z) : new THREE.Vector3(0, 0, 0);
+                    Graph.cameraPosition(
+                        { x: lookAtPos.x + distance, y: lookAtPos.y + distance, z: lookAtPos.z + distance }, // New camera position
+                        lookAtPos, // Look-at point
+                        1000  // Transition duration ms
+                    );
+
+                    // Potentially open modal if it's a data point node
+                    if (node && node.id.startsWith('dp_')) {
+                         const resourceId = node.id.substring(3);
+                         console.log("Attempting to show details for:", resourceId);
+                         // if (typeof showResourceDetails === 'function') {
+                         //    showResourceDetails(resourceId); // Needs adjustment for ID type?
+                         // }
                     }
-                },
-                edges: {
-                    width: 0.5,
-                    color: { inherit: 'from' },
-                    smooth: {
-                        type: 'continuous' // Makes edges smoother
+                })
+
+                 // --- Tooltips (using the 'title' property from API) ---
+                 // This requires adding a custom element to the DOM for the tooltip
+                .nodeThreeObjectExtend(true) // Allow modification of Three.js object
+                .nodeThreeObject(node => {
+                    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, transparent: true, opacity: 0 })); // Invisible sprite for tooltip anchor
+                    return sprite;
+                })
+                .onNodeHover((node, prevNode) => {
+                    const tooltipEl = document.getElementById('node-tooltip');
+                    if (!tooltipEl) return; // Ensure tooltip element exists
+
+                    if (node) {
+                        const nodeInfo = node.title || node.name; // Use 'title' from API if available
+                        tooltipEl.innerHTML = nodeInfo;
+                        tooltipEl.style.visibility = 'visible';
+                        // Position tooltip (this needs refinement based on screen coordinates)
+                        // You'd typically convert 3D position to 2D screen coords here
+                        // For simplicity, just showing it fixed for now:
+                        tooltipEl.style.top = `10px`;
+                        tooltipEl.style.left = `10px`;
+                    } else {
+                        tooltipEl.style.visibility = 'hidden';
                     }
-                },
-                physics: {
-                    enabled: true,
-                    solver: 'barnesHut', // Good general-purpose solver
-                    barnesHut: {
-                        gravitationalConstant: -8000, // Adjust for spread/tightness
-                        centralGravity: 0.1, // Pulls nodes towards center
-                        springLength: 120, // Default edge length
-                        springConstant: 0.05,
-                        damping: 0.09,
-                        avoidOverlap: 0.1 // Helps prevent node overlap
-                    },
-                    stabilization: { // Speed up initial stabilization
-                        iterations: 1000,
-                        fit: true
-                    }
-                },
-                interaction: {
-                    hover: true, // Show hover effects
-                    tooltipDelay: 200, // Delay before tooltip appears
-                    navigationButtons: true, // Add zoom/fit buttons
-                    keyboard: true // Enable keyboard navigation
-                },
-                layout: {
-                    // hierarchical: { // Alternative layout
-                    //     enabled: false,
-                    //     direction: 'UD', // Up-Down
-                    //     sortMethod: 'hubsize' // 'directed' or 'hubsize'
-                    // }
-                }
-                // Groups can be defined here if needed, but we set color/shape directly on nodes
-                // groups: {
-                //     data_point: { color: { background: '#97C2FC', border: '#2B7CE9' }, shape: 'dot' },
-                //     country_node: { color: { background: '#FFFF00', border: '#FFA500' }, shape: 'hexagon' },
-                //     domain_node: { color: { background: '#FB7E81', border: '#FA0000' }, shape: 'square' },
-                //     // ... other groups
-                // }
-            };
+                });
 
-            const networkData = { nodes: nodes, edges: edges };
-            const network = new vis.Network(container, networkData, options);
+            // Add a simple tooltip element to the body (or near the graph container)
+            let tooltipEl = document.getElementById('node-tooltip');
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'node-tooltip';
+                tooltipEl.className = 'graph-tooltip'; // Add class for styling
+                document.body.appendChild(tooltipEl);
+            }
 
-            // Optional: Add event listeners
-            network.on("click", function (params) {
-                if (params.nodes.length > 0) {
-                    const nodeId = params.nodes[0];
-                    console.log('Clicked node:', nodeId);
-                    // You could potentially open the resource modal if a data point node is clicked
-                    if (nodeId.startsWith('dp_')) {
-                        const resourceId = nodeId.substring(3); // Extract ID
-                        // Check if showResourceDetails exists and is callable
-                        if (typeof showResourceDetails === 'function') {
-                             // showResourceDetails(resourceId); // This might need adjustment if showResourceDetails expects the DB primary key (integer) instead of data_source_id
-                             console.log("Attempting to show details for:", resourceId);
-                             // You might need to fetch the integer ID based on data_source_id first
-                        }
-                    }
-                }
-            });
 
-             network.on("stabilizationIterationsDone", function () {
-                network.setOptions( { physics: false } ); // Turn off physics after stabilization
-            });
-
+            // Optional: Adjust force layout parameters
+            // Graph.d3Force('link').distance(link => 60); // Adjust link distance
+            // Graph.d3Force('charge').strength(-100); // Adjust node repulsion
 
         })
         .catch(error => {
-            console.error('Error fetching or processing network data:', error);
+            console.error('Error fetching or processing 3D network data:', error);
             if (loadingIndicator) loadingIndicator.style.display = 'none';
-            container.innerHTML = `<p>Error loading network graph: ${error.message}. Please try again later.</p>`;
+            container.innerHTML = `<p>Error loading 3D network graph: ${error.message}. Please try again later.</p>`;
         });
 }
