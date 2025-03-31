@@ -6,8 +6,13 @@
     <title>NoMoReAMR</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script src="//unpkg.com/three"></script>
-    <script src="//unpkg.com/3d-force-graph"></script>
+    <!-- Re-add Vis Network CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" />
+    <!-- Re-add Vis Network JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+    <!-- Remove 3D Graph Scripts -->
+    <!-- <script src="//unpkg.com/three"></script> -->
+    <!-- <script src="//unpkg.com/3d-force-graph"></script> -->
 </head>
 <body>
     <nav class="main-nav">
@@ -153,11 +158,42 @@
 
         <!-- Network Graph Section -->
         <section id="network-graph-section" class="network-graph-section">
-            <h2>Resource Network (3D)</h2>
-            <p class="section-intro">Explore the connections between resources in 3D space. Drag to rotate, scroll to zoom.</p>
+            <h2>Resource Network</h2>
+            <p class="section-intro">Explore the connections between resources, countries, domains, and categories. Countries are central.</p>
             <div id="network-graph-container" class="network-container">
-                <!-- 3D Force Graph will be rendered here -->
-                <div class="loading-indicator">Loading 3D Network...</div>
+                <!-- Vis Network Graph will be rendered here -->
+                <div class="loading-indicator">Loading Network...</div>
+            </div>
+            <!-- Restore 2D Legend -->
+            <div class="network-legend">
+                <h3>Legend</h3>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 50%;"></span> Data Point (Color by Country)
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 0; width: 12px; height: 12px; border: 1px solid #666;"></span> Animal Domain
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 50%;"></span> Human Domain
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="border-bottom: 15px solid #CCCCCC; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; height: 0; width: 0; background: none;"></span> Environment Domain
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; transform: rotate(45deg); -webkit-transform: rotate(45deg); width: 12px; height: 12px; border-radius: 3px;"></span> Other Domain
+                </div>
+                <div class="legend-item">
+                    <span class="legend-shape hexagon" style="border-color: #999999;"></span> Country (Central Nodes)
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-shape database" style="border-color: #87CEEB;"></span> Resource Type
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #90EE90;"></span> Category
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #FFB6C1;"></span> Subcategory
+                </div>
             </div>
         </section>
 

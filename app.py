@@ -30,12 +30,21 @@ def generate_color(seed_string):
     b = random.randint(50, 200)
     return f'rgb({r},{g},{b})'
 
-# --- Define shapes for domains (less relevant for 3D, but keep for potential mapping) ---
-DOMAIN_SHAPES_3D = { # Using different shapes might be complex in 3D, often color/size are primary
-    'Human': 'sphere',
-    'Animal': 'cube',
-    'Environment': 'tetrahedron',
-    'default': 'sphere'
+# --- Define shapes for domains ---
+DOMAIN_SHAPES = {
+    'Human': 'dot',
+    'Animal': 'square',
+    'Environment': 'triangle',
+    'default': 'ellipse'
+}
+
+# --- Define Country Flags and Colors ---
+COUNTRY_INFO = {
+    "Norway": {"flag": "🇳🇴", "color": "#EF3F3F"}, # Red
+    "Denmark": {"flag": "🇩🇰", "color": "#E8112D"}, # Similar Red
+    "Sweden": {"flag": "🇸🇪", "color": "#006AA7"}, # Blue
+    "Finland": {"flag": "🇫🇮", "color": "#003580"}, # Darker Blue
+    "default": {"flag": "🏳️", "color": "#CCCCCC"}
 }
 
 @app.route('/')
@@ -176,7 +185,7 @@ def get_resource(resource_id):
         
     return jsonify(dict(result))
 
-# --- Updated route for network data (for 3D) ---
+# --- Reverted route for 2D network data ---
 @app.route('/api/network-data')
 def get_network_data():
     conn = get_db()
@@ -189,9 +198,8 @@ def get_network_data():
     edges = []
     added_nodes = set() # Keep track of added category nodes
 
-    # Define colors for countries
-    country_colors = {country: generate_color(country) for country in VOCABULARIES['main_categories'].get('Country', [])}
-    default_country_color = '#999999'
+    # Get country colors/flags
+    default_country_info = COUNTRY_INFO['default']
 
     for point in data_points:
         point_dict = dict(point)
@@ -211,19 +219,19 @@ def get_network_data():
         subcategory = point_dict.get('subcategory')
 
         # --- Add Data Point Node ---
-        node_color = country_colors.get(country, default_country_color)
-        # Shape mapping is harder in 3D, primarily use color/size
-        # node_shape = DOMAIN_SHAPES_3D.get(domain, DOMAIN_SHAPES_3D['default'])
+        country_info = COUNTRY_INFO.get(country, default_country_info)
+        node_color = country_info['color']
+        node_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
         tooltip = f"<b>{label}</b><br>Type: {resource_type}<br>Country: {country}<br>Domain: {domain}<br>Category: {category}"
 
         nodes.append({
             'id': node_id,
-            'name': label, # Use 'name' for label in 3d-force-graph
-            'title': tooltip, # Keep title for potential tooltips
+            'label': label,
+            'title': tooltip, # Tooltip for vis-network
             'group': 'data_point',
             'color': node_color,
-            # 'shape3d': node_shape, # If attempting custom shapes
-            'val': 1.5 # Use 'val' for size (adjust value as needed)
+            'shape': node_shape,
+            'size': 15 # Base size for data points
         })
 
         # --- Add Category Nodes and Edges ---
@@ -243,16 +251,24 @@ def get_network_data():
                 if cat_node_id not in added_nodes:
                     cat_label = cat_value.replace('_', ' ')
                     cat_color = '#CCCCCC' # Default color
-                    cat_size_val = 0.8 # Smaller size for category nodes
+                    cat_shape = 'ellipse' # Default shape
+                    cat_size = 10 # Smaller size for category nodes
+                    cat_mass = 1 # Default mass
 
                     if cat_type == 'country':
-                        cat_color = country_colors.get(cat_value, default_country_color)
-                        cat_size_val = 1.2
+                        country_info = COUNTRY_INFO.get(cat_value, default_country_info)
+                        cat_color = country_info['color']
+                        cat_label = f"{country_info['flag']} {cat_label}" # Add flag emoji
+                        cat_shape = 'hexagon'
+                        cat_size = 25 # Make country nodes larger
+                        cat_mass = 10 # Increase mass significantly for central positioning
                     elif cat_type == 'domain':
                         cat_color = '#FFA500' # Orange for domain
-                        cat_size_val = 1.0
+                        cat_shape = DOMAIN_SHAPES.get(cat_value, DOMAIN_SHAPES['default'])
+                        cat_size = 12
                     elif cat_type == 'resource_type':
                         cat_color = '#87CEEB' # Sky blue for resource type
+                        cat_shape = 'database'
                     elif cat_type == 'category':
                         cat_color = '#90EE90' # Light green for category
                     elif cat_type == 'subcategory':
@@ -260,23 +276,27 @@ def get_network_data():
 
                     nodes.append({
                         'id': cat_node_id,
-                        'name': cat_label,
-                        'title': f"{cat_type.replace('_', ' ').title()}: {cat_label}",
+                        'label': cat_label,
+                        'title': f"{cat_type.replace('_', ' ').title()}: {cat_value.replace('_', ' ')}",
                         'group': f"{cat_type}_node",
                         'color': cat_color,
-                        'val': cat_size_val
+                        'shape': cat_shape,
+                        'size': cat_size,
+                        'mass': cat_mass, # Assign mass
+                        'font': {'size': 14 if cat_type == 'country' else 12} # Larger font for countries
                     })
                     added_nodes.add(cat_node_id)
 
-                # Add edge using source/target
+                # Add edge using from/to
                 edges.append({
-                    'source': node_id, # Changed from 'from'
-                    'target': cat_node_id, # Changed from 'to'
-                    # Other properties like arrows, length are handled by the 3D layout
+                    'from': node_id,
+                    'to': cat_node_id,
+                    'arrows': 'to',
+                    'length': 150, # Adjust edge length as needed
+                    'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'} # Subtle edge color
                 })
 
-    # Rename 'edges' to 'links' as expected by 3d-force-graph
-    return jsonify({'nodes': nodes, 'links': edges})
+    return jsonify({'nodes': nodes, 'edges': edges})
 
 if __name__ == '__main__':
     app.run(debug=True)

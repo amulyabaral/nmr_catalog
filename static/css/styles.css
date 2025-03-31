@@ -1632,24 +1632,27 @@ footer {
     border-color: inherit;
 }
 
-/* Add style for the 3D Graph Tooltip */
-.graph-tooltip {
-    position: fixed; /* Use fixed to position relative to viewport */
+/* Ensure Vis Network Tooltip Style is present */
+div.vis-tooltip {
+    position: absolute;
     visibility: hidden;
-    padding: 8px 12px;
-    background-color: rgba(40, 40, 40, 0.85); /* Darker background */
-    color: white;
+    padding: 8px;
+    white-space: nowrap;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 0.85rem;
-    font-family: 'Inter', sans-serif;
-    max-width: 300px;
-    z-index: 1001; /* Ensure it's above the graph */
-    pointer-events: none; /* Prevent tooltip from blocking interactions */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    white-space: normal; /* Allow wrapping */
-    line-height: 1.4;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    z-index: 10;
+    pointer-events: none; /* Important so it doesn't interfere with clicks */
 }
 
-.graph-tooltip b {
-    color: #aeeeff; /* Highlight bold text */
-} 
+/* Remove 3D Graph Tooltip Style */
+/* .graph-tooltip { ... } */
+
+/* Network Legend */
+/* ... (ensure legend styles are appropriate for 2D) ... */
+
+/* ... (rest of styles) ... */ 
