@@ -174,8 +174,18 @@ def add_data():
             return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
 
     # --- GET Request ---
+    # Add a check for vocabulary structure before rendering
+    if not isinstance(VOCABULARIES, dict) or \
+       not isinstance(VOCABULARIES.get('main_categories'), dict) or \
+       not isinstance(VOCABULARIES.get('resource_type_hierarchy'), dict):
+        app.logger.error("Vocabulary data is corrupted or missing. Check structure_tree.yaml.") # Log the error
+        flash('Error: Vocabulary data is corrupted or missing. Cannot load submission form.', 'error')
+        # Redirect to index or show an error page
+        return redirect(url_for('index'))
+
     # Pass vocabularies and potentially empty form_data for template rendering
-    return render_template('add_data.html', vocabularies=VOCABULARIES, form_data={})
+    # Ensure form_data is passed even on GET for consistency if template expects it
+    return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form if request.method == 'POST' else {})
 
 
 # --- API Endpoints (Remain largely the same) ---
