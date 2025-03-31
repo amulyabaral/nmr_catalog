@@ -3,8 +3,8 @@ import os
 import json
 import yaml
 
-# Define database path
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'amr.db')
+# Define database path - UPDATED TO USE RENDER DISK PATH
+DB_PATH = os.path.join('/database_nomoreamr', 'amr.db') # Use the Render mount path
 
 def get_db():
     """Get a database connection"""
@@ -15,16 +15,27 @@ def get_db():
 # Create database and tables
 def init_db():
     """Initialize the database with tables"""
-    # Ensure the directory exists
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    
+    # Ensure the directory exists (Render should mount it, but this is safe)
+    db_dir = os.path.dirname(DB_PATH)
+    if not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"Created database directory: {db_dir}")
+        except OSError as e:
+            print(f"Error creating database directory {db_dir}: {e}")
+            # Depending on your error handling strategy, you might want to raise the error
+            # or exit if the directory cannot be created.
+            raise # Re-raise the exception if directory creation fails
+
     conn = get_db()
     c = conn.cursor()
 
     # Drop the table if it exists to apply schema changes (Use with caution in production!)
     # For development, this ensures the new schema is applied cleanly.
     # In production, you would use ALTER TABLE.
-    c.execute('DROP TABLE IF EXISTS data_points')
+    # Consider removing this DROP TABLE line before final deployment if you want to preserve data across restarts
+    # c.execute('DROP TABLE IF EXISTS data_points')
+    # c.execute('DROP TABLE IF EXISTS pending_submissions') # Also consider if you want to drop this
 
     # Create enhanced data points table with level columns
     c.execute('''CREATE TABLE IF NOT EXISTS data_points (
