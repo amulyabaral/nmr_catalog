@@ -370,6 +370,11 @@
 
     // Function to format display name
     function formatDisplayName(key, details) {
+        // If details is null/undefined (e.g., for simple string items), format the key itself
+        if (!details) {
+            return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+        // Otherwise, use title or format the key
         return details?.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
@@ -469,45 +474,69 @@
         const selectElement = document.getElementById(`level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`);
         if (!selectElement) return;
 
-        // Clear subsequent levels
+        // Clear subsequent levels first
         for (let i = level + 1; i <= 5; i++) {
             const nextSelect = document.getElementById(`level${i}_${i === 2 ? 'category' : i === 3 ? 'subcategory' : i === 4 ? 'data_type' : 'item'}`);
             if (nextSelect) {
                 nextSelect.innerHTML = `<option value="" disabled selected>-- Select ${i === 2 ? 'Category' : i === 3 ? 'Subcategory' : i === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
                 nextSelect.classList.remove('visible');
+                // Also reset its value if cleared
+                nextSelect.value = "";
             }
         }
 
         // Find the data for the current level based on parent selection
-        let currentLevelData = {};
+        let currentLevelData = {}; // Initialize as empty object
+
         if (level === 1) {
             currentLevelData = resourceHierarchy;
         } else {
-            let parentData = resourceHierarchy;
+            // Get selected values from previous levels
             const selectedValues = [];
             for (let i = 1; i < level; i++) {
                 const parentSelect = document.getElementById(`level${i}_${i === 1 ? 'resource_type' : i === 2 ? 'category' : i === 3 ? 'subcategory' : 'data_type'}`);
-                 selectedValues.push(parentSelect.value);
-            }
-
-            let currentPointer = resourceHierarchy;
-            for(let i = 0; i < selectedValues.length; i++) {
-                const key = selectedValues[i];
-                if (currentPointer && currentPointer[key] && currentPointer[key].sub_categories) {
-                    currentPointer = currentPointer[key].sub_categories;
-                } else if (currentPointer && currentPointer[key] && currentPointer[key].items && i === selectedValues.length - 1) {
-                    // If the parent has 'items', these become the options for the current level
-                    currentLevelData = currentPointer[key].items; // This will be an array
-                    break; // Found items, stop traversing
-                }
-                 else {
-                    currentPointer = null; // Path broken
+                // Ensure a value was selected before pushing
+                if (parentSelect && parentSelect.value) {
+                    selectedValues.push(parentSelect.value);
+                } else {
+                    // If a previous level is not selected, we can't populate this level
+                    selectedValues.length = 0; // Clear the path
                     break;
                 }
             }
-             if (currentPointer && typeof currentPointer === 'object' && !Array.isArray(currentPointer)) {
-                 currentLevelData = currentPointer; // Found sub_categories object
-             }
+
+            // Traverse the hierarchy based on the collected path
+            let currentPointer = resourceHierarchy;
+            if (selectedValues.length === level - 1) { // Only proceed if the full path is available
+                for(let i = 0; i < selectedValues.length; i++) {
+                    const key = selectedValues[i];
+                    if (!currentPointer || !currentPointer[key]) {
+                        currentPointer = null; // Path broken
+                        break;
+                    }
+                    // If this is the last selected value (parent of the level we want to populate)
+                    if (i === selectedValues.length - 1) {
+                        // Check if it has sub_categories for the target level
+                        if (currentPointer[key].sub_categories) {
+                            currentLevelData = currentPointer[key].sub_categories;
+                        }
+                        // Check if it has items for the target level
+                        else if (currentPointer[key].items) {
+                            currentLevelData = currentPointer[key].items; // Assign the items array
+                        }
+                        // If neither, currentLevelData remains {}
+                    } else {
+                        // If not the last step, move deeper into sub_categories
+                        if (currentPointer[key].sub_categories) {
+                            currentPointer = currentPointer[key].sub_categories;
+                        } else {
+                            // Cannot go deeper if no sub_categories exist at intermediate step
+                            currentPointer = null;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
 
@@ -515,31 +544,45 @@
         selectElement.innerHTML = `<option value="" disabled selected>-- Select ${level === 1 ? 'Resource Type' : level === 2 ? 'Category' : level === 3 ? 'Subcategory' : level === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
 
         let hasOptions = false;
-        if (Array.isArray(currentLevelData)) { // Handle 'items' array
+        // Handle 'items' array (typically for Level 5, but could be earlier)
+        if (Array.isArray(currentLevelData)) {
              currentLevelData.forEach(item => {
                  let itemName = '';
                  let itemKey = '';
-                 let itemDetails = {};
+                 let itemDetails = {}; // Store potential extra info from item object
                  if (typeof item === 'string') {
-                     itemName = item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                     // Use the string itself as key and format for display name
                      itemKey = item;
+                     itemName = formatDisplayName(item, null); // Pass null for details
                  } else if (typeof item === 'object' && item !== null && item.name) {
-                     itemName = item.title || item.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                     // Use name as key and title/formatted name for display
                      itemKey = item.name;
-                     itemDetails = item;
+                     itemDetails = item; // Keep the whole dict
+                     itemName = formatDisplayName(itemKey, itemDetails);
                  }
-                 if (itemName) {
+
+                 if (itemName) { // Ensure we got a valid name/key
                      const option = document.createElement('option');
                      option.value = itemKey;
                      option.textContent = itemName;
+                     // Add data attributes from itemDetails if needed later
+                     // Object.keys(itemDetails).forEach(detailKey => {
+                     //     if (detailKey !== 'name' && detailKey !== 'title') { // Avoid redundancy
+                     //         option.dataset[detailKey] = itemDetails[detailKey];
+                     //     }
+                     // });
                      selectElement.appendChild(option);
                      hasOptions = true;
                  }
              });
-        } else if (typeof currentLevelData === 'object') { // Handle 'sub_categories' object
+        // Handle 'sub_categories' object (typically for Levels 2, 3, 4)
+        } else if (typeof currentLevelData === 'object' && Object.keys(currentLevelData).length > 0) {
             for (const key in currentLevelData) {
+                // Skip metadata keys like 'level', 'title' if they are siblings to actual categories
                 if (key === 'level' || key === 'title') continue;
+
                 const details = currentLevelData[key];
+                // Ensure the value is an object (representing a category/item with potential children or metadata)
                  if (typeof details !== 'object' || details === null) continue;
 
                 const displayName = formatDisplayName(key, details);
@@ -574,38 +617,56 @@
             .then(hierarchy => {
                 resourceHierarchy = hierarchy;
 
-                // Initial population of Level 1 dropdown (already done in HTML)
-                // Populate Level 2 based on pre-selected Level 1 (if any from form_data)
-                const initialL1 = $('#level1_resource_type').val();
-                 if(initialL1) {
-                     populateHierarchyDropdown(2);
-                     // Pre-select L2 if available in form_data and populate L3, etc.
-                     {# Use safe .get() for single values #}
-                     const initialL2 = "{{ form_data.get('level2_category', '') }}";
-                     if(initialL2) {
-                         $('#level2_category').val(initialL2);
-                         populateHierarchyDropdown(3);
-                         const initialL3 = "{{ form_data.get('level3_subcategory', '') }}";
-                         if(initialL3) {
-                             $('#level3_subcategory').val(initialL3);
-                             populateHierarchyDropdown(4);
-                             const initialL4 = "{{ form_data.get('level4_data_type', '') }}";
-                             if(initialL4) {
-                                 $('#level4_data_type').val(initialL4);
-                                 populateHierarchyDropdown(5);
-                                 const initialL5 = "{{ form_data.get('level5_item', '') }}";
-                                 if(initialL5) {
-                                     $('#level5_item').val(initialL5);
-                                 }
+                // --- Restore previous selections and populate dependent dropdowns ---
+                function restoreAndPopulate(level) {
+                    const selectId = `level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`;
+                    const selectElement = $(`#${selectId}`);
+                    const initialValue = selectElement.data('initial-value'); // Get value stored from server-side rendering
+
+                    if (initialValue) {
+                        // Populate the *current* level's dropdown first based on its parent's selection
+                        if (level > 1) {
+                            populateHierarchyDropdown(level);
+                        }
+                        // Set the value for the current dropdown
+                        selectElement.val(initialValue);
+                        // Trigger population for the *next* level if this level has a value and is not the last level
+                        if (level < 5) {
+                            restoreAndPopulate(level + 1);
+                        }
+                    } else {
+                         // If no initial value for this level, ensure it's populated based on parent (if parent has value)
+                         // but don't proceed further down the chain.
+                         if (level > 1) {
+                             const parentSelectId = `level${level-1}_${level-1 === 1 ? 'resource_type' : level-1 === 2 ? 'category' : level-1 === 3 ? 'subcategory' : 'data_type'}`;
+                             if ($(`#${parentSelectId}`).val()) {
+                                 populateHierarchyDropdown(level);
                              }
                          }
-                     }
-                 }
+                    }
+                }
+
+                // Store initial values from Flask form_data into data attributes for JS access
+                $('.hierarchy-select').each(function() {
+                    const level = $(this).data('level');
+                    let initialValue = '';
+                    if (level === 1) initialValue = "{{ form_data.get('level1_resource_type', '') }}";
+                    else if (level === 2) initialValue = "{{ form_data.get('level2_category', '') }}";
+                    else if (level === 3) initialValue = "{{ form_data.get('level3_subcategory', '') }}";
+                    else if (level === 4) initialValue = "{{ form_data.get('level4_data_type', '') }}";
+                    else if (level === 5) initialValue = "{{ form_data.get('level5_item', '') }}";
+                    $(this).data('initial-value', initialValue);
+                });
+
+                // Start the population/restoration process from Level 1
+                restoreAndPopulate(1);
+                // --- End Restoration Logic ---
 
 
                 // Setup change listeners for hierarchy dropdowns
                 $('.hierarchy-select').on('change', function() {
                     const currentLevel = parseInt($(this).data('level'));
+                    // When a dropdown changes, populate the *next* level
                     if (currentLevel < 5) {
                         populateHierarchyDropdown(currentLevel + 1);
                     }
