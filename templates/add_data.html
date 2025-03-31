@@ -227,9 +227,12 @@
 
                 <div class="form-group">
                     <label for="countries">Countries (select one or more):</label>
+                    {# Safely get selected countries, defaulting to an empty list if form_data is not a MultiDict or key is missing #}
+                    {% set selected_countries = form_data.getlist('countries') | default([]) %}
                     <select id="countries" name="countries" multiple required class="multi-select-tags">
                         {% for country in vocabularies.main_categories.Country %}
-                            <option value="{{ country }}" {% if country in form_data.getlist('countries') %}selected{% endif %}>{{ country }}</option>
+                            {# Check membership against the safely retrieved list #}
+                            <option value="{{ country }}" {% if country in selected_countries %}selected{% endif %}>{{ country }}</option>
                         {% endfor %}
                     </select>
                     <!-- Selected tags will be handled by Select2 -->
@@ -237,9 +240,12 @@
 
                 <div class="form-group">
                     <label for="domains">Domains (select one or more):</label>
+                    {# Safely get selected domains #}
+                    {% set selected_domains = form_data.getlist('domains') | default([]) %}
                     <select id="domains" name="domains" multiple required class="multi-select-tags">
                         {% for domain in vocabularies.main_categories.Domain %}
-                            <option value="{{ domain }}" {% if domain in form_data.getlist('domains') %}selected{% endif %}>{{ domain }}</option>
+                             {# Check membership against the safely retrieved list #}
+                            <option value="{{ domain }}" {% if domain in selected_domains %}selected{% endif %}>{{ domain }}</option>
                         {% endfor %}
                     </select>
                      <!-- Selected tags will be handled by Select2 -->
@@ -574,6 +580,7 @@
                  if(initialL1) {
                      populateHierarchyDropdown(2);
                      // Pre-select L2 if available in form_data and populate L3, etc.
+                     {# Use safe .get() for single values #}
                      const initialL2 = "{{ form_data.get('level2_category', '') }}";
                      if(initialL2) {
                          $('#level2_category').val(initialL2);

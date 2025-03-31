@@ -13,6 +13,7 @@ import os # Import os for secret key
 import datetime # Needed for last_updated
 from urllib.parse import urlparse # Needed for repository extraction
 from functools import wraps # Needed for decorator
+from werkzeug.datastructures import MultiDict
 
 load_dotenv() # Load environment variables from .env file
 
@@ -88,6 +89,9 @@ def index():
 # --- Updated Add Data Route ---
 @app.route('/add', methods=['GET', 'POST'])
 def add_data():
+    # Use MultiDict for both GET and POST
+    form_data = request.form if request.method == 'POST' else MultiDict()
+    
     if request.method == 'POST':
         try:
             # --- Collect Form Data ---
@@ -118,7 +122,7 @@ def add_data():
                 json.loads(related_metadata_json)
             except json.JSONDecodeError:
                  flash('Invalid format for related metadata.', 'error')
-                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
+                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
 
 
             keywords = request.form.get('keywords') # Assuming JS joins keywords with commas
@@ -127,16 +131,16 @@ def add_data():
             # --- Basic Validation ---
             if not countries or not domains:
                 flash('Please select at least one Country and one Domain.', 'error')
-                return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
+                return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
             if not primary_hierarchy.get('resource_type'):
                  flash('Please select the primary hierarchy path (at least Resource Type).', 'error')
-                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
+                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
             if not resource_url:
                  flash('Resource URL is required.', 'error')
-                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
+                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
             if year_start is None or year_end is None or year_start > year_end:
                  flash('Invalid year range selected.', 'error')
-                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
+                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
 
 
             # --- Prepare Data for Pending Submission ---
@@ -164,14 +168,14 @@ def add_data():
             else:
                 flash('Failed to submit resource. Please try again.', 'error')
                 # Pass submitted data back to the form
-                return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
+                return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
 
         except Exception as e:
             # Log the exception for debugging
             print(f"Error processing submission: {e}")
             flash(f'An unexpected error occurred: {e}', 'error')
             # Pass submitted data back to the form
-            return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form)
+            return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
 
     # --- GET Request ---
     # Add a check for vocabulary structure before rendering
@@ -185,7 +189,7 @@ def add_data():
 
     # Pass vocabularies and potentially empty form_data for template rendering
     # Ensure form_data is passed even on GET for consistency if template expects it
-    return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=request.form if request.method == 'POST' else {})
+    return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
 
 
 # --- API Endpoints (Remain largely the same) ---
