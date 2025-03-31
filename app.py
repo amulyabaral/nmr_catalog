@@ -881,17 +881,31 @@ def edit_data_form(data_id):
 @admin_required
 def update_data(data_id):
     """Handles the submission of the edit form."""
-    original_data_point = get_data_point_by_id(data_id)
-    if not original_data_point:
+    original_data_point_row = get_data_point_by_id(data_id) # Fetch row object
+    if not original_data_point_row:
         flash(f'Resource with ID {data_id} not found.', 'error')
         return redirect(url_for('admin_manage'))
 
-    form_data = request.form
+    # Convert row to dict for easier manipulation
+    original_data_point = dict(original_data_point_row)
+
+    # --- Helper function to prepare data_point for template rendering ---
+    def prepare_data_point_for_template(data_point_dict):
+        try:
+            if data_point_dict.get('metadata'):
+                data_point_dict['metadata_obj'] = json.loads(data_point_dict['metadata'])
+            else:
+                data_point_dict['metadata_obj'] = {}
+        except json.JSONDecodeError:
+            data_point_dict['metadata_obj'] = {'Error': 'Invalid JSON in DB'}
+        return data_point_dict
+    # --- End Helper ---
+
+    form_data = request.form # Keep as ImmutableMultiDict for now
 
     try:
         # --- Collect Form Data ---
         resource_name = form_data.get('resource_name')
-        # <<< Get lists for countries and domains >>>
         countries_list = form_data.getlist('countries')
         domains_list = form_data.getlist('domains')
 
@@ -915,11 +929,11 @@ def update_data(data_id):
         license_info = form_data.get('license')
 
         # --- Basic Validation ---
-        # <<< Check if lists are empty >>>
         if not resource_name or not countries_list or not domains_list or not primary_hierarchy.get('resource_type') or not resource_url or year_start is None or year_end is None or year_start > year_end:
              flash('Missing required fields (Name, Country, Domain, Resource Type, URL) or invalid year range.', 'error')
-             # Re-render edit form with submitted data
-             return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
+             # <<< Prepare original_data_point before re-rendering >>>
+             original_data_point = prepare_data_point_for_template(original_data_point)
+             return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data)) # Use MultiDict here
 
         # --- Prepare Data for Update ---
         resource_type = primary_hierarchy.get('resource_type')
@@ -935,31 +949,32 @@ def update_data(data_id):
             related_resources_list = json.loads(related_resources_json)
         except (json.JSONDecodeError, Exception) as e:
              flash(f'Invalid format for related data or URL: {e}', 'error')
-             return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
+             # <<< Prepare original_data_point before re-rendering >>>
+             original_data_point = prepare_data_point_for_template(original_data_point)
+             return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data)) # Use MultiDict here
 
         original_metadata = {}
         if original_data_point.get('metadata'):
             try:
                 original_metadata = json.loads(original_data_point['metadata'])
             except json.JSONDecodeError:
-                pass
+                pass # Keep original_metadata empty if parsing fails
 
         metadata_dict = {
             "title": resource_name,
-            "institution": original_metadata.get('institution', "Unknown"),
+            "institution": original_metadata.get('institution', "Unknown"), # Preserve original institution if possible
             "license": license_info,
             "original_url": resource_url,
             "related_metadata_categories": related_metadata_list,
             "related_resource_ids": related_resources_list,
-            "submitted_description": description
+            # Preserve original description if needed, or use the new one
+            "submitted_description": description # Or maybe keep original_metadata.get('submitted_description')?
         }
         metadata_json_updated = json.dumps(metadata_dict)
 
-        # <<< Convert lists to JSON strings for DB update >>>
         countries_json_updated = json.dumps(countries_list)
         domains_json_updated = json.dumps(domains_list)
 
-        # Dictionary of fields to update in data_points table
         update_payload = {
             'resource_type': resource_type,
             'category': category,
@@ -975,8 +990,8 @@ def update_data(data_id):
             'last_updated': datetime.date.today().isoformat(),
             'contact_information': contact_info,
             'metadata': metadata_json_updated,
-            'countries': countries_json_updated, # <<< Use new column name and JSON
-            'domains': domains_json_updated    # <<< Use new column name and JSON
+            'countries': countries_json_updated,
+            'domains': domains_json_updated
         }
 
         # --- Call Database Update Function ---
@@ -985,12 +1000,16 @@ def update_data(data_id):
             return redirect(url_for('admin_manage'))
         else:
             flash(f'Failed to update resource {original_data_point.get("data_source_id", data_id)}.', 'error')
-            return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
+            # <<< Prepare original_data_point before re-rendering >>>
+            original_data_point = prepare_data_point_for_template(original_data_point)
+            return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data)) # Use MultiDict here
 
     except Exception as e:
         app.logger.error(f"Error updating resource {data_id}: {e}", exc_info=True)
         flash(f'An unexpected error occurred: {e}', 'error')
-        return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
+        # <<< Prepare original_data_point before re-rendering >>>
+        original_data_point = prepare_data_point_for_template(original_data_point)
+        return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data)) # Use MultiDict here
 
 # --- (Optional) NEW: Delete Resource ---
 @app.route('/admin/delete/<int:data_id>', methods=['POST'])
