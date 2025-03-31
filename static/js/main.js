@@ -1481,7 +1481,7 @@ function addHierarchyStyles() {
     document.head.appendChild(style);
 }
 
-// --- Reverted Function for 2D Network Graph ---
+// --- Updated Function for Physics-Based Network Graph ---
 function setupNetworkGraph() {
     const container = document.getElementById('network-graph-container');
     const loadingIndicator = container.querySelector('.loading-indicator');
@@ -1515,66 +1515,87 @@ function setupNetworkGraph() {
             const options = {
                 nodes: {
                     borderWidth: 1,
-                    borderWidthSelected: 2,
-                    font: { // Default font settings (can be overridden per node)
-                        // Size is now set per node in app.py, keep a smaller default here if needed
-                        size: 12,
+                    borderWidthSelected: 3, // Make selection border thicker
+                    font: {
+                        size: 16, // << Increased default font size
                         face: 'Inter',
                         color: '#333333'
+                        // Note: Font size can still be overridden per node from app.py
                     },
                     shapeProperties: {
                         interpolation: false // Keep shapes crisp
                     }
                 },
                 edges: {
-                    width: 0.5,
-                    color: { inherit: false }, // Don't inherit color for clarity
+                    width: 0.8, // Slightly thicker edges
+                    color: {
+                        inherit: false,
+                        color: '#cccccc', // Default edge color
+                        highlight: '#848484', // Color on selection/hover
+                        hover: '#a0a0a0'
+                    },
                     smooth: {
                         enabled: true,
-                        type: "cubicBezier", // Good for hierarchical
-                        forceDirection: "vertical", // Ensure vertical flow
-                        roundness: 0.4
-                    },
-                    arrows: {
-                        to: { enabled: true, scaleFactor: 0.5 } // Enable arrows, make smaller
+                        type: "continuous" // Good default for physics
                     }
+                    // arrows: { to: { enabled: false } } // << REMOVED ARROWS CONFIGURATION
                 },
                 physics: {
-                    enabled: false // Disable physics for hierarchical layout
+                    enabled: true, // << ENABLED PHYSICS
+                    solver: 'barnesHut', // A common physics solver
+                    barnesHut: {
+                        gravitationalConstant: -8000, // Adjust for spread
+                        centralGravity: 0.1, // Pulls nodes towards center
+                        springLength: 120, // Default edge length
+                        springConstant: 0.05,
+                        damping: 0.09,
+                        avoidOverlap: 0.1 // Try to prevent node overlap
+                    },
+                    stabilization: { // Use stabilization iterations
+                        enabled: true,
+                        iterations: 1000, // Default
+                        updateInterval: 50,
+                        onlyDynamicEdges: false,
+                        fit: true
+                    }
                 },
                 interaction: {
                     hover: true,
+                    hoverConnectedEdges: false, // Don't highlight edges just on node hover
+                    selectConnectedEdges: false, // Don't highlight edges automatically on node select (we do it manually)
                     tooltipDelay: 200,
                     navigationButtons: true,
                     keyboard: true
                 },
-                // Configure Hierarchical Layout
-                layout: {
-                    hierarchical: {
-                        enabled: true,
-                        levelSeparation: 150, // Increase vertical separation between levels
-                        nodeSpacing: 120,     // Increase horizontal separation between nodes in same level
-                        treeSpacing: 250,     // Increase separation between different trees (if any)
-                        direction: 'UD',      // UD = Up-Down (Top to Bottom)
-                        sortMethod: 'directed', // Use edge direction to determine levels
-                        shakeTowards: 'roots' // Stabilize layout towards the top
-                    }
-                }
+                // layout: { hierarchical: { ... } } // << REMOVED HIERARCHICAL LAYOUT
             };
 
             const networkData = { nodes: nodes, edges: edges };
             const network = new vis.Network(container, networkData, options);
 
-            // Event listener for clicking nodes (keep existing logic)
+            // --- Updated Event listener for clicking nodes ---
             network.on("click", function (params) {
-                if (params.nodes.length > 0) {
-                    const nodeId = params.nodes[0];
-                    console.log('Clicked node:', nodeId);
-                    const nodeData = nodes.get(nodeId);
+                // Reset styles for all nodes and edges first
+                // (This is handled implicitly by setSelection, but good practice if doing manual styling)
 
-                    // Example: Open resource modal if a data point node is clicked
-                    if (nodeId.startsWith('dp_')) {
-                        const dbId = nodeId.substring(3); // This is the DB primary key 'id'
+                if (params.nodes.length > 0) {
+                    const clickedNodeId = params.nodes[0];
+                    const nodeData = nodes.get(clickedNodeId); // Get data of the clicked node
+
+                    // Get IDs of connected nodes and edges
+                    const connectedNodes = network.getConnectedNodes(clickedNodeId);
+                    const allNodesToSelect = [clickedNodeId, ...connectedNodes];
+                    const connectedEdges = network.getConnectedEdges(clickedNodeId);
+
+                    // Select the clicked node and all its direct neighbors and connecting edges
+                    network.setSelection({
+                        nodes: allNodesToSelect,
+                        edges: connectedEdges
+                    });
+
+                    // --- Optional: Open resource modal if a data point node is clicked ---
+                    if (nodeData && nodeData.group === 'data_point' && clickedNodeId.startsWith('dp_')) {
+                        const dbId = clickedNodeId.substring(3); // Extract DB primary key 'id'
                         if (typeof showResourceDetails === 'function') {
                              console.log("Attempting to show details for DB id:", dbId);
                              // Assuming showResourceDetails takes the DB primary key (integer)
@@ -1583,16 +1604,21 @@ function setupNetworkGraph() {
                              console.error("showResourceDetails function not found");
                         }
                     } else if (nodeData && nodeData.title) {
-                        // Log info for hierarchy/country/domain nodes
+                        // Log info for other nodes
                         console.log("Clicked Node Info:", nodeData.title);
                     }
+
+                } else {
+                    // Clicked on empty space, clear selection
+                    network.unselectAll();
                 }
             });
 
-            // No physics stabilization needed
-            // network.on("stabilizationIterationsDone", function () {
-            //     network.setOptions( { physics: false } );
-            // });
+            // --- Optional: Stop physics after stabilization ---
+            network.on("stabilizationIterationsDone", function () {
+                network.setOptions( { physics: false } ); // Turn off physics once stable
+                console.log("Network stabilized, physics turned off.");
+            });
 
         })
         .catch(error => {

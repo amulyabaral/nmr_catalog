@@ -192,13 +192,13 @@ def get_hierarchy_node_id(level, name):
     clean_name = ''.join(e for e in name if e.isalnum() or e == '_').lower()
     return f"L{level}_{clean_name}"
 
-# --- Updated route for Hierarchical Network Data ---
+# --- Updated route for Network Data (Physics-based) ---
 @app.route('/api/network-data')
 def get_network_data():
     nodes = []
     edges = []
     added_nodes = set() # Keep track of added node IDs
-    base_font_size = 14 # Increased base font size
+    base_font_size = 16 # << Increased base font size
 
     # 1. Load Hierarchy Definition
     hierarchy_definition = VOCABULARIES.get('resource_type_hierarchy', {})
@@ -225,7 +225,7 @@ def get_network_data():
             node_shape = 'ellipse'
             # Adjust size based on level (make less drastic change)
             node_size = 22 - (current_level * 2)
-            node_mass = 5 - current_level # Keep mass for physics if re-enabled
+            node_mass = 5 - current_level # Mass influences physics layout
 
             # Assign colors/shapes based on level (customize as needed)
             if current_level == 1: # Resource Type
@@ -270,8 +270,8 @@ def get_network_data():
                 edges.append({
                     'from': parent_node_id,
                     'to': node_id,
-                    'arrows': 'to',
-                    'length': 100 + (current_level * 10), # Increase length slightly for lower levels
+                    # 'arrows': 'to', # << REMOVED ARROWS
+                    'length': 100 + (current_level * 10), # Length influences physics layout
                     'color': {'color': '#e0e0e0', 'highlight': '#d0d0d0', 'hover': '#d0d0d0'}
                 })
 
@@ -316,7 +316,7 @@ def get_network_data():
                             edges.append({
                                 'from': node_id, # Edge from the category that contains the items
                                 'to': item_id,
-                                'arrows': 'to',
+                                # 'arrows': 'to', # << REMOVED ARROWS
                                 'length': 150,
                                 'color': {'color': '#e0e0e0', 'highlight': '#d0d0d0', 'hover': '#d0d0d0'}
                             })
@@ -360,7 +360,7 @@ def get_network_data():
             leaf_hierarchy_node_id = get_hierarchy_node_id(1, point_dict['resource_type'])
 
         # Ensure the determined hierarchy node actually exists from step 2
-        if leaf_hierarchy_node_id not in added_nodes:
+        if leaf_hierarchy_node_id and leaf_hierarchy_node_id not in added_nodes: # Check if not None before checking set
              print(f"Warning: Hierarchy node '{leaf_hierarchy_node_id}' for data point '{point_dict['data_source_id']}' not found in processed hierarchy. Skipping hierarchy link.")
              leaf_hierarchy_node_id = None # Prevent edge creation to non-existent node
 
@@ -394,7 +394,7 @@ def get_network_data():
             edges.append({
                 'from': leaf_hierarchy_node_id,
                 'to': dp_node_id,
-                'arrows': 'to',
+                # 'arrows': 'to', # << REMOVED ARROWS
                 'length': 80, # Shorter link from hierarchy to data point
                 'color': {'color': '#c0c0c0', 'highlight': '#a0a0a0', 'hover': '#a0a0a0'}
             })
@@ -421,7 +421,7 @@ def get_network_data():
             edges.append({
                 'from': dp_node_id,
                 'to': country_node_id,
-                'arrows': 'to',
+                # 'arrows': 'to', # << REMOVED ARROWS
                 'length': 200, # Longer link to country
                 'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
             })
@@ -448,7 +448,7 @@ def get_network_data():
              edges.append({
                 'from': dp_node_id,
                 'to': domain_node_id,
-                'arrows': 'to',
+                # 'arrows': 'to', # << REMOVED ARROWS
                 'length': 180, # Slightly shorter link to domain than country
                 'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
              })
