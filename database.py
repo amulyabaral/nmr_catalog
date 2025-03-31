@@ -219,29 +219,29 @@ def get_all_data_points():
     return result
 
 def get_main_categories():
-    """Get the main categories from the _reusables.yaml file"""
+    """Get the main categories from the structure_tree.yaml file"""
     try:
-        with open('_reusables.yaml', 'r') as file:
+        with open('structure_tree.yaml', 'r') as file:
             data = yaml.safe_load(file)
             return data.get('main_categories', {})
     except FileNotFoundError:
-        print("Error: _reusables.yaml not found.")
+        print("Error: structure_tree.yaml not found.")
         return {}
     except yaml.YAMLError as e:
-        print(f"Error parsing _reusables.yaml: {e}")
+        print(f"Error parsing structure_tree.yaml: {e}")
         return {}
         
 def get_resource_type_hierarchy():
-    """Get the resource type hierarchy from the _reusables.yaml file"""
+    """Get the resource type hierarchy from the structure_tree.yaml file"""
     try:
-        with open('_reusables.yaml', 'r') as file:
+        with open('structure_tree.yaml', 'r') as file:
             data = yaml.safe_load(file)
             return data.get('Resource_type_hierarchy', {})
     except FileNotFoundError:
-        print("Error: _reusables.yaml not found.")
+        print("Error: structure_tree.yaml not found.")
         return {}
     except yaml.YAMLError as e:
-        print(f"Error parsing _reusables.yaml: {e}")
+        print(f"Error parsing structure_tree.yaml: {e}")
         return {}
 
 def get_data_point_by_id(data_id):

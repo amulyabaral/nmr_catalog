@@ -11,7 +11,7 @@ init_db()
 load_initial_data()
 
 def load_vocabularies():
-    with open('_reusables.yaml', 'r') as file:
+    with open('structure_tree.yaml', 'r') as file:
         data = yaml.safe_load(file)
         return {
             'main_categories': data.get('main_categories', {}),
