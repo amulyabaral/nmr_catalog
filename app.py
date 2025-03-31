@@ -185,22 +185,156 @@ def get_resource(resource_id):
         
     return jsonify(dict(result))
 
-# --- Reverted route for 2D network data ---
+# --- Function to generate consistent node IDs for hierarchy ---
+def get_hierarchy_node_id(level, name):
+    """Generates a consistent node ID for hierarchy levels."""
+    # Replace spaces and special chars for cleaner IDs
+    clean_name = ''.join(e for e in name if e.isalnum() or e == '_').lower()
+    return f"L{level}_{clean_name}"
+
+# --- Updated route for Hierarchical Network Data ---
 @app.route('/api/network-data')
 def get_network_data():
+    nodes = []
+    edges = []
+    added_nodes = set() # Keep track of added node IDs
+
+    # 1. Load Hierarchy Definition
+    hierarchy_definition = VOCABULARIES.get('resource_type_hierarchy', {})
+    if not hierarchy_definition:
+        return jsonify({"error": "Resource hierarchy not found in vocabularies"}), 500
+
+    # --- Helper Function to Recursively Build Hierarchy Nodes/Edges ---
+    def process_hierarchy_level(level_data, parent_node_id, current_level):
+        if current_level > 5: # Limit recursion depth
+            return
+
+        for key, details in level_data.items():
+            # Skip metadata keys like 'level', 'title' if they are siblings to actual categories
+            if key in ['level', 'title']:
+                continue
+            if not isinstance(details, dict): # Ensure details is a dictionary
+                 print(f"Skipping invalid hierarchy entry: {key} (details not a dict)")
+                 continue
+
+            node_name = key # The key is the name (e.g., 'omics_data')
+            node_id = get_hierarchy_node_id(current_level, node_name)
+            node_label = details.get('title', node_name.replace('_', ' ').title())
+            node_color = '#CCCCCC' # Default grey
+            node_shape = 'ellipse'
+            node_size = 15 - (current_level * 2) # Decrease size with level
+            node_mass = 5 - current_level # Decrease mass with level
+
+            # Assign colors/shapes based on level (customize as needed)
+            if current_level == 1: # Resource Type
+                node_color = '#87CEEB' # Sky Blue
+                node_shape = 'database'
+                node_size = 20
+                node_mass = 10
+            elif current_level == 2: # Category
+                node_color = '#90EE90' # Light Green
+                node_size = 16
+                node_mass = 8
+            elif current_level == 3: # Subcategory
+                node_color = '#FFB6C1' # Light Pink
+                node_size = 12
+                node_mass = 6
+            elif current_level == 4: # Data Type
+                node_color = '#FFD700' # Gold
+                node_size = 10
+                node_mass = 4
+            elif current_level == 5: # Item/Leaf
+                node_color = '#FFA07A' # Light Salmon
+                node_size = 8
+                node_mass = 2
+
+            # Add the hierarchy node if not already added
+            if node_id not in added_nodes:
+                nodes.append({
+                    'id': node_id,
+                    'label': node_label,
+                    'title': f"Level {current_level}: {node_label}",
+                    'group': f"level_{current_level}",
+                    'color': node_color,
+                    'shape': node_shape,
+                    'size': node_size,
+                    'mass': node_mass,
+                    'font': {'size': 12}
+                })
+                added_nodes.add(node_id)
+
+            # Add edge from parent to this node
+            if parent_node_id:
+                edges.append({
+                    'from': parent_node_id,
+                    'to': node_id,
+                    'arrows': 'to',
+                    'length': 100 + (current_level * 10), # Increase length slightly for lower levels
+                    'color': {'color': '#e0e0e0', 'highlight': '#d0d0d0', 'hover': '#d0d0d0'}
+                })
+
+            # Recurse for sub_categories
+            if 'sub_categories' in details and isinstance(details['sub_categories'], dict):
+                process_hierarchy_level(details['sub_categories'], node_id, current_level + 1)
+
+            # Process items as Level 5 leaves
+            if 'items' in details and isinstance(details['items'], list):
+                 item_level = current_level + 1
+                 if item_level <= 5:
+                    for item in details['items']:
+                        item_name = None
+                        if isinstance(item, str):
+                            item_name = item
+                        elif isinstance(item, dict) and 'name' in item:
+                            item_name = item['name']
+
+                        if item_name:
+                            item_id = get_hierarchy_node_id(item_level, item_name)
+                            item_label = item_name.replace('_', ' ').title()
+                            item_color = '#FFA07A' # Light Salmon for L5
+                            item_shape = 'ellipse'
+                            item_size = 8
+                            item_mass = 2
+
+                            if item_id not in added_nodes:
+                                nodes.append({
+                                    'id': item_id,
+                                    'label': item_label,
+                                    'title': f"Level {item_level}: {item_label}",
+                                    'group': f"level_{item_level}",
+                                    'color': item_color,
+                                    'shape': item_shape,
+                                    'size': item_size,
+                                    'mass': item_mass,
+                                    'font': {'size': 10}
+                                })
+                                added_nodes.add(item_id)
+
+                            # Add edge from parent (current node) to item node
+                            edges.append({
+                                'from': node_id, # Edge from the category that contains the items
+                                'to': item_id,
+                                'arrows': 'to',
+                                'length': 150,
+                                'color': {'color': '#e0e0e0', 'highlight': '#d0d0d0', 'hover': '#d0d0d0'}
+                            })
+
+
+    # 2. Build Hierarchy Nodes and Edges by processing Level 1
+    process_hierarchy_level(hierarchy_definition, None, 1)
+
+    # 3. Fetch Data Points
     conn = get_db()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM data_points')
+    # Select columns needed for linking and display
+    cur.execute('SELECT id, data_source_id, resource_type, category, subcategory, data_type, level5, country, domain, metadata FROM data_points')
     data_points = cur.fetchall()
     conn.close()
 
-    nodes = []
-    edges = []
-    added_nodes = set() # Keep track of added category nodes
-
-    # Get country colors/flags
+    # Get country/domain info
     default_country_info = COUNTRY_INFO['default']
 
+    # 4. Process Data Points and Connect to Hierarchy, Country, Domain
     for point in data_points:
         point_dict = dict(point)
         metadata = {}
@@ -208,95 +342,119 @@ def get_network_data():
             try:
                 metadata = json.loads(point_dict['metadata'])
             except json.JSONDecodeError:
-                pass # Ignore if metadata is invalid JSON
+                pass # Ignore invalid JSON
 
-        node_id = f"dp_{point_dict['data_source_id']}"
-        label = metadata.get('title', point_dict['data_source_id'])
-        country = point_dict.get('country')
-        domain = point_dict.get('domain')
-        resource_type = point_dict.get('resource_type')
-        category = point_dict.get('category')
-        subcategory = point_dict.get('subcategory')
+        # --- Determine the leaf hierarchy node ID for this data point ---
+        leaf_hierarchy_node_id = None
+        if point_dict.get('level5'):
+            leaf_hierarchy_node_id = get_hierarchy_node_id(5, point_dict['level5'])
+        elif point_dict.get('data_type'):
+            leaf_hierarchy_node_id = get_hierarchy_node_id(4, point_dict['data_type'])
+        elif point_dict.get('subcategory'):
+            leaf_hierarchy_node_id = get_hierarchy_node_id(3, point_dict['subcategory'])
+        elif point_dict.get('category'):
+            leaf_hierarchy_node_id = get_hierarchy_node_id(2, point_dict['category'])
+        elif point_dict.get('resource_type'):
+            leaf_hierarchy_node_id = get_hierarchy_node_id(1, point_dict['resource_type'])
+
+        # Ensure the determined hierarchy node actually exists from step 2
+        if leaf_hierarchy_node_id not in added_nodes:
+             print(f"Warning: Hierarchy node '{leaf_hierarchy_node_id}' for data point '{point_dict['data_source_id']}' not found in processed hierarchy. Skipping hierarchy link.")
+             leaf_hierarchy_node_id = None # Prevent edge creation to non-existent node
+
 
         # --- Add Data Point Node ---
+        dp_node_id = f"dp_{point_dict['id']}" # Use DB primary key for uniqueness
+        dp_label = metadata.get('title', point_dict['data_source_id'])
+        country = point_dict.get('country')
+        domain = point_dict.get('domain')
         country_info = COUNTRY_INFO.get(country, default_country_info)
-        node_color = country_info['color']
-        node_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
-        tooltip = f"<b>{label}</b><br>Type: {resource_type}<br>Country: {country}<br>Domain: {domain}<br>Category: {category}"
+        dp_color = country_info['color']
+        dp_shape = 'dot' # Keep data points as dots
+        tooltip = f"<b>{dp_label}</b><br>ID: {point_dict['data_source_id']}<br>Country: {country}<br>Domain: {domain}<br>Type: {point_dict.get('resource_type', 'N/A')}"
 
-        nodes.append({
-            'id': node_id,
-            'label': label,
-            'title': tooltip, # Tooltip for vis-network
-            'group': 'data_point',
-            'color': node_color,
-            'shape': node_shape,
-            'size': 15 # Base size for data points
-        })
+        if dp_node_id not in added_nodes:
+            nodes.append({
+                'id': dp_node_id,
+                'label': dp_label,
+                'title': tooltip,
+                'group': 'data_point',
+                'color': dp_color,
+                'shape': dp_shape,
+                'size': 15, # Make data points reasonably visible
+                'mass': 3
+            })
+            added_nodes.add(dp_node_id)
 
-        # --- Add Category Nodes and Edges ---
-        categories_to_link = {
-            'country': country,
-            'domain': domain,
-            'resource_type': resource_type,
-            'category': category,
-            'subcategory': subcategory
-        }
+        # --- Add Edge from Hierarchy Leaf to Data Point ---
+        if leaf_hierarchy_node_id:
+            edges.append({
+                'from': leaf_hierarchy_node_id,
+                'to': dp_node_id,
+                'arrows': 'to',
+                'length': 80, # Shorter link from hierarchy to data point
+                'color': {'color': '#c0c0c0', 'highlight': '#a0a0a0', 'hover': '#a0a0a0'}
+            })
 
-        for cat_type, cat_value in categories_to_link.items():
-            if cat_value: # Only add if value exists
-                cat_node_id = f"{cat_type}_{cat_value.replace(' ', '_').lower()}"
-
-                # Add category node if not already added
-                if cat_node_id not in added_nodes:
-                    cat_label = cat_value.replace('_', ' ')
-                    cat_color = '#CCCCCC' # Default color
-                    cat_shape = 'ellipse' # Default shape
-                    cat_size = 10 # Smaller size for category nodes
-                    cat_mass = 1 # Default mass
-
-                    if cat_type == 'country':
-                        country_info = COUNTRY_INFO.get(cat_value, default_country_info)
-                        cat_color = country_info['color']
-                        cat_label = f"{country_info['flag']} {cat_label}" # Add flag emoji
-                        cat_shape = 'hexagon'
-                        cat_size = 25 # Make country nodes larger
-                        cat_mass = 10 # Increase mass significantly for central positioning
-                    elif cat_type == 'domain':
-                        cat_color = '#FFA500' # Orange for domain
-                        cat_shape = DOMAIN_SHAPES.get(cat_value, DOMAIN_SHAPES['default'])
-                        cat_size = 12
-                    elif cat_type == 'resource_type':
-                        cat_color = '#87CEEB' # Sky blue for resource type
-                        cat_shape = 'database'
-                    elif cat_type == 'category':
-                        cat_color = '#90EE90' # Light green for category
-                    elif cat_type == 'subcategory':
-                        cat_color = '#FFB6C1' # Light pink for subcategory
-
-                    nodes.append({
-                        'id': cat_node_id,
-                        'label': cat_label,
-                        'title': f"{cat_type.replace('_', ' ').title()}: {cat_value.replace('_', ' ')}",
-                        'group': f"{cat_type}_node",
-                        'color': cat_color,
-                        'shape': cat_shape,
-                        'size': cat_size,
-                        'mass': cat_mass, # Assign mass
-                        'font': {'size': 14 if cat_type == 'country' else 12} # Larger font for countries
-                    })
-                    added_nodes.add(cat_node_id)
-
-                # Add edge using from/to
-                edges.append({
-                    'from': node_id,
-                    'to': cat_node_id,
-                    'arrows': 'to',
-                    'length': 150, # Adjust edge length as needed
-                    'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'} # Subtle edge color
+        # --- Add Country and Domain Nodes and Edges from Data Point ---
+        # Country Node
+        country_node_id = f"country_{country.replace(' ', '_').lower()}" if country else None
+        if country_node_id:
+            if country_node_id not in added_nodes:
+                country_label = f"{country_info['flag']} {country}"
+                nodes.append({
+                    'id': country_node_id,
+                    'label': country_label,
+                    'title': f"Country: {country}",
+                    'group': 'country_node',
+                    'color': country_info['color'],
+                    'shape': 'hexagon',
+                    'size': 25,
+                    'mass': 15, # High mass to keep them central
+                    'font': {'size': 14}
                 })
+                added_nodes.add(country_node_id)
+            # Edge from Data Point to Country
+            edges.append({
+                'from': dp_node_id,
+                'to': country_node_id,
+                'arrows': 'to',
+                'length': 200, # Longer link to country
+                'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
+            })
+
+        # Domain Node
+        domain_node_id = f"domain_{domain.replace(' ', '_').lower()}" if domain else None
+        if domain_node_id:
+             if domain_node_id not in added_nodes:
+                domain_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
+                domain_color = '#FFA500' # Orange for domain
+                nodes.append({
+                    'id': domain_node_id,
+                    'label': domain,
+                    'title': f"Domain: {domain}",
+                    'group': 'domain_node',
+                    'color': domain_color,
+                    'shape': domain_shape,
+                    'size': 18,
+                    'mass': 8,
+                    'font': {'size': 12}
+                })
+                added_nodes.add(domain_node_id)
+             # Edge from Data Point to Domain
+             edges.append({
+                'from': dp_node_id,
+                'to': domain_node_id,
+                'arrows': 'to',
+                'length': 180, # Slightly shorter link to domain than country
+                'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
+             })
+
 
     return jsonify({'nodes': nodes, 'edges': edges})
 
 if __name__ == '__main__':
+    # Ensure DB is initialized when running directly
+    init_db()
+    load_initial_data()
     app.run(debug=True)
