@@ -38,13 +38,13 @@ DOMAIN_SHAPES = {
     'default': 'ellipse'
 }
 
-# --- Define Country Flags and Colors ---
+# --- Define Country Flags and Colors (Pastel Palette) ---
 COUNTRY_INFO = {
-    "Norway": {"flag": "🇳🇴", "color": "#EF3F3F"}, # Red
-    "Denmark": {"flag": "🇩🇰", "color": "#E8112D"}, # Similar Red
-    "Sweden": {"flag": "🇸🇪", "color": "#006AA7"}, # Blue
-    "Finland": {"flag": "🇫🇮", "color": "#003580"}, # Darker Blue
-    "default": {"flag": "🏳️", "color": "#CCCCCC"}
+    "Denmark": {"flag": "🇩🇰", "color": "#FFB6B6"}, # Pastel Red
+    "Norway": {"flag": "🇳🇴", "color": "#AEC6CF"}, # Pastel Blue
+    "Sweden": {"flag": "🇸🇪", "color": "#FDFD96"}, # Pastel Yellow
+    "Finland": {"flag": "🇫🇮", "color": "#B3E2CD"}, # Pastel Green
+    "default": {"flag": "🏳️", "color": "#E0E0E0"}  # Light Grey for others
 }
 
 @app.route('/')
@@ -198,7 +198,7 @@ def get_network_data():
     nodes = []
     edges = []
     added_nodes = set() # Keep track of added node IDs
-    base_font_size = 16 # << Increased base font size
+    base_font_size = 16 # Increased base font size
 
     # 1. Load Hierarchy Definition
     hierarchy_definition = VOCABULARIES.get('resource_type_hierarchy', {})
@@ -371,7 +371,9 @@ def get_network_data():
         country = point_dict.get('country')
         domain = point_dict.get('domain')
         country_info = COUNTRY_INFO.get(country, default_country_info)
-        dp_color = country_info['color']
+        # Use country color for the data point fill, but add distinct border
+        dp_fill_color = country_info['color']
+        dp_border_color = '#555555' # Darker border for contrast
         dp_shape = 'dot'
         tooltip = f"<b>{dp_label}</b><br>ID: {point_dict['data_source_id']}<br>Country: {country}<br>Domain: {domain}<br>Type: {point_dict.get('resource_type', 'N/A')}"
 
@@ -381,11 +383,26 @@ def get_network_data():
                 'label': dp_label,
                 'title': tooltip,
                 'group': 'data_point',
-                'color': dp_color,
                 'shape': dp_shape,
                 'size': 18, # Slightly larger data points
                 'mass': 3,
-                'font': {'size': base_font_size} # Apply base font size
+                'font': {'size': base_font_size}, # Apply base font size
+                # --- Styling for Data Points ---
+                'color': {
+                    'background': dp_fill_color, # Fill color based on country
+                    'border': dp_border_color,   # Distinct border color
+                    'highlight': {
+                        'background': dp_fill_color,
+                        'border': '#2B7CE9' # Standard highlight border color
+                    },
+                    'hover': {
+                        'background': dp_fill_color,
+                        'border': '#E04141' # Different hover border color
+                    }
+                },
+                'borderWidth': 2, # Make border thicker than default
+                'borderWidthSelected': 4 # Even thicker when selected
+                # --- End Styling ---
             })
             added_nodes.add(dp_node_id)
 
@@ -394,7 +411,7 @@ def get_network_data():
             edges.append({
                 'from': leaf_hierarchy_node_id,
                 'to': dp_node_id,
-                # 'arrows': 'to', # << REMOVED ARROWS
+                # 'arrows': 'to', # REMOVED ARROWS
                 'length': 80, # Shorter link from hierarchy to data point
                 'color': {'color': '#c0c0c0', 'highlight': '#a0a0a0', 'hover': '#a0a0a0'}
             })
@@ -410,7 +427,7 @@ def get_network_data():
                     'label': country_label,
                     'title': f"Country: {country}",
                     'group': 'country_node',
-                    'color': country_info['color'],
+                    'color': country_info['color'], # Use the pastel color
                     'shape': 'hexagon',
                     'size': 30, # Larger country nodes
                     'mass': 15,
@@ -421,7 +438,7 @@ def get_network_data():
             edges.append({
                 'from': dp_node_id,
                 'to': country_node_id,
-                # 'arrows': 'to', # << REMOVED ARROWS
+                # 'arrows': 'to', # REMOVED ARROWS
                 'length': 200, # Longer link to country
                 'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
             })
@@ -431,7 +448,7 @@ def get_network_data():
         if domain_node_id:
              if domain_node_id not in added_nodes:
                 domain_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
-                domain_color = '#FFA500' # Keep domain color neutral orange
+                domain_color = '#FFDAB9' # Pastel Orange/Peach for domain
                 nodes.append({
                     'id': domain_node_id,
                     'label': domain,
@@ -448,7 +465,7 @@ def get_network_data():
              edges.append({
                 'from': dp_node_id,
                 'to': domain_node_id,
-                # 'arrows': 'to', # << REMOVED ARROWS
+                # 'arrows': 'to', # REMOVED ARROWS
                 'length': 180, # Slightly shorter link to domain than country
                 'color': {'color': '#dddddd', 'highlight': '#848484', 'hover': '#848484'}
              })
