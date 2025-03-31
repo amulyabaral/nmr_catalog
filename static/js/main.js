@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupCategoryCheckboxes();
     setupExploreButton();
     setupModal();
+    setupNetworkGraph();
     
     // Sort by newest entry by default
     const yearHeader = document.querySelector('th[data-sort="year"]');
@@ -1478,4 +1479,126 @@ function addHierarchyStyles() {
         }
     `;
     document.head.appendChild(style);
+}
+
+// --- New Function for Network Graph ---
+function setupNetworkGraph() {
+    const container = document.getElementById('network-graph-container');
+    const loadingIndicator = container.querySelector('.loading-indicator');
+
+    if (!vis || !container) {
+        console.error("Vis.js library or graph container not found.");
+        if(loadingIndicator) loadingIndicator.textContent = "Error loading graph.";
+        return;
+    }
+
+    fetch('/api/network-data')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (loadingIndicator) loadingIndicator.style.display = 'none'; // Hide loading indicator
+
+            if (!data || !data.nodes || !data.edges) {
+                 console.error('Invalid data received for network graph:', data);
+                 container.innerHTML = '<p>Error: Could not load network data.</p>';
+                 return;
+            }
+
+            const nodes = new vis.DataSet(data.nodes);
+            const edges = new vis.DataSet(data.edges);
+
+            const options = {
+                nodes: {
+                    borderWidth: 1,
+                    borderWidthSelected: 2,
+                    font: {
+                        size: 12,
+                        face: 'Inter',
+                        color: '#333'
+                    },
+                    shapeProperties: {
+                        interpolation: false // 'true' for smooth node shapes
+                    }
+                },
+                edges: {
+                    width: 0.5,
+                    color: { inherit: 'from' },
+                    smooth: {
+                        type: 'continuous' // Makes edges smoother
+                    }
+                },
+                physics: {
+                    enabled: true,
+                    solver: 'barnesHut', // Good general-purpose solver
+                    barnesHut: {
+                        gravitationalConstant: -8000, // Adjust for spread/tightness
+                        centralGravity: 0.1, // Pulls nodes towards center
+                        springLength: 120, // Default edge length
+                        springConstant: 0.05,
+                        damping: 0.09,
+                        avoidOverlap: 0.1 // Helps prevent node overlap
+                    },
+                    stabilization: { // Speed up initial stabilization
+                        iterations: 1000,
+                        fit: true
+                    }
+                },
+                interaction: {
+                    hover: true, // Show hover effects
+                    tooltipDelay: 200, // Delay before tooltip appears
+                    navigationButtons: true, // Add zoom/fit buttons
+                    keyboard: true // Enable keyboard navigation
+                },
+                layout: {
+                    // hierarchical: { // Alternative layout
+                    //     enabled: false,
+                    //     direction: 'UD', // Up-Down
+                    //     sortMethod: 'hubsize' // 'directed' or 'hubsize'
+                    // }
+                }
+                // Groups can be defined here if needed, but we set color/shape directly on nodes
+                // groups: {
+                //     data_point: { color: { background: '#97C2FC', border: '#2B7CE9' }, shape: 'dot' },
+                //     country_node: { color: { background: '#FFFF00', border: '#FFA500' }, shape: 'hexagon' },
+                //     domain_node: { color: { background: '#FB7E81', border: '#FA0000' }, shape: 'square' },
+                //     // ... other groups
+                // }
+            };
+
+            const networkData = { nodes: nodes, edges: edges };
+            const network = new vis.Network(container, networkData, options);
+
+            // Optional: Add event listeners
+            network.on("click", function (params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    console.log('Clicked node:', nodeId);
+                    // You could potentially open the resource modal if a data point node is clicked
+                    if (nodeId.startsWith('dp_')) {
+                        const resourceId = nodeId.substring(3); // Extract ID
+                        // Check if showResourceDetails exists and is callable
+                        if (typeof showResourceDetails === 'function') {
+                             // showResourceDetails(resourceId); // This might need adjustment if showResourceDetails expects the DB primary key (integer) instead of data_source_id
+                             console.log("Attempting to show details for:", resourceId);
+                             // You might need to fetch the integer ID based on data_source_id first
+                        }
+                    }
+                }
+            });
+
+             network.on("stabilizationIterationsDone", function () {
+                network.setOptions( { physics: false } ); // Turn off physics after stabilization
+            });
+
+
+        })
+        .catch(error => {
+            console.error('Error fetching or processing network data:', error);
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+            container.innerHTML = `<p>Error loading network graph: ${error.message}. Please try again later.</p>`;
+        });
 }

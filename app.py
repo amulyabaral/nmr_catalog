@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import yaml
 import json
 from database import init_db, add_data_point, get_all_data_points, load_initial_data, get_main_categories, get_resource_type_hierarchy, get_data_point_by_id, get_db
+import random # Import random for color generation
 
 app = Flask(__name__)
 
@@ -20,10 +21,28 @@ def load_vocabularies():
 # Cache vocabularies at startup
 VOCABULARIES = load_vocabularies()
 
+# --- Helper function to generate distinct colors ---
+def generate_color(seed_string):
+    """Generates a somewhat consistent color based on a string."""
+    random.seed(seed_string)
+    r = random.randint(50, 200)
+    g = random.randint(50, 200)
+    b = random.randint(50, 200)
+    return f'rgb({r},{g},{b})'
+
+# --- Define shapes for domains ---
+DOMAIN_SHAPES = {
+    'Human': 'dot',
+    'Animal': 'square',
+    'Environment': 'triangle',
+    # Add more if needed, or a default
+    'default': 'ellipse'
+}
+
 @app.route('/')
 def index():
-    data_points = get_all_data_points()
-    return render_template('index.html', data_points=data_points, vocabularies=VOCABULARIES)
+    # data_points = get_all_data_points() # No longer needed directly here if fetched by JS
+    return render_template('index.html', vocabularies=VOCABULARIES) # Pass vocabularies
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_data():
@@ -138,23 +157,131 @@ def filter_resources():
         params.extend(filters['resourceTypes'])
     
     # Execute query
-    cur = get_db().execute(query, params)
+    conn = get_db()
+    cur = conn.execute(query, params)
     results = cur.fetchall()
-    cur.close()
+    conn.close() # Close connection
     
     # Convert results to list of dictionaries
     return jsonify([dict(row) for row in results])
 
 @app.route('/api/resource/<resource_id>')
 def get_resource(resource_id):
-    cur = get_db().execute('SELECT * FROM data_points WHERE data_source_id = ?', [resource_id])
+    conn = get_db() # Get connection
+    cur = conn.execute('SELECT * FROM data_points WHERE data_source_id = ?', [resource_id])
     result = cur.fetchone()
-    cur.close()
+    conn.close() # Close connection
     
     if result is None:
         return jsonify({'error': 'Resource not found'}), 404
         
     return jsonify(dict(result))
+
+# --- New route for network data ---
+@app.route('/api/network-data')
+def get_network_data():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM data_points')
+    data_points = cur.fetchall()
+    conn.close()
+
+    nodes = []
+    edges = []
+    added_nodes = set() # Keep track of added category nodes
+
+    # Define colors for countries
+    country_colors = {country: generate_color(country) for country in VOCABULARIES['main_categories'].get('Country', [])}
+    default_country_color = '#999999'
+
+    for point in data_points:
+        point_dict = dict(point)
+        metadata = {}
+        if point_dict.get('metadata'):
+            try:
+                metadata = json.loads(point_dict['metadata'])
+            except json.JSONDecodeError:
+                pass # Ignore if metadata is invalid JSON
+
+        node_id = f"dp_{point_dict['data_source_id']}"
+        label = metadata.get('title', point_dict['data_source_id'])
+        country = point_dict.get('country')
+        domain = point_dict.get('domain')
+        resource_type = point_dict.get('resource_type')
+        category = point_dict.get('category')
+        subcategory = point_dict.get('subcategory')
+
+        # --- Add Data Point Node ---
+        node_color = country_colors.get(country, default_country_color)
+        node_shape = DOMAIN_SHAPES.get(domain, DOMAIN_SHAPES['default'])
+        tooltip = f"<b>{label}</b><br>Type: {resource_type}<br>Country: {country}<br>Domain: {domain}<br>Category: {category}"
+
+        nodes.append({
+            'id': node_id,
+            'label': label,
+            'title': tooltip,
+            'group': 'data_point', # General group for data points
+            'color': node_color,
+            'shape': node_shape,
+            'size': 15 # Base size for data points
+        })
+
+        # --- Add Category Nodes and Edges ---
+        categories_to_link = {
+            'country': country,
+            'domain': domain,
+            'resource_type': resource_type,
+            'category': category,
+            'subcategory': subcategory
+        }
+
+        for cat_type, cat_value in categories_to_link.items():
+            if cat_value: # Only add if value exists
+                cat_node_id = f"{cat_type}_{cat_value.replace(' ', '_').lower()}"
+
+                # Add category node if not already added
+                if cat_node_id not in added_nodes:
+                    cat_label = cat_value.replace('_', ' ')
+                    cat_shape = 'ellipse' # Default shape for category nodes
+                    cat_color = '#CCCCCC' # Default color
+                    cat_size = 10 # Smaller size for category nodes
+
+                    if cat_type == 'country':
+                        cat_color = country_colors.get(cat_value, default_country_color)
+                        cat_shape = 'hexagon'
+                        cat_size = 12
+                    elif cat_type == 'domain':
+                        cat_color = '#FFA500' # Orange for domain
+                        cat_shape = DOMAIN_SHAPES.get(cat_value, DOMAIN_SHAPES['default'])
+                        cat_size = 12
+                    elif cat_type == 'resource_type':
+                        cat_color = '#87CEEB' # Sky blue for resource type
+                        cat_shape = 'database'
+                    elif cat_type == 'category':
+                        cat_color = '#90EE90' # Light green for category
+                    elif cat_type == 'subcategory':
+                        cat_color = '#FFB6C1' # Light pink for subcategory
+
+                    nodes.append({
+                        'id': cat_node_id,
+                        'label': cat_label,
+                        'title': f"{cat_type.replace('_', ' ').title()}: {cat_label}",
+                        'group': f"{cat_type}_node",
+                        'color': cat_color,
+                        'shape': cat_shape,
+                        'size': cat_size
+                    })
+                    added_nodes.add(cat_node_id)
+
+                # Add edge from data point to category node
+                edges.append({
+                    'from': node_id,
+                    'to': cat_node_id,
+                    'arrows': 'to',
+                    'length': 150 # Adjust edge length as needed
+                })
+
+    return jsonify({'nodes': nodes, 'edges': edges})
 
 if __name__ == '__main__':
     app.run(debug=True)

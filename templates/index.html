@@ -150,6 +150,48 @@
                 </div>
             </div>
         </section>
+
+        <!-- Network Graph Section -->
+        <section id="network-graph-section" class="network-graph-section">
+            <h2>Resource Network</h2>
+            <p class="section-intro">Explore the connections between resources, countries, domains, and categories.</p>
+            <div id="network-graph-container" class="network-container">
+                <!-- Vis Network Graph will be rendered here -->
+                <div class="loading-indicator">Loading Network...</div>
+            </div>
+            <div class="network-legend">
+                <h3>Legend</h3>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 50%;"></span> Data Point (Color by Country, Shape by Domain)
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 0; width: 12px; height: 12px; border: 1px solid #666;"></span> Animal Domain
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; border-radius: 50%;"></span> Human Domain
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="border-bottom: 15px solid #CCCCCC; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; height: 0; width: 0; background: none;"></span> Environment Domain
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #CCCCCC; transform: rotate(45deg); -webkit-transform: rotate(45deg); width: 12px; height: 12px; border-radius: 3px;"></span> Other Domain
+                </div>
+                <div class="legend-item">
+                    <span class="legend-shape hexagon" style="border-color: #999999;"></span> Country
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-shape database" style="border-color: #87CEEB;"></span> Resource Type
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #90EE90;"></span> Category
+                </div>
+                 <div class="legend-item">
+                    <span class="legend-dot" style="background-color: #FFB6C1;"></span> Subcategory
+                </div>
+                <!-- Add more legend items if needed -->
+            </div>
+        </section>
+
     </main>
 
     <!-- Resource Details Modal -->

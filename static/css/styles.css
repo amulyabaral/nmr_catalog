@@ -1507,4 +1507,144 @@ footer {
     .tree-container.expanded {
         max-height: 300px;
     }
+}
+
+/* Network Graph Section */
+.network-graph-section {
+    max-width: 1200px;
+    margin: 4rem auto;
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.network-graph-section h2 {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.network-graph-section .section-intro {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    color: #555;
+    font-size: 1rem;
+}
+
+.network-container {
+    width: 100%;
+    height: 650px; /* Adjust height as needed */
+    border: 1px solid var(--gray-medium);
+    border-radius: var(--border-radius);
+    background-color: #ffffff;
+    position: relative; /* Needed for absolute positioning of loading indicator */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.network-container .loading-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    color: #666;
+}
+
+/* Vis Network Tooltip */
+div.vis-tooltip {
+    position: absolute;
+    visibility: hidden;
+    padding: 8px;
+    white-space: nowrap;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    z-index: 10;
+    pointer-events: none; /* Important so it doesn't interfere with clicks */
+}
+
+/* Network Legend */
+.network-legend {
+    margin-top: 1.5rem;
+    padding: 1rem 1.5rem;
+    background-color: #f0f0f0;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-medium);
+}
+
+.network-legend h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.legend-dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-right: 10px;
+    display: inline-block;
+    vertical-align: middle;
+    border: 1px solid rgba(0,0,0,0.1); /* Add subtle border */
+}
+
+.legend-shape {
+     width: 15px;
+    height: 15px;
+    margin-right: 10px;
+    display: inline-block;
+    vertical-align: middle;
+    background-color: transparent; /* Shapes are defined by border */
+    border-width: 2px;
+    border-style: solid;
+}
+
+.legend-shape.hexagon {
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    width: 17px; /* Adjust size for hexagon */
+    height: 15px;
+}
+
+.legend-shape.database {
+    border-radius: 50% 50% 0 0 / 15% 15% 0 0; /* Top curve */
+    border-bottom: none;
+    position: relative;
+    height: 18px; /* Adjust height */
+}
+.legend-shape.database::before {
+    content: '';
+    position: absolute;
+    bottom: -2px; /* Position the base */
+    left: 0;
+    right: 0;
+    height: 4px; /* Height of the base */
+    background-color: transparent;
+    border: 2px solid; /* Match border color */
+    border-color: inherit;
+    border-radius: 0 0 50% 50% / 0 0 15% 15%; /* Bottom curve */
+    border-top: none;
+}
+.legend-shape.database::after { /* Add cylinder lines */
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-left: 2px solid;
+    border-right: 2px solid;
+    border-color: inherit;
 } 
