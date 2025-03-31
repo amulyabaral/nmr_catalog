@@ -634,7 +634,7 @@ def approve_submission(submission_id):
         return redirect(url_for('admin_review'))
 
     try:
-        # --- Transform Submission Data to Data Point Format ---
+        # --- Transform Submission Data ---
         resource_name = submission.get('resource_name')
         countries = json.loads(submission.get('countries', '[]'))
         domains = json.loads(submission.get('domains', '[]'))
@@ -644,60 +644,56 @@ def approve_submission(submission_id):
         year_start = submission.get('year_start')
         year_end = submission.get('year_end')
 
-        # Simplification: Use first country/domain for the main table columns
         country = countries[0] if countries else 'Unknown'
         domain = domains[0] if domains else 'Unknown'
 
-        # Extract hierarchy levels
-        resource_type = primary_hierarchy.get('resource_type')
+        # Extract hierarchy levels (use .get with None default)
+        resource_type = primary_hierarchy.get('resource_type') # Required
         category = primary_hierarchy.get('category')
         subcategory = primary_hierarchy.get('subcategory')
         data_type = primary_hierarchy.get('data_type')
         level5 = primary_hierarchy.get('level5')
 
-        # Basic validation for core fields
-        if not resource_name:
-             flash(f'Submission {submission_id} missing Resource Name. Cannot approve.', 'error')
+        # --- Validation ---
+        if not resource_name or not resource_type or year_start is None or year_end is None or not countries or not domains:
+             flash(f'Submission {submission_id} missing required fields (Name, Type, Year Range, Country, Domain). Cannot approve.', 'error')
              return redirect(url_for('admin_review'))
-        if not resource_type:
-             flash(f'Submission {submission_id} missing required hierarchy level (Resource Type). Cannot approve.', 'error')
-             return redirect(url_for('admin_review'))
-        if year_start is None or year_end is None:
-             flash(f'Submission {submission_id} missing Year Start or Year End. Cannot approve.', 'error')
-             return redirect(url_for('admin_review'))
+        # --- End Validation ---
 
-
-        # Generate other fields
         repository_url = submission.get('resource_url')
-        repository = urlparse(repository_url).netloc if repository_url else 'Unknown' # Extract domain as repository
+        # Use urlparse to get netloc (domain name) as repository, handle potential errors
+        try:
+            parsed_url = urlparse(repository_url)
+            repository = parsed_url.netloc if parsed_url.netloc else 'Unknown'
+        except Exception: # Catch potential errors during parsing
+            repository = 'Unknown'
+
         data_description = submission.get('description', '')
-        keywords = submission.get('keywords', '')
-        contact_information = submission.get('contact_info', 'N/A')
-        last_updated = datetime.date.today().isoformat() # Use approval date
-        data_format = 'Unknown' # Default
-        data_resolution = 'Unknown' # Default
+        keywords = submission.get('keywords') # Keep as potentially None
+        contact_information = submission.get('contact_info') # Keep as potentially None
+        last_updated = datetime.date.today().isoformat()
+        data_format = 'Unknown' # Set default as not collected
+        data_resolution = 'Unknown' # Set default as not collected
 
         # Create metadata JSON
         metadata_dict = {
             "title": resource_name,
-            "institution": "Unknown", # Consider adding to form
-            "geographic_coverage": countries,
+            "institution": "Unknown", # Not collected, default
             "license": submission.get('license'),
             "original_url": repository_url,
             "related_metadata_categories": related_metadata_paths,
             "related_resource_ids": related_resource_ids,
-            "submitted_description": data_description # Keep original description
+            "submitted_description": data_description
+            # Add resolution here if desired: "resolution": data_resolution
         }
         metadata_json = json.dumps(metadata_dict)
 
-        # Prepare tuple for add_data_point (order matters!)
-        # (None, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format,
-        #  data_resolution, repository, repository_url, data_description, keywords,
-        #  last_updated, contact_information, metadata, country, domain)
+        # Prepare tuple for add_data_point (matching function signature)
         data_point_tuple = (
             None, resource_type, category, subcategory, data_type, level5,
-            year_start, year_end, data_format, data_resolution, repository, repository_url, data_description, keywords,
-            last_updated, contact_information, metadata_json, country, domain
+            year_start, year_end, data_format, data_resolution, repository, repository_url,
+            data_description, keywords, last_updated, contact_information, metadata_json,
+            country, domain
         )
 
         # --- Add to Main Data Points Table ---

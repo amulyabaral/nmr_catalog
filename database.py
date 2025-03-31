@@ -37,31 +37,29 @@ def init_db():
     # c.execute('DROP TABLE IF EXISTS data_points')
     # c.execute('DROP TABLE IF EXISTS pending_submissions') # Also consider if you want to drop this
 
-    # Create enhanced data points table with level columns AND year range
+    # Create enhanced data points table
     c.execute('''CREATE TABLE IF NOT EXISTS data_points (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    data_source_id TEXT NOT NULL UNIQUE, -- Made unique for better ID generation
+                    data_source_id TEXT NOT NULL UNIQUE,
                     resource_type TEXT NOT NULL,        -- Level 1 from YAML
-                    category TEXT NOT NULL,             -- Level 2 from YAML
-                    subcategory TEXT NOT NULL,          -- Level 3 from YAML
-                    data_type TEXT,                     -- Level 4 from YAML (can be NULL if hierarchy stops at L3)
-                    level5 TEXT,                        -- Level 5 from YAML (can be NULL)
-                    year_start INTEGER,                 -- <<< ADDED: Start year of data availability
-                    year_end INTEGER,                   -- <<< ADDED: End year of data availability
-                    data_format TEXT,                   -- File format
-                    data_resolution TEXT NOT NULL,      -- From metadata_keys (or could be derived)
+                    category TEXT,                      -- Level 2 from YAML (Allow NULL)
+                    subcategory TEXT,                   -- Level 3 from YAML (Allow NULL)
+                    data_type TEXT,                     -- Level 4 from YAML (Allow NULL)
+                    level5 TEXT,                        -- Level 5 from YAML (Allow NULL)
+                    year_start INTEGER,
+                    year_end INTEGER,
+                    data_format TEXT,                   -- File format (Allow NULL)
+                    data_resolution TEXT,               -- <<< MADE NULLABLE
                     repository TEXT NOT NULL,
                     repository_url TEXT NOT NULL,
                     data_description TEXT NOT NULL,
-                    keywords TEXT NOT NULL,
+                    keywords TEXT,                      -- Allow NULL
                     last_updated DATE NOT NULL,         -- Date the entry was last updated/approved
-                    contact_information TEXT NOT NULL,
+                    contact_information TEXT,           -- Allow NULL
                     metadata JSON,                      -- Additional metadata as JSON
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     country TEXT NOT NULL,              -- Main category: Country
                     domain TEXT NOT NULL                -- Main category: Domain
-                    -- Removed redundant resource_type, category, subcategory, data_type if strictly mapping levels
-                    -- Keeping them for now as they are used elsewhere, but ensure they match L1-L4
                 )''')
 
     # Create pending submissions table
@@ -181,47 +179,61 @@ def add_data_point(data):
     #            9              10          11             12                 13
     #            14             15                  16         17       18
 
-    # Check for duplicates first (using adjusted index for repository_url)
     if check_duplicate_entry(data):
-        print(f"Warning: Duplicate entry detected based on repository_url: {data[11]}") # Adjusted index
-        return None # Indicate failure without crashing
+        print(f"Warning: Duplicate entry detected based on repository_url: {data[11]}")
+        return None
 
-    # Generate unique ID (pass the relevant parts of the data tuple)
-    # Need category (idx 2), year_end (idx 7), last_updated (idx 14), metadata (idx 16)
+    # Generate unique ID
     id_gen_data = (
         None, None, data[2], None, None, None, None, data[7], None, None, None, None, None,
-        data[14], None, data[16] # Adjusted indices
+        data[14], None, data[16]
     )
     data_source_id = generate_data_source_id(id_gen_data)
 
-
-    # Create new data tuple with generated ID, matching the table columns
-    # Order: data_source_id, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format, ...
+    # Create new data tuple matching the table columns
+    # Ensure None is used for potentially missing hierarchy levels
     new_data = (
-        data_source_id, data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
-        data[9], data[10], data[11], data[12], data[13], data[14], data[15],
-        data[16], data[17], data[18] # Adjusted indices
+        data_source_id,
+        data[1],  # resource_type (required)
+        data[2] or None,  # category
+        data[3] or None,  # subcategory
+        data[4] or None,  # data_type
+        data[5] or None,  # level5
+        data[6],  # year_start (required)
+        data[7],  # year_end (required)
+        data[8] or 'Unknown',  # data_format (default if None)
+        data[9] or 'Unknown',  # data_resolution (default if None)
+        data[10], # repository (required)
+        data[11], # repository_url (required)
+        data[12], # data_description (required)
+        data[13] or None, # keywords
+        data[14], # last_updated (required)
+        data[15] or None, # contact_information
+        data[16] or '{}', # metadata (default if None)
+        data[17], # country (required)
+        data[18]  # domain (required)
     )
 
     conn = get_db()
     c = conn.cursor()
     try:
+        # Updated INSERT statement to match the refined column list and order
         c.execute('''INSERT INTO data_points (
                         data_source_id, resource_type, category, subcategory, data_type, level5,
                         year_start, year_end, data_format, data_resolution, repository, repository_url,
                         data_description, keywords, last_updated, contact_information, metadata,
                         country, domain
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data) # Added two placeholders
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data)
         conn.commit()
         print(f"Added data point with ID: {data_source_id}")
     except sqlite3.IntegrityError as e:
          print(f"Error adding data point (IntegrityError, possibly duplicate data_source_id '{data_source_id}'): {e}")
          conn.rollback()
-         return None # Indicate failure
+         return None
     except sqlite3.Error as e:
          print(f"Error adding data point: {e}")
          conn.rollback()
-         return None # Indicate failure
+         return None
     finally:
         conn.close()
 
