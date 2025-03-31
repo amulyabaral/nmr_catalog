@@ -1,77 +1,196 @@
-add_data.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Data Point</title>
+    <title>Submit Resource</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Add Select2 CSS for better multi-select -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         .form-container {
             max-width: 800px;
             margin: 2rem auto;
             padding: 2rem;
-            background: #f5f5f5;
+            background: #f9f9f9; /* Lighter background */
             border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* Subtle shadow */
         }
-        .form-group { 
-            margin-bottom: 1.5rem; 
+        .form-group {
+            margin-bottom: 1.5rem;
         }
-        label { 
-            display: block; 
+        label {
+            display: block;
             margin-bottom: 0.5rem;
-            font-weight: 500;
+            font-weight: 600; /* Slightly bolder labels */
+            color: #333;
         }
-        input, select, textarea {
+        input[type="text"],
+        input[type="url"],
+        input[type="number"], /* For years */
+        select,
+        textarea {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
+            padding: 0.8rem; /* Consistent padding */
+            border: 1px solid #ccc; /* Slightly darker border */
             border-radius: 4px;
             font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box; /* Include padding in width */
         }
         textarea {
-            min-height: 100px;
+            min-height: 120px;
+            resize: vertical; /* Allow vertical resize */
+        }
+        select[multiple] {
+            min-height: 100px; /* Give multi-selects some height */
         }
         .submit-button {
             background: var(--primary-color);
             color: white;
             border: none;
-            padding: 0.8rem 2rem;
+            padding: 0.9rem 2.5rem; /* Larger button */
             border-radius: var(--border-radius);
             font-size: 1.1rem;
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition);
+            display: inline-block; /* Allow margin */
+            margin-top: 1rem;
         }
         .submit-button:hover {
             background: #00b046;
+            transform: translateY(-1px); /* Slight lift on hover */
+        }
+        .error-message, .success-message { /* Style flash messages */
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+            font-weight: 500;
         }
         .error-message {
-            color: #ff3333;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background: #ffeeee;
-            border-radius: 4px;
+            color: #a94442;
+            background-color: #f2dede;
+            border: 1px solid #ebccd1;
+        }
+         .success-message {
+            color: #3c763d;
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
         }
         .back-link {
             display: inline-block;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem; /* More space */
             color: var(--secondary-color);
             text-decoration: none;
+            font-weight: 500;
         }
         .back-link:hover {
             text-decoration: underline;
         }
         fieldset {
             border: 1px solid #ddd;
-            padding: 1rem;
+            padding: 1.5rem; /* More padding */
             border-radius: 4px;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem; /* More space between sections */
+            background-color: #fff; /* White background for fieldsets */
         }
         legend {
-            padding: 0 0.5rem;
-            font-weight: 500;
+            padding: 0 0.8rem; /* More padding */
+            font-weight: 600; /* Bolder legend */
+            font-size: 1.1em;
+            color: #555;
+        }
+        .year-range-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .year-range-selector label {
+            margin-bottom: 0;
+            margin-right: 0.5rem;
+            font-weight: normal;
+        }
+        .year-select {
+            width: auto; /* Don't force full width */
+            min-width: 100px;
+        }
+        .selected-items { /* Container for tags */
+            margin-top: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .selected-tag {
+            background-color: #e0e0e0;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+        }
+        .remove-tag {
+            margin-left: 0.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            color: #777;
+        }
+        .remove-tag:hover {
+            color: #333;
+        }
+        /* Select2 overrides */
+        .select2-container .select2-selection--multiple {
+            min-height: 40px; /* Match input height */
+            border: 1px solid #ccc !important;
+            padding: 0.3rem;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            padding: 3px 6px;
+            font-size: 0.9em;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: rgba(255, 255, 255, 0.7);
+            margin-right: 5px;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+            color: white;
+        }
+        .hierarchy-select-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .hierarchy-select-group select {
+            display: none; /* Hide by default, show via JS */
+        }
+        .hierarchy-select-group select.visible {
+            display: block; /* Show when populated */
+        }
+        .related-metadata-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 1rem;
+            background: #fff;
+            border-radius: 4px;
+        }
+        .related-metadata-container .hierarchy-node {
+            margin-left: calc(var(--level, 1) * 15px - 15px); /* Indentation */
+            padding: 3px 0;
+        }
+        .related-metadata-container label {
+            font-weight: normal;
+            display: inline-flex; /* Align checkbox and text */
+            align-items: center;
+            cursor: pointer;
+        }
+         .related-metadata-container input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
         }
     </style>
 </head>
@@ -83,389 +202,495 @@ add_data.html -->
             </div>
             <div class="nav-links">
                 <a href="/">Home</a>
-                <a href="#about">About</a>
-                <a href="#contact">Contact</a>
+                <!-- Add other relevant links -->
             </div>
         </div>
     </nav>
 
     <div class="form-container">
-        <h1>Add New Resource</h1>
+        <h1>Submit New Resource for Review</h1>
         <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
-        
-        {% if error %}
-        <div class="error-message">
-            Error: {{ error }}
-        </div>
-        {% endif %}
-        
-        <form method="POST">
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="{{ category }}-message">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" id="add-resource-form">
             <!-- Main Categories -->
             <fieldset>
                 <legend>Main Categories</legend>
-                
+
                 <div class="form-group">
                     <label for="countries">Countries (select one or more):</label>
-                    <select id="countries" name="countries" multiple required class="multi-select">
+                    <select id="countries" name="countries" multiple required class="multi-select-tags">
                         {% for country in vocabularies.main_categories.Country %}
-                            <option value="{{ country }}">{{ country }}</option>
+                            <option value="{{ country }}" {% if country in form_data.getlist('countries') %}selected{% endif %}>{{ country }}</option>
                         {% endfor %}
                     </select>
-                    <div class="selected-items" id="selected-countries"></div>
+                    <!-- Selected tags will be handled by Select2 -->
                 </div>
-                
+
                 <div class="form-group">
                     <label for="domains">Domains (select one or more):</label>
-                    <select id="domains" name="domains" multiple required class="multi-select">
+                    <select id="domains" name="domains" multiple required class="multi-select-tags">
                         {% for domain in vocabularies.main_categories.Domain %}
-                            <option value="{{ domain }}">{{ domain }}</option>
+                            <option value="{{ domain }}" {% if domain in form_data.getlist('domains') %}selected{% endif %}>{{ domain }}</option>
                         {% endfor %}
                     </select>
-                    <div class="selected-items" id="selected-domains"></div>
+                     <!-- Selected tags will be handled by Select2 -->
                 </div>
-                
-                <div class="form-group">
-                    <label for="resource_type">Resource Type (select one):</label>
-                    <select id="resource_type" name="resource_type" required>
-                        <option value="" disabled selected>Select a resource type</option>
-                        {% for resource_type in vocabularies.main_categories.Resource_type %}
-                            <option value="{{ resource_type }}">{{ resource_type }}</option>
+            </fieldset>
+
+            <!-- Primary Hierarchy Path -->
+            <fieldset>
+                <legend>Primary Classification</legend>
+                <p>Select the single, most specific classification for this resource.</p>
+                <div class="form-group hierarchy-select-group">
+                    <label for="level1_resource_type">Level 1: Resource Type</label>
+                    <select id="level1_resource_type" name="level1_resource_type" required class="hierarchy-select visible" data-level="1">
+                        <option value="" disabled selected>-- Select Resource Type --</option>
+                        {% for type_key, type_details in vocabularies.resource_type_hierarchy.items() %}
+                            <option value="{{ type_key }}" {% if type_key == form_data.get('level1_resource_type') %}selected{% endif %}>
+                                {{ type_details.get('title', type_key.replace('_', ' ').title()) }}
+                            </option>
                         {% endfor %}
+                    </select>
+
+                    <label for="level2_category">Level 2: Category</label>
+                    <select id="level2_category" name="level2_category" class="hierarchy-select" data-level="2">
+                        <option value="" disabled selected>-- Select Category --</option>
+                    </select>
+
+                    <label for="level3_subcategory">Level 3: Subcategory</label>
+                    <select id="level3_subcategory" name="level3_subcategory" class="hierarchy-select" data-level="3">
+                        <option value="" disabled selected>-- Select Subcategory --</option>
+                    </select>
+
+                    <label for="level4_data_type">Level 4: Data Type / Item</label>
+                    <select id="level4_data_type" name="level4_data_type" class="hierarchy-select" data-level="4">
+                        <option value="" disabled selected>-- Select Data Type / Item --</option>
+                    </select>
+
+                    <label for="level5_item">Level 5: Item / Detail</label>
+                    <select id="level5_item" name="level5_item" class="hierarchy-select" data-level="5">
+                        <option value="" disabled selected>-- Select Item / Detail --</option>
                     </select>
                 </div>
             </fieldset>
-            
+
             <!-- Resource Details -->
             <fieldset>
                 <legend>Resource Details</legend>
-                
+
                 <div class="form-group">
-                    <label for="category">Category:</label>
-                    <select id="category" name="category" required>
-                        <option value="" disabled selected>Select a category</option>
-                        <!-- This will be populated by JavaScript based on resource_type selection -->
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="subcategory">Subcategory:</label>
-                    <select id="subcategory" name="subcategory" required>
-                        <option value="" disabled selected>Select a subcategory</option>
-                        <!-- This will be populated by JavaScript based on category selection -->
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="year-range">Years (select range):</label>
+                    <label for="year_start">Year Range:</label>
                     <div class="year-range-selector">
-                        <div class="year-range">
-                            <label for="start-year">From:</label>
-                            <select id="start-year" class="year-select">
-                                {% for year in range(2000, 2026) %}
-                                    <option value="{{ year }}">{{ year }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="year-range">
-                            <label for="end-year">To:</label>
-                            <select id="end-year" class="year-select">
-                                {% for year in range(2000, 2026) %}
-                                    <option value="{{ year }}" {% if year == 2023 %}selected{% endif %}>{{ year }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button type="button" id="apply-years" class="apply-btn">Apply</button>
-                    </div>
-                    <div class="selected-years" id="selected-years"></div>
-                    <div class="hidden-years-container">
-                        <!-- Hidden checkboxes will be added here by JavaScript -->
+                        <label for="year_start">From:</label>
+                        <select id="year_start" name="year_start" required class="year-select">
+                            {% set current_year = 2024 %} {# Or get dynamically #}
+                            {% for year in range(1990, current_year + 1) | reverse %}
+                                <option value="{{ year }}" {% if year == form_data.get('year_start', current_year - 1)|int %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                        <label for="year_end">To:</label>
+                        <select id="year_end" name="year_end" required class="year-select">
+                             {% for year in range(1990, current_year + 1) | reverse %}
+                                <option value="{{ year }}" {% if year == form_data.get('year_end', current_year)|int %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="resource_name">Resource Name:</label>
-                    <input type="text" id="resource_name" name="resource_name" required>
-                </div>
-                
+
                 <div class="form-group">
                     <label for="resource_url">Resource URL:</label>
-                    <input type="url" id="resource_url" name="resource_url" required>
+                    <input type="url" id="resource_url" name="resource_url" required placeholder="https://example.com/resource" value="{{ form_data.get('resource_url', '') }}">
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="data_format">Data Format:</label>
-                    <input type="text" id="data_format" name="data_format" placeholder="e.g., CSV, JSON, FASTQ">
+                    <label for="contact_info">Contact Information:</label>
+                    <input type="text" id="contact_info" name="contact_info" placeholder="Name, Email, or Website" value="{{ form_data.get('contact_info', '') }}">
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="data_description">Description:</label>
-                    <textarea id="data_description" name="data_description" required></textarea>
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" required placeholder="Provide a brief description of the resource...">{{ form_data.get('description', '') }}</textarea>
                 </div>
-                
-                <div class="form-group">
-                    <label for="related_entity">Related Entity:</label>
-                    <select id="related_entity" name="related_entity">
-                        <option value="" selected>None</option>
-                        <optgroup label="Research Consortia">
-                            {% for consortium in vocabularies.resource_type_hierarchy.Entities.sub_categories.research_consortia %}
-                                {% if consortium is string %}
-                                    <option value="{{ consortium }}">{{ consortium }}</option>
-                                {% else %}
-                                    {% for key, value in consortium.items() %}
-                                        <option value="{{ key }}">{{ key }}</option>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endfor %}
-                        </optgroup>
-                        <optgroup label="Data Repositories">
-                            {% for repository in vocabularies.resource_type_hierarchy.Entities.sub_categories.data_repositories %}
-                                {% if repository is string %}
-                                    <option value="{{ repository }}">{{ repository }}</option>
-                                {% else %}
-                                    {% for key, value in repository.items() %}
-                                        <option value="{{ key }}">{{ key }}</option>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endfor %}
-                        </optgroup>
-                    </select>
-                </div>
-                
-                <div class="form-group">
+
+                 <div class="form-group">
                     <label for="keywords">Keywords:</label>
-                    <input type="text" id="keyword-input" placeholder="Type a keyword and press Enter">
+                    <input type="text" id="keyword-input" placeholder="Type keywords separated by commas" value="{{ form_data.get('keywords', '') }}">
+                    <input type="hidden" id="keywords" name="keywords"> <!-- Hidden field to store final comma-separated list -->
                     <div id="selected-keywords" class="selected-items"></div>
-                    <input type="hidden" id="keywords" name="keywords">
+                 </div>
+
+                 <div class="form-group">
+                    <label for="license">License (Optional):</label>
+                    <input type="text" id="license" name="license" placeholder="e.g., CC BY 4.0, MIT, Public Domain" value="{{ form_data.get('license', '') }}">
+                 </div>
+
+            </fieldset>
+
+            <!-- Related Metadata -->
+            <fieldset>
+                <legend>Related Metadata Categories (Optional)</legend>
+                <p>Select any other relevant categories/items from the hierarchy that relate to this resource.</p>
+                <div class="form-group">
+                    <div id="related-metadata-tree" class="related-metadata-container">
+                        <!-- Hierarchy checkboxes will be populated by JavaScript -->
+                        Loading hierarchy...
+                    </div>
+                    <!-- Hidden input to store selected related metadata paths/IDs as JSON -->
+                    <input type="hidden" id="related_metadata" name="related_metadata" value="[]">
                 </div>
             </fieldset>
-            
-            <button type="submit" class="submit-button">Submit Resource</button>
+
+            <button type="submit" class="submit-button">Submit for Review</button>
         </form>
     </div>
 
-    <script>
-    // Get the resource type hierarchy from the server
-    fetch('/api/resource-hierarchy')
-        .then(response => response.json())
-        .then(hierarchy => {
-            // Store the hierarchy for later use
-            window.resourceHierarchy = hierarchy;
-            
-            // Setup the category dropdown based on resource type selection
-            const resourceTypeSelect = document.getElementById('resource_type');
-            const categorySelect = document.getElementById('category');
-            
-            resourceTypeSelect.addEventListener('change', function() {
-                const selectedResourceType = this.value;
-                
-                // Clear existing options
-                categorySelect.innerHTML = '<option value="" disabled selected>Select a category</option>';
-                
-                // If there's a selected resource type and it exists in the hierarchy
-                if (selectedResourceType && hierarchy[selectedResourceType]) {
-                    // Get the subcategories for this resource type
-                    const subCategories = hierarchy[selectedResourceType].sub_categories || {};
-                    
-                    // Add each subcategory as an option
-                    for (const category in subCategories) {
-                        const option = document.createElement('option');
-                        option.value = category;
-                        option.textContent = category.replace(/_/g, ' ');
-                        categorySelect.appendChild(option);
-                    }
-                }
-                
-                // Trigger change event to update subcategory dropdown
-                categorySelect.dispatchEvent(new Event('change'));
-            });
-            
-            // Setup the subcategory dropdown based on category selection
-            const subcategorySelect = document.getElementById('subcategory');
-            
-            categorySelect.addEventListener('change', function() {
-                const selectedResourceType = resourceTypeSelect.value;
-                const selectedCategory = this.value;
-                
-                // Clear existing options
-                subcategorySelect.innerHTML = '<option value="" disabled selected>Select a subcategory</option>';
-                
-                // If there's a selected category and resource type
-                if (selectedResourceType && selectedCategory && 
-                    hierarchy[selectedResourceType] && 
-                    hierarchy[selectedResourceType].sub_categories && 
-                    hierarchy[selectedResourceType].sub_categories[selectedCategory]) {
-                    
-                    const subCategoryData = hierarchy[selectedResourceType].sub_categories[selectedCategory];
-                    
-                    // If subCategoryData is an array, these are the subcategories
-                    if (Array.isArray(subCategoryData)) {
-                        subCategoryData.forEach(item => {
-                            // If item is an object, it has nested items
-                            if (typeof item === 'object') {
-                                for (const subcat in item) {
-                                    const option = document.createElement('option');
-                                    option.value = subcat;
-                                    option.textContent = subcat.replace(/_/g, ' ');
-                                    subcategorySelect.appendChild(option);
-                                }
-                            } else {
-                                // Item is a string
-                                const option = document.createElement('option');
-                                option.value = item;
-                                option.textContent = item.replace(/_/g, ' ');
-                                subcategorySelect.appendChild(option);
-                            }
-                        });
-                    } 
-                    // If subCategoryData is an object, these are named subcategories
-                    else if (typeof subCategoryData === 'object') {
-                        for (const subcat in subCategoryData) {
-                            const option = document.createElement('option');
-                            option.value = subcat;
-                            option.textContent = subcat.replace(/_/g, ' ');
-                            subcategorySelect.appendChild(option);
-                        }
-                    }
-                }
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching resource hierarchy:', error);
-        });
+    <!-- Add jQuery and Select2 JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    // Handle multi-select dropdowns
-    document.querySelectorAll('.multi-select').forEach(select => {
-        const selectedItemsContainer = document.getElementById(`selected-${select.id}`);
-        
-        select.addEventListener('change', function() {
-            // Clear the container
-            selectedItemsContainer.innerHTML = '';
-            
-            // Add selected items
-            Array.from(this.selectedOptions).forEach(option => {
-                const tag = document.createElement('div');
-                tag.className = 'selected-tag';
-                tag.innerHTML = `
-                    ${option.text}
-                    <span class="remove-tag" data-value="${option.value}">&times;</span>
-                `;
-                selectedItemsContainer.appendChild(tag);
-                
-                // Add click handler to remove tag
-                tag.querySelector('.remove-tag').addEventListener('click', function() {
-                    const value = this.getAttribute('data-value');
-                    
-                    // Deselect the option
-                    Array.from(select.options).forEach(opt => {
-                        if (opt.value === value) {
-                            opt.selected = false;
+    <script>
+    // Store hierarchy data globally after fetching
+    let resourceHierarchy = {};
+    let allHierarchyNodes = []; // Flat list for related metadata selection
+
+    // Function to format display name
+    function formatDisplayName(key, details) {
+        return details?.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // Function to recursively build the flat list and the checkbox tree
+    function buildRelatedMetadataOptions(levelData, parentPath = '', level = 1, container) {
+        if (level > 5) return;
+
+        for (const key in levelData) {
+            if (key === 'level' || key === 'title') continue; // Skip metadata keys
+
+            const details = levelData[key];
+            if (typeof details !== 'object' || details === null) continue; // Skip non-object details
+
+            const displayName = formatDisplayName(key, details);
+            const currentPath = parentPath ? `${parentPath} > ${displayName}` : displayName;
+            const nodeId = `related_${level}_${key}`; // Unique ID for checkbox
+
+            // Add to flat list for potential future use (e.g., searchable dropdown)
+            allHierarchyNodes.push({ id: nodeId, text: currentPath, level: level, key: key });
+
+            // Create checkbox element for the tree view
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'hierarchy-node';
+            nodeDiv.style.setProperty('--level', level); // For CSS indentation
+
+            const label = document.createElement('label');
+            label.setAttribute('for', nodeId);
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = nodeId;
+            checkbox.value = currentPath; // Store the full path as value
+            checkbox.dataset.key = key;
+            checkbox.dataset.level = level;
+
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(` ${displayName}`)); // Add space
+            nodeDiv.appendChild(label);
+            container.appendChild(nodeDiv);
+
+            // Recurse for sub_categories
+            if (details.sub_categories && typeof details.sub_categories === 'object') {
+                buildRelatedMetadataOptions(details.sub_categories, currentPath, level + 1, container);
+            }
+
+            // Recurse for items (treat as level + 1)
+            if (details.items && Array.isArray(details.items)) {
+                const itemLevel = level + 1;
+                if (itemLevel <= 5) {
+                    details.items.forEach(item => {
+                        let itemName = '';
+                        let itemKey = '';
+                        let itemDetails = {};
+                        if (typeof item === 'string') {
+                            itemName = item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            itemKey = item;
+                        } else if (typeof item === 'object' && item !== null && item.name) {
+                            itemName = item.title || item.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            itemKey = item.name;
+                            itemDetails = item;
+                        }
+
+                        if (itemName) {
+                            const itemPath = `${currentPath} > ${itemName}`;
+                            const itemId = `related_${itemLevel}_${itemKey}`;
+
+                            allHierarchyNodes.push({ id: itemId, text: itemPath, level: itemLevel, key: itemKey });
+
+                            const itemNodeDiv = document.createElement('div');
+                            itemNodeDiv.className = 'hierarchy-node';
+                            itemNodeDiv.style.setProperty('--level', itemLevel);
+
+                            const itemLabel = document.createElement('label');
+                            itemLabel.setAttribute('for', itemId);
+
+                            const itemCheckbox = document.createElement('input');
+                            itemCheckbox.type = 'checkbox';
+                            itemCheckbox.id = itemId;
+                            itemCheckbox.value = itemPath;
+                            itemCheckbox.dataset.key = itemKey;
+                            itemCheckbox.dataset.level = itemLevel;
+
+                            itemLabel.appendChild(itemCheckbox);
+                            itemLabel.appendChild(document.createTextNode(` ${itemName}`));
+                            itemNodeDiv.appendChild(itemLabel);
+                            container.appendChild(itemNodeDiv);
                         }
                     });
-                    
-                    // Remove the tag
-                    this.parentElement.remove();
-                });
-            });
+                }
+            }
+        }
+    }
+
+
+    // Function to populate dependent dropdowns
+    function populateHierarchyDropdown(level, parentKey = null) {
+        const selectElement = document.getElementById(`level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`);
+        if (!selectElement) return;
+
+        // Clear subsequent levels
+        for (let i = level + 1; i <= 5; i++) {
+            const nextSelect = document.getElementById(`level${i}_${i === 2 ? 'category' : i === 3 ? 'subcategory' : i === 4 ? 'data_type' : 'item'}`);
+            if (nextSelect) {
+                nextSelect.innerHTML = `<option value="" disabled selected>-- Select ${i === 2 ? 'Category' : i === 3 ? 'Subcategory' : i === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
+                nextSelect.classList.remove('visible');
+            }
+        }
+
+        // Find the data for the current level based on parent selection
+        let currentLevelData = {};
+        if (level === 1) {
+            currentLevelData = resourceHierarchy;
+        } else {
+            let parentData = resourceHierarchy;
+            const selectedValues = [];
+            for (let i = 1; i < level; i++) {
+                const parentSelect = document.getElementById(`level${i}_${i === 1 ? 'resource_type' : i === 2 ? 'category' : i === 3 ? 'subcategory' : 'data_type'}`);
+                 selectedValues.push(parentSelect.value);
+            }
+
+            let currentPointer = resourceHierarchy;
+            for(let i = 0; i < selectedValues.length; i++) {
+                const key = selectedValues[i];
+                if (currentPointer && currentPointer[key] && currentPointer[key].sub_categories) {
+                    currentPointer = currentPointer[key].sub_categories;
+                } else if (currentPointer && currentPointer[key] && currentPointer[key].items && i === selectedValues.length - 1) {
+                    // If the parent has 'items', these become the options for the current level
+                    currentLevelData = currentPointer[key].items; // This will be an array
+                    break; // Found items, stop traversing
+                }
+                 else {
+                    currentPointer = null; // Path broken
+                    break;
+                }
+            }
+             if (currentPointer && typeof currentPointer === 'object' && !Array.isArray(currentPointer)) {
+                 currentLevelData = currentPointer; // Found sub_categories object
+             }
+        }
+
+
+        // Populate the current dropdown
+        selectElement.innerHTML = `<option value="" disabled selected>-- Select ${level === 1 ? 'Resource Type' : level === 2 ? 'Category' : level === 3 ? 'Subcategory' : level === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
+
+        let hasOptions = false;
+        if (Array.isArray(currentLevelData)) { // Handle 'items' array
+             currentLevelData.forEach(item => {
+                 let itemName = '';
+                 let itemKey = '';
+                 let itemDetails = {};
+                 if (typeof item === 'string') {
+                     itemName = item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                     itemKey = item;
+                 } else if (typeof item === 'object' && item !== null && item.name) {
+                     itemName = item.title || item.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                     itemKey = item.name;
+                     itemDetails = item;
+                 }
+                 if (itemName) {
+                     const option = document.createElement('option');
+                     option.value = itemKey;
+                     option.textContent = itemName;
+                     selectElement.appendChild(option);
+                     hasOptions = true;
+                 }
+             });
+        } else if (typeof currentLevelData === 'object') { // Handle 'sub_categories' object
+            for (const key in currentLevelData) {
+                if (key === 'level' || key === 'title') continue;
+                const details = currentLevelData[key];
+                 if (typeof details !== 'object' || details === null) continue;
+
+                const displayName = formatDisplayName(key, details);
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = displayName;
+                selectElement.appendChild(option);
+                hasOptions = true;
+            }
+        }
+
+        // Show dropdown only if it has options
+        if (hasOptions) {
+            selectElement.classList.add('visible');
+        } else {
+            selectElement.classList.remove('visible');
+        }
+    }
+
+    // --- Document Ready ---
+    $(document).ready(function() {
+        // Initialize Select2 for multi-selects
+        $('.multi-select-tags').select2({
+            placeholder: "Select one or more...",
+            allowClear: true,
+            tags: false // Prevent creation of new tags if needed
         });
-    });
 
-    // Handle keyword input
-    const keywordInput = document.getElementById('keyword-input');
-    const selectedKeywords = document.getElementById('selected-keywords');
-    const keywordsField = document.getElementById('keywords');
-    const keywords = new Set();
+        // Fetch hierarchy data
+        fetch('/api/resource-hierarchy')
+            .then(response => response.ok ? response.json() : Promise.reject('Failed to load hierarchy'))
+            .then(hierarchy => {
+                resourceHierarchy = hierarchy;
 
-    keywordInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            
-            const keyword = this.value.trim();
-            if (keyword && !keywords.has(keyword)) {
-                // Add to set
-                keywords.add(keyword);
-                
-                // Create tag
+                // Initial population of Level 1 dropdown (already done in HTML)
+                // Populate Level 2 based on pre-selected Level 1 (if any from form_data)
+                const initialL1 = $('#level1_resource_type').val();
+                 if(initialL1) {
+                     populateHierarchyDropdown(2);
+                     // Pre-select L2 if available in form_data and populate L3, etc.
+                     const initialL2 = "{{ form_data.get('level2_category', '') }}";
+                     if(initialL2) {
+                         $('#level2_category').val(initialL2);
+                         populateHierarchyDropdown(3);
+                         const initialL3 = "{{ form_data.get('level3_subcategory', '') }}";
+                         if(initialL3) {
+                             $('#level3_subcategory').val(initialL3);
+                             populateHierarchyDropdown(4);
+                             const initialL4 = "{{ form_data.get('level4_data_type', '') }}";
+                             if(initialL4) {
+                                 $('#level4_data_type').val(initialL4);
+                                 populateHierarchyDropdown(5);
+                                 const initialL5 = "{{ form_data.get('level5_item', '') }}";
+                                 if(initialL5) {
+                                     $('#level5_item').val(initialL5);
+                                 }
+                             }
+                         }
+                     }
+                 }
+
+
+                // Setup change listeners for hierarchy dropdowns
+                $('.hierarchy-select').on('change', function() {
+                    const currentLevel = parseInt($(this).data('level'));
+                    if (currentLevel < 5) {
+                        populateHierarchyDropdown(currentLevel + 1);
+                    }
+                });
+
+                // Populate related metadata checkboxes
+                const relatedContainer = document.getElementById('related-metadata-tree');
+                relatedContainer.innerHTML = ''; // Clear loading message
+                buildRelatedMetadataOptions(resourceHierarchy, '', 1, relatedContainer);
+
+                // Add listener to update hidden related_metadata field
+                $('#related-metadata-tree').on('change', 'input[type="checkbox"]', function() {
+                    const selectedPaths = [];
+                    $('#related-metadata-tree input[type="checkbox"]:checked').each(function() {
+                        selectedPaths.push($(this).val()); // Store the full path
+                    });
+                    $('#related_metadata').val(JSON.stringify(selectedPaths));
+                });
+
+            })
+            .catch(error => {
+                console.error('Error fetching resource hierarchy:', error);
+                $('#related-metadata-tree').text('Error loading hierarchy.');
+                // Optionally disable hierarchy selection fields
+            });
+
+
+        // --- Keyword Input Handling ---
+        const keywordInput = document.getElementById('keyword-input');
+        const selectedKeywordsContainer = document.getElementById('selected-keywords');
+        const keywordsHiddenField = document.getElementById('keywords');
+        let keywords = new Set(keywordsHiddenField.value ? keywordsHiddenField.value.split(',').map(k => k.trim()).filter(Boolean) : []);
+
+        function renderKeywords() {
+            selectedKeywordsContainer.innerHTML = '';
+            keywords.forEach(keyword => {
                 const tag = document.createElement('div');
                 tag.className = 'selected-tag';
                 tag.innerHTML = `
                     ${keyword}
                     <span class="remove-tag" data-value="${keyword}">&times;</span>
                 `;
-                selectedKeywords.appendChild(tag);
-                
-                // Add click handler to remove tag
-                tag.querySelector('.remove-tag').addEventListener('click', function() {
-                    const value = this.getAttribute('data-value');
-                    keywords.delete(value);
-                    this.parentElement.remove();
-                    updateKeywordsField();
-                });
-                
-                // Update hidden field
-                updateKeywordsField();
-                
-                // Clear input
-                this.value = '';
+                selectedKeywordsContainer.appendChild(tag);
+            });
+            keywordsHiddenField.value = Array.from(keywords).join(',');
+        }
+
+        // Initial render if keywords exist from form_data
+        renderKeywords();
+
+        keywordInput.addEventListener('keydown', function(e) {
+            if (e.key === ',' || e.key === 'Enter') {
+                e.preventDefault();
+                const newKeywords = this.value.split(',')
+                                        .map(k => k.trim())
+                                        .filter(k => k && !keywords.has(k));
+                if (newKeywords.length > 0) {
+                    newKeywords.forEach(k => keywords.add(k));
+                    renderKeywords();
+                }
+                this.value = ''; // Clear input
             }
-        }
-    });
-
-    function updateKeywordsField() {
-        keywordsField.value = Array.from(keywords).join(',');
-    }
-
-    // Handle form submission
-    document.querySelector('form').addEventListener('submit', function(e) {
-        // Ensure at least one year is selected
-        const selectedYears = document.querySelectorAll('input[name="years"]:checked');
-        if (selectedYears.length === 0) {
-            e.preventDefault();
-            alert('Please select at least one year.');
-        }
-    });
-
-    // Handle year range selection
-    document.getElementById('apply-years').addEventListener('click', function() {
-        const startYear = parseInt(document.getElementById('start-year').value);
-        const endYear = parseInt(document.getElementById('end-year').value);
-        
-        if (startYear > endYear) {
-            alert('Start year cannot be greater than end year');
-            return;
-        }
-        
-        // Clear existing selected years
-        document.getElementById('selected-years').innerHTML = '';
-        document.querySelector('.hidden-years-container').innerHTML = '';
-        
-        // Create year range tag
-        const yearRangeTag = document.createElement('div');
-        yearRangeTag.className = 'selected-tag year-range-tag';
-        yearRangeTag.innerHTML = `
-            ${startYear} - ${endYear}
-            <span class="remove-tag">&times;</span>
-        `;
-        
-        // Add to selected years
-        document.getElementById('selected-years').appendChild(yearRangeTag);
-        
-        // Add hidden checkboxes for each year in the range
-        for (let year = startYear; year <= endYear; year++) {
-            const hiddenCheckbox = document.createElement('input');
-            hiddenCheckbox.type = 'checkbox';
-            hiddenCheckbox.name = 'years';
-            hiddenCheckbox.value = year.toString();
-            hiddenCheckbox.checked = true;
-            hiddenCheckbox.style.display = 'none';
-            
-            document.querySelector('.hidden-years-container').appendChild(hiddenCheckbox);
-        }
-        
-        // Add click handler to remove tag
-        yearRangeTag.querySelector('.remove-tag').addEventListener('click', function() {
-            document.getElementById('selected-years').innerHTML = '';
-            document.querySelector('.hidden-years-container').innerHTML = '';
         });
+         // Handle blur event to add any remaining text as a keyword
+        keywordInput.addEventListener('blur', function(e) {
+             const keyword = this.value.trim();
+             if (keyword && !keywords.has(keyword)) {
+                 keywords.add(keyword);
+                 renderKeywords();
+             }
+             this.value = ''; // Clear input
+        });
+
+
+        selectedKeywordsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-tag')) {
+                const value = e.target.getAttribute('data-value');
+                keywords.delete(value);
+                renderKeywords();
+            }
+        });
+
+        // Update hidden field on form submit (just in case)
+        $('#add-resource-form').on('submit', function() {
+             // Add any final text in the input box before submitting
+             const finalKeyword = keywordInput.value.trim();
+             if (finalKeyword && !keywords.has(finalKeyword)) {
+                 keywords.add(finalKeyword);
+             }
+            keywordsHiddenField.value = Array.from(keywords).join(',');
+        });
+
     });
     </script>
 </body>

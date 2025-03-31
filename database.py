@@ -51,6 +51,25 @@ def init_db():
                     -- Keeping them for now as they are used elsewhere, but ensure they match L1-L4
                 )''')
 
+    # Create pending submissions table
+    c.execute('''CREATE TABLE IF NOT EXISTS pending_submissions (
+                    submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    status TEXT DEFAULT 'pending', -- pending, approved, rejected
+                    countries TEXT,         -- JSON list of selected countries
+                    domains TEXT,           -- JSON list of selected domains
+                    primary_hierarchy_path TEXT, -- JSON object: {resource_type: val, category: val, ... level5: val}
+                    year_start INTEGER,
+                    year_end INTEGER,
+                    resource_url TEXT,
+                    contact_info TEXT,
+                    description TEXT,
+                    related_metadata TEXT,  -- JSON list of selected hierarchy node paths/IDs
+                    keywords TEXT,          -- Comma-separated string
+                    license TEXT,           -- Optional license info
+                    submitter_info TEXT     -- Optional: could add user ID or email if auth is implemented
+                )''')
+
     conn.commit()
     conn.close()
 
