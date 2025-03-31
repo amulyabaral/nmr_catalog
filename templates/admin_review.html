@@ -199,6 +199,19 @@
                                 None
                             {% endif %}
                         </dd>
+
+                        <dt>Related Resources:</dt>
+                        <dd>
+                            {% if sub.related_resources_list %}
+                                <ul class="compact-list">
+                                    {% for res_id in sub.related_resources_list %}
+                                        <li>{{ res_id }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                None
+                            {% endif %}
+                        </dd>
                     </dl>
                 </div>
                 <div class="submission-actions">

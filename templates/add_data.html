@@ -294,6 +294,11 @@
                 <legend>Resource Details</legend>
 
                 <div class="form-group">
+                    <label for="resource_name">Resource Name / Title:</label>
+                    <input type="text" id="resource_name" name="resource_name" required placeholder="Enter a clear title for the resource" value="{{ form_data.get('resource_name', '') }}">
+                </div>
+
+                <div class="form-group">
                     <label for="year_start">Year Range:</label>
                     <div class="year-range-selector">
                         <label for="year_start">From:</label>
@@ -352,6 +357,20 @@
                     </div>
                     <!-- Hidden input to store selected related metadata paths/IDs as JSON -->
                     <input type="hidden" id="related_metadata" name="related_metadata" value="[]">
+                </div>
+            </fieldset>
+
+            <!-- Link Existing Resources -->
+            <fieldset>
+                <legend>Link to Existing Resources (Optional)</legend>
+                <p>Search for and select existing resources in the database that are related to this submission.</p>
+                <div class="form-group">
+                    <label for="related-resources-select">Search and Select Resources:</label>
+                    <select id="related-resources-select" class="related-resources-select" multiple="multiple" style="width: 100%;">
+                        <!-- Options will be loaded via AJAX by Select2 -->
+                    </select>
+                    <!-- Hidden input to store selected resource IDs as JSON -->
+                    <input type="hidden" id="related_resources" name="related_resources" value="[]">
                 </div>
             </fieldset>
 
@@ -611,6 +630,70 @@
             tags: false // Prevent creation of new tags if needed
         });
 
+        // --- Initialize Select2 for Related Resources (AJAX) ---
+        $('#related-resources-select').select2({
+            placeholder: 'Search by name or ID...',
+            minimumInputLength: 2, // Start searching after 2 characters
+            allowClear: true,
+            ajax: {
+                url: '/api/search-resources', // Your new API endpoint
+                dataType: 'json',
+                delay: 250, // Wait 250ms after typing stops
+                data: function (params) {
+                    return {
+                        q: params.term // Search term parameter (named 'q' by default)
+                    };
+                },
+                processResults: function (data) {
+                    // Transform the data into the format Select2 expects ({ id: '', text: '' })
+                    return {
+                        results: data.map(item => ({
+                            id: item.data_source_id, // Use data_source_id as the value
+                            text: `${item.title} (${item.data_source_id})` // Display title and ID
+                        }))
+                    };
+                },
+                cache: true
+            }
+        });
+
+        // --- Update hidden field when related resources selection changes ---
+        $('#related-resources-select').on('change', function() {
+            const selectedIds = $(this).val() || []; // Get array of selected IDs
+            $('#related_resources').val(JSON.stringify(selectedIds)); // Store as JSON string
+        });
+
+        // --- Pre-fill related resources if form is re-rendered ---
+        // This is slightly more complex with AJAX. We need the initial IDs from Flask,
+        // then fetch their details to display them correctly in Select2.
+        try {
+            const initialRelatedIds = JSON.parse('{{ form_data.get("related_resources", "[]") | safe }}');
+            if (Array.isArray(initialRelatedIds) && initialRelatedIds.length > 0) {
+                // Fetch details for these specific IDs to populate the select field initially
+                // You might need another small API endpoint like /api/resources-by-ids?ids=id1,id2,...
+                // Or, iterate and fetch one by one (less efficient)
+                // For simplicity here, we'll assume the IDs are enough for Select2 to potentially re-query if needed,
+                // but ideally, you'd fetch the text labels too.
+                // A simpler approach for now: just set the values if they exist. Select2 might show IDs until searched.
+                initialRelatedIds.forEach(id => {
+                    // Check if the option already exists (it won't initially with AJAX)
+                    // Create a new option element if it doesn't exist
+                    if ($('#related-resources-select').find("option[value='" + id + "']").length === 0) {
+                        // We don't have the text label here without another fetch,
+                        // so we create the option with the ID as text for now.
+                        // Select2 will replace this when the user interacts or if you implement pre-fetching.
+                        var newOption = new Option(id, id, true, true); // Text, Value, defaultSelected, selected
+                        $('#related-resources-select').append(newOption);
+                    }
+                });
+                $('#related-resources-select').trigger('change'); // Notify Select2 of changes
+            }
+        } catch (e) {
+            console.error("Error parsing initial related resources:", e);
+        }
+        // --- End Pre-fill ---
+
+
         // Fetch hierarchy data
         fetch('/api/resource-hierarchy')
             .then(response => response.ok ? response.json() : Promise.reject('Failed to load hierarchy'))
@@ -757,6 +840,10 @@
                  keywords.add(finalKeyword);
              }
             keywordsHiddenField.value = Array.from(keywords).join(',');
+
+            // Ensure the related resources hidden field is up-to-date
+            const selectedIds = $('#related-resources-select').val() || [];
+            $('#related_resources').val(JSON.stringify(selectedIds));
         });
 
     });

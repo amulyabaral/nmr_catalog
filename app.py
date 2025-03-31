@@ -95,6 +95,7 @@ def add_data():
     if request.method == 'POST':
         try:
             # --- Collect Form Data ---
+            resource_name = request.form.get('resource_name')
             countries = request.form.getlist('countries')
             domains = request.form.getlist('domains')
 
@@ -115,13 +116,17 @@ def add_data():
             contact_info = request.form.get('contact_info')
             description = request.form.get('description')
 
-            # Related Metadata (assuming it's submitted as a JSON string from JS)
+            # Related Metadata Categories (hierarchy paths)
             related_metadata_json = request.form.get('related_metadata', '[]')
+            # Related Resources (linked existing resource IDs)
+            related_resources_json = request.form.get('related_resources', '[]')
+
             # Validate JSON before storing
             try:
                 json.loads(related_metadata_json)
-            except json.JSONDecodeError:
-                 flash('Invalid format for related metadata.', 'error')
+                json.loads(related_resources_json)
+            except json.JSONDecodeError as e:
+                 flash(f'Invalid format for related data: {e}', 'error')
                  return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
 
 
@@ -129,6 +134,9 @@ def add_data():
             license_info = request.form.get('license') # Optional
 
             # --- Basic Validation ---
+            if not resource_name:
+                 flash('Resource Name / Title is required.', 'error')
+                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
             if not countries or not domains:
                 flash('Please select at least one Country and one Domain.', 'error')
                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
@@ -145,6 +153,7 @@ def add_data():
 
             # --- Prepare Data for Pending Submission ---
             submission_data = {
+                'resource_name': resource_name,
                 'countries': json.dumps(countries),
                 'domains': json.dumps(domains),
                 'primary_hierarchy_path': json.dumps(primary_hierarchy),
@@ -153,7 +162,8 @@ def add_data():
                 'resource_url': resource_url,
                 'contact_info': contact_info,
                 'description': description,
-                'related_metadata': related_metadata_json, # Store the JSON string
+                'related_metadata': related_metadata_json, # Store the JSON string (category paths)
+                'related_resources': related_resources_json, # Store linked resource IDs
                 'keywords': keywords,
                 'license': license_info,
                 'submitter_info': None # Add user info here if authentication exists
@@ -172,7 +182,7 @@ def add_data():
 
         except Exception as e:
             # Log the exception for debugging
-            print(f"Error processing submission: {e}")
+            app.logger.error(f"Error processing submission: {e}", exc_info=True) # Log stack trace
             flash(f'An unexpected error occurred: {e}', 'error')
             # Pass submitted data back to the form
             return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
@@ -606,11 +616,13 @@ def admin_review():
             item['domains_list'] = json.loads(item.get('domains', '[]'))
             item['primary_hierarchy_dict'] = json.loads(item.get('primary_hierarchy_path', '{}'))
             item['related_metadata_list'] = json.loads(item.get('related_metadata', '[]'))
+            item['related_resources_list'] = json.loads(item.get('related_resources', '[]'))
         except json.JSONDecodeError:
             item['countries_list'] = ['Error']
             item['domains_list'] = ['Error']
             item['primary_hierarchy_dict'] = {'Error': 'Invalid JSON'}
             item['related_metadata_list'] = ['Error']
+            item['related_resources_list'] = ['Error']
     return render_template('admin_review.html', submissions=pending)
 
 @app.route('/admin/approve/<int:submission_id>', methods=['POST'])
@@ -623,10 +635,12 @@ def approve_submission(submission_id):
 
     try:
         # --- Transform Submission Data to Data Point Format ---
+        resource_name = submission.get('resource_name')
         countries = json.loads(submission.get('countries', '[]'))
         domains = json.loads(submission.get('domains', '[]'))
         primary_hierarchy = json.loads(submission.get('primary_hierarchy_path', '{}'))
-        related_metadata = json.loads(submission.get('related_metadata', '[]'))
+        related_metadata_paths = json.loads(submission.get('related_metadata', '[]'))
+        related_resource_ids = json.loads(submission.get('related_resources', '[]'))
 
         # Simplification: Use first country/domain for the main table columns
         country = countries[0] if countries else 'Unknown'
@@ -640,6 +654,9 @@ def approve_submission(submission_id):
         level5 = primary_hierarchy.get('level5')
 
         # Basic validation for core fields
+        if not resource_name:
+             flash(f'Submission {submission_id} missing Resource Name. Cannot approve.', 'error')
+             return redirect(url_for('admin_review'))
         if not resource_type or not category or not subcategory:
              flash(f'Submission {submission_id} missing required hierarchy levels (Type, Category, Subcategory). Cannot approve.', 'error')
              return redirect(url_for('admin_review'))
@@ -656,13 +673,14 @@ def approve_submission(submission_id):
 
         # Create metadata JSON
         metadata_dict = {
-            "title": data_description.split('.')[0] if data_description else repository_url, # Use first sentence or URL as title
+            "title": resource_name,
             "institution": "Unknown", # Consider adding to form
             "geographic_coverage": countries,
             "license": submission.get('license'),
             "version": f"{submission.get('year_start')}-{submission.get('year_end')}",
             "original_url": repository_url,
-            "related_metadata": related_metadata,
+            "related_metadata_categories": related_metadata_paths,
+            "related_resource_ids": related_resource_ids,
             "submitted_description": data_description # Keep original description
         }
         metadata_json = json.dumps(metadata_dict)
@@ -690,10 +708,10 @@ def approve_submission(submission_id):
         else:
             flash(f'Failed to add approved submission {submission_id} to main database.', 'error')
 
-    except json.JSONDecodeError:
-        flash(f'Error parsing JSON data for submission {submission_id}. Cannot approve.', 'error')
+    except json.JSONDecodeError as e:
+        flash(f'Error parsing JSON data for submission {submission_id}: {e}. Cannot approve.', 'error')
     except Exception as e:
-        print(f"Error approving submission {submission_id}: {e}")
+        app.logger.error(f"Error approving submission {submission_id}: {e}", exc_info=True) # Log stack trace
         flash(f'An error occurred while approving submission {submission_id}: {e}', 'error')
 
     return redirect(url_for('admin_review'))

@@ -67,6 +67,7 @@ def init_db():
                     submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     status TEXT DEFAULT 'pending', -- pending, approved, rejected
+                    resource_name TEXT,     -- <<< ADDED: Name/Title of the resource
                     countries TEXT,         -- JSON list of selected countries
                     domains TEXT,           -- JSON list of selected domains
                     primary_hierarchy_path TEXT, -- JSON object: {resource_type: val, category: val, ... level5: val}
@@ -76,6 +77,7 @@ def init_db():
                     contact_info TEXT,
                     description TEXT,
                     related_metadata TEXT,  -- JSON list of selected hierarchy node paths/IDs
+                    related_resources TEXT, -- <<< ADDED: JSON list of linked existing resource data_source_ids
                     keywords TEXT,          -- Comma-separated string
                     license TEXT,           -- Optional license info
                     submitter_info TEXT     -- Optional: could add user ID or email if auth is implemented
@@ -350,11 +352,12 @@ def add_pending_submission(submission_data):
         # Ensure the keys in submission_data match the column names
         # The order in the VALUES clause must match the order of columns listed
         c.execute('''INSERT INTO pending_submissions (
-                        countries, domains, primary_hierarchy_path, year_start, year_end,
-                        resource_url, contact_info, description, related_metadata,
+                        resource_name, countries, domains, primary_hierarchy_path, year_start, year_end,
+                        resource_url, contact_info, description, related_metadata, related_resources,
                         keywords, license, submitter_info
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', # Added one placeholder
                   (
+                      submission_data.get('resource_name'), # <<< ADDED
                       submission_data.get('countries'),
                       submission_data.get('domains'),
                       submission_data.get('primary_hierarchy_path'),
@@ -364,6 +367,7 @@ def add_pending_submission(submission_data):
                       submission_data.get('contact_info'),
                       submission_data.get('description'),
                       submission_data.get('related_metadata'),
+                      submission_data.get('related_resources'), # <<< ADDED
                       submission_data.get('keywords'),
                       submission_data.get('license'),
                       submission_data.get('submitter_info')
