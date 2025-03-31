@@ -50,7 +50,21 @@
 </head>
 <body>
     <nav class="main-nav">
-        <!-- ... (nav content) ... -->
+        <div class="nav-container">
+            <div class="logo">
+                <a href="/">NoMoReAMR</a>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}">Home</a>
+                {% if session.get('is_admin') %}
+                    <a href="{{ url_for('admin_review') }}">Review Submissions</a>
+                    <a href="{{ url_for('admin_manage') }}">Manage Resources</a>
+                    <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('admin_login') }}">Admin Login</a>
+                {% endif %}
+            </div>
+        </div>
     </nav>
 
     <div class="form-container">
@@ -101,7 +115,7 @@
                     {# Level 1 #}
                     <label for="level1_resource_type">Level 1: Resource Type</label>
                     <select id="level1_resource_type" name="level1_resource_type" required class="hierarchy-select visible" data-level="1">
-                        <option value="" disabled selected>-- Select Resource Type --</option>
+                        <option value="" disabled {% if not form_data.get('level1_resource_type') %}selected{% endif %}>-- Select Resource Type --</option>
                         {% for type_key, type_details in vocabularies.resource_type_hierarchy.items() %}
                             <option value="{{ type_key }}" {% if type_key == form_data.get('level1_resource_type') %}selected{% endif %}>
                                 {{ type_details.get('title', type_key.replace('_', ' ').title()) }}
@@ -111,25 +125,25 @@
                     {# Level 2 #}
                     <label for="level2_category">Level 2: Category</label>
                     <select id="level2_category" name="level2_category" class="hierarchy-select" data-level="2">
-                        <option value="" disabled selected>-- Select Category --</option>
-                        {# Options populated by JS #}
+                        <option value="" disabled {% if not form_data.get('level2_category') %}selected{% endif %}>-- Select Category --</option>
+                        {# Options populated by JS, value set by JS based on form_data #}
                     </select>
                     {# Level 3 #}
                     <label for="level3_subcategory">Level 3: Subcategory</label>
                     <select id="level3_subcategory" name="level3_subcategory" class="hierarchy-select" data-level="3">
-                        <option value="" disabled selected>-- Select Subcategory --</option>
+                        <option value="" disabled {% if not form_data.get('level3_subcategory') %}selected{% endif %}>-- Select Subcategory --</option>
                          {# Options populated by JS #}
                     </select>
                     {# Level 4 #}
                     <label for="level4_data_type">Level 4: Data Type / Item</label>
                     <select id="level4_data_type" name="level4_data_type" class="hierarchy-select" data-level="4">
-                        <option value="" disabled selected>-- Select Data Type / Item --</option>
+                        <option value="" disabled {% if not form_data.get('level4_data_type') %}selected{% endif %}>-- Select Data Type / Item --</option>
                          {# Options populated by JS #}
                     </select>
                     {# Level 5 #}
                     <label for="level5_item">Level 5: Item / Detail</label>
                     <select id="level5_item" name="level5_item" class="hierarchy-select" data-level="5">
-                        <option value="" disabled selected>-- Select Item / Detail --</option>
+                        <option value="" disabled {% if not form_data.get('level5_item') %}selected{% endif %}>-- Select Item / Detail --</option>
                          {# Options populated by JS #}
                     </select>
                 </div>
@@ -322,43 +336,53 @@
             const selectElement = document.getElementById(`level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`);
             if (!selectElement) return;
 
-            for (let i = level + 1; i <= 5; i++) { /* ... (clear subsequent levels) ... */
+            // Clear subsequent levels first
+            for (let i = level + 1; i <= 5; i++) {
                 const nextSelect = document.getElementById(`level${i}_${i === 2 ? 'category' : i === 3 ? 'subcategory' : i === 4 ? 'data_type' : 'item'}`);
                  if (nextSelect) {
                      nextSelect.innerHTML = `<option value="" disabled selected>-- Select ${i === 2 ? 'Category' : i === 3 ? 'Subcategory' : i === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
                      nextSelect.classList.remove('visible');
-                     nextSelect.value = "";
+                     nextSelect.value = ""; // Reset value
                  }
             }
 
             let currentLevelData = {};
             if (level === 1) { currentLevelData = resourceHierarchy; }
-            else { /* ... (find currentLevelData based on parent selections) ... */
+            else {
+                // Find currentLevelData based on parent selections
                 const selectedValues = [];
                  for (let i = 1; i < level; i++) {
                      const parentSelect = document.getElementById(`level${i}_${i === 1 ? 'resource_type' : i === 2 ? 'category' : i === 3 ? 'subcategory' : 'data_type'}`);
                      if (parentSelect && parentSelect.value) { selectedValues.push(parentSelect.value); }
-                     else { selectedValues.length = 0; break; }
+                     else { selectedValues.length = 0; break; } // Stop if any parent is not selected
                  }
+
                  let currentPointer = resourceHierarchy;
-                 if (selectedValues.length === level - 1) {
+                 if (selectedValues.length === level - 1) { // Ensure full path exists
                      for(let i = 0; i < selectedValues.length; i++) {
                          const key = selectedValues[i];
                          if (!currentPointer || !currentPointer[key]) { currentPointer = null; break; }
+
+                         // If this is the direct parent of the level we're populating
                          if (i === selectedValues.length - 1) {
                              if (currentPointer[key].sub_categories) { currentLevelData = currentPointer[key].sub_categories; }
                              else if (currentPointer[key].items) { currentLevelData = currentPointer[key].items; }
-                         } else {
+                         } else { // Navigate deeper
                              if (currentPointer[key].sub_categories) { currentPointer = currentPointer[key].sub_categories; }
-                             else { currentPointer = null; break; }
+                             else { currentPointer = null; break; } // Cannot go deeper
                          }
                      }
                  }
             }
 
+            // Store the current value before clearing options
+            const currentValue = selectElement.value;
+
+            // Populate the current dropdown
             selectElement.innerHTML = `<option value="" disabled selected>-- Select ${level === 1 ? 'Resource Type' : level === 2 ? 'Category' : level === 3 ? 'Subcategory' : level === 4 ? 'Data Type/Item' : 'Item/Detail'} --</option>`;
             let hasOptions = false;
-            if (Array.isArray(currentLevelData)) { /* ... (populate options from items array) ... */
+            if (Array.isArray(currentLevelData)) {
+                // Populate options from items array
                 currentLevelData.forEach(item => {
                      let itemName = '', itemKey = '', itemDetails = {};
                      if (typeof item === 'string') { itemKey = item; itemName = formatDisplayName(item, null); }
@@ -369,7 +393,8 @@
                          selectElement.appendChild(option); hasOptions = true;
                      }
                  });
-            } else if (typeof currentLevelData === 'object' && Object.keys(currentLevelData).length > 0) { /* ... (populate options from sub_categories object) ... */
+            } else if (typeof currentLevelData === 'object' && Object.keys(currentLevelData).length > 0) {
+                // Populate options from sub_categories object
                 for (const key in currentLevelData) {
                      if (key === 'level' || key === 'title') continue;
                      const details = currentLevelData[key];
@@ -381,6 +406,12 @@
                  }
             }
 
+            // Restore the previously selected value if it exists among the new options
+            if (currentValue && selectElement.querySelector(`option[value="${currentValue}"]`)) {
+                selectElement.value = currentValue;
+            }
+
+            // Show/hide the dropdown based on options
             if (hasOptions) { selectElement.classList.add('visible'); }
             else { selectElement.classList.remove('visible'); }
         }
@@ -391,8 +422,8 @@
             // $('.multi-select-tags').select2({ placeholder: "Select one or more...", allowClear: true, tags: false });
 
             // Initialize Select2 for Related Resources (AJAX)
-            $('#related-resources-select').select2({ /* ... (same AJAX setup as add_data.html) ... */
-                placeholder: 'Search by name or ID...',
+            $('#related-resources-select').select2({
+                 placeholder: 'Search by name or ID...',
                  minimumInputLength: 2,
                  allowClear: true,
                  ajax: {
@@ -401,7 +432,8 @@
                      delay: 250,
                      data: function (params) { return { q: params.term }; },
                      processResults: function (data) {
-                         return { results: data.map(item => ({ id: item.data_source_id, text: `${item.title} (${item.data_source_id})` })) };
+                         // Map results to { id: data_source_id, text: 'Title (ID)' }
+                         return { results: data.map(item => ({ id: item.data_source_id, text: `${item.title || item.data_source_id} (${item.data_source_id})` })) };
                      },
                      cache: true
                  }
@@ -421,30 +453,36 @@
 
                 if (Array.isArray(initialRelatedIds) && initialRelatedIds.length > 0) {
                     // Fetch details for these specific IDs to populate the select field initially
-                    // This requires an endpoint that accepts multiple IDs, e.g., /api/resources-by-ids?ids=id1,id2
-                    // Let's assume such an endpoint exists or adapt the search endpoint if possible.
-                    // For simplicity, we'll try fetching one by one (less efficient but works)
-                    const promises = initialRelatedIds.map(id =>
-                        fetch(`/api/resource/${id}`).then(res => res.ok ? res.json() : Promise.reject(`Failed to fetch ${id}`))
+                    // Requires an endpoint that accepts multiple IDs, e.g., /api/resources-by-ids?ids=id1,id2
+                    // Or fetch one by one (less efficient but simpler to implement)
+                    const fetchPromises = initialRelatedIds.map(id =>
+                        fetch(`/api/resource/${id}`) // Assuming /api/resource/<id> fetches by data_source_id
+                            .then(res => res.ok ? res.json() : Promise.reject(`Failed to fetch ${id}`))
+                            .catch(error => { console.error(`Error fetching resource ${id}:`, error); return null; }) // Handle individual fetch errors
                     );
 
-                    Promise.all(promises)
+                    Promise.all(fetchPromises)
                         .then(resources => {
                             resources.forEach(resource => {
-                                // Create a new option element if it doesn't exist
-                                const resourceId = resource.data_source_id;
-                                const resourceText = `${resource.metadata?.title || resourceId} (${resourceId})`;
-                                if ($('#related-resources-select').find("option[value='" + resourceId + "']").length === 0) {
-                                    var newOption = new Option(resourceText, resourceId, true, true);
-                                    $('#related-resources-select').append(newOption);
+                                if (resource) { // Check if fetch was successful
+                                    const resourceId = resource.data_source_id;
+                                    // Try to get title from metadata, fallback to ID
+                                    const resourceTitle = resource.metadata?.title || resourceId;
+                                    const resourceText = `${resourceTitle} (${resourceId})`;
+                                    // Create a new option element if it doesn't exist
+                                    if ($('#related-resources-select').find("option[value='" + resourceId + "']").length === 0) {
+                                        var newOption = new Option(resourceText, resourceId, true, true); // Text, Value, defaultSelected, selected
+                                        $('#related-resources-select').append(newOption);
+                                    }
                                 }
                             });
                             $('#related-resources-select').trigger('change'); // Notify Select2 of changes
-                        })
-                        .catch(error => console.error("Error pre-fetching related resources:", error));
+                        });
                 }
             } catch (e) {
                 console.error("Error parsing or pre-filling initial related resources:", e);
+                // Clear the hidden field if parsing fails?
+                // $('#related_resources').val('[]');
             }
             // --- End Pre-fill Related Resources ---
 
@@ -460,21 +498,33 @@
                         const selectId = `level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`;
                         const selectElement = $(`#${selectId}`);
                         // Get initial value directly from the element (set by Jinja)
-                        const initialValue = selectElement.val();
+                        const initialValue = selectElement.val(); // Read the value set by Jinja's 'selected' attribute
 
                         // Populate the *current* level's dropdown first based on its parent's selection (if not level 1)
                         if (level > 1) {
                              const parentSelectId = `level${level-1}_${level-1 === 1 ? 'resource_type' : level-1 === 2 ? 'category' : level-1 === 3 ? 'subcategory' : 'data_type'}`;
-                             if ($(`#${parentSelectId}`).val()) { // Check if parent has a value
-                                 populateHierarchyDropdown(level);
-                                 // Now that options are populated, re-set the value for the current level
-                                 selectElement.val(initialValue);
+                             const parentValue = $(`#${parentSelectId}`).val();
+                             if (parentValue) { // Check if parent has a value
+                                 populateHierarchyDropdown(level); // This populates options and resets value
+                                 // Now that options are populated, re-set the initial value for the current level
+                                 if (initialValue && selectElement.find(`option[value="${initialValue}"]`).length > 0) {
+                                     selectElement.val(initialValue);
+                                 }
+                             }
+                        } else {
+                             // For level 1, ensure it's visible if it has a value
+                             if (initialValue) {
+                                 selectElement.addClass('visible');
                              }
                         }
 
                         // Trigger population for the *next* level if this level has a value and is not the last level
                         if (initialValue && level < 5) {
                             restoreAndPopulate(level + 1);
+                        } else if (!initialValue && level < 5) {
+                            // If this level has no value, ensure the next level is hidden/reset
+                            const nextSelectId = `level${level+1}_${level+1 === 2 ? 'category' : level+1 === 3 ? 'subcategory' : level+1 === 4 ? 'data_type' : 'item'}`;
+                            $(`#${nextSelectId}`).removeClass('visible').val('');
                         }
                     }
 
@@ -513,7 +563,7 @@
                     });
 
                 })
-                .catch(error => { /* ... (error handling) ... */
+                .catch(error => {
                     console.error('Error fetching resource hierarchy:', error);
                     $('#related-metadata-tree').text('Error loading hierarchy.');
                 });
@@ -526,7 +576,7 @@
             // Initialize from hidden field's value
             let keywords = new Set(keywordsHiddenField.value ? keywordsHiddenField.value.split(',').map(k => k.trim()).filter(Boolean) : []);
 
-            function renderKeywords() { /* ... (same renderKeywords function) ... */
+            function renderKeywords() {
                 selectedKeywordsContainer.innerHTML = '';
                  keywords.forEach(keyword => {
                      const tag = document.createElement('div');
@@ -538,7 +588,7 @@
             }
             renderKeywords(); // Initial render
 
-            keywordInput.addEventListener('keydown', function(e) { /* ... (same keydown listener) ... */
+            keywordInput.addEventListener('keydown', function(e) {
                 if (e.key === ',' || e.key === 'Enter') {
                      e.preventDefault();
                      const newKeywords = this.value.split(',').map(k => k.trim()).filter(k => k && !keywords.has(k));
@@ -546,12 +596,12 @@
                      this.value = '';
                  }
             });
-            keywordInput.addEventListener('blur', function(e) { /* ... (same blur listener) ... */
+            keywordInput.addEventListener('blur', function(e) {
                 const keyword = this.value.trim();
                  if (keyword && !keywords.has(keyword)) { keywords.add(keyword); renderKeywords(); }
                  this.value = '';
             });
-            selectedKeywordsContainer.addEventListener('click', function(e) { /* ... (same click listener) ... */
+            selectedKeywordsContainer.addEventListener('click', function(e) {
                 if (e.target.classList.contains('remove-tag')) {
                      const value = e.target.getAttribute('data-value');
                      keywords.delete(value); renderKeywords();

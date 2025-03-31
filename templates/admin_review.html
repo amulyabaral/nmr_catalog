@@ -143,6 +143,7 @@
                 <a href="{{ url_for('index') }}">Home</a>
                 {% if session.get('is_admin') %}
                     <a href="{{ url_for('admin_review') }}">Review Submissions</a>
+                    <a href="{{ url_for('admin_manage') }}">Manage Resources</a>
                     <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
                 {% else %}
                     <a href="{{ url_for('admin_login') }}">Admin Login</a>

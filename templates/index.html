@@ -241,6 +241,7 @@
                 <ul>
                     {% if session.get('is_admin') %}
                         <li><a href="{{ url_for('admin_review') }}">Review Submissions</a></li>
+                        <li><a href="{{ url_for('admin_manage') }}">Manage Resources</a></li>
                         <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>
                     {% else %}
                         <li><a href="{{ url_for('admin_login') }}">Admin Login</a></li>

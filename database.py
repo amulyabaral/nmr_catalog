@@ -422,3 +422,20 @@ def update_data_point(data_id, updated_data):
         return False
     finally:
         conn.close()
+
+# <<< (Optional) NEW FUNCTION for Deletion >>>
+# def delete_data_point(data_id):
+#     """Delete a data point by its primary key ID."""
+#     conn = get_db()
+#     c = conn.cursor()
+#     try:
+#         c.execute('DELETE FROM data_points WHERE id = ?', (data_id,))
+#         conn.commit()
+#         print(f"Deleted data point with ID: {data_id}")
+#         return True
+#     except sqlite3.Error as e:
+#         print(f"Error deleting data point {data_id}: {e}")
+#         conn.rollback()
+#         return False
+#     finally:
+#         conn.close()
