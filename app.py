@@ -786,19 +786,24 @@ def admin_manage():
 @admin_required
 def edit_data_form(data_id):
     """Displays the form to edit an existing resource."""
-    data_point = get_data_point_by_id(data_id) # Fetch by primary key ID
-    if not data_point:
+    data_point_row = get_data_point_by_id(data_id) # Fetch by primary key ID
+    if not data_point_row:
         flash(f'Resource with ID {data_id} not found.', 'error')
         return redirect(url_for('admin_manage'))
 
+    # Convert Row to mutable dict to add metadata_obj
+    data_point = dict(data_point_row)
+
     # Prepare data for the form (similar to how it's done for add_data errors)
-    # Convert JSON strings back to lists/dicts for easier template logic
     form_data = {} # Initialize form_data dictionary
+    metadata = {} # Initialize metadata dictionary
+
     try:
-        # Metadata needs careful handling - extract specific fields for the form
-        metadata = {}
+        # Parse metadata JSON string from the database record
         if data_point.get('metadata'):
             metadata = json.loads(data_point['metadata'])
+        # Add the parsed metadata object to the data_point dictionary for template access
+        data_point['metadata_obj'] = metadata # <<< ADD THIS LINE
 
         # Use title from metadata, fallback to data_source_id
         form_data['resource_name'] = metadata.get('title', data_point.get('data_source_id'))
@@ -824,25 +829,18 @@ def edit_data_form(data_id):
         form_data['keywords'] = data_point.get('keywords', '') # Use get with default
 
         # Convert to MultiDict for template compatibility if reusing add_data logic heavily
-        # Note: For single selects (country/domain), MultiDict might expect lists. Adjust template if needed.
         form_data_multidict = MultiDict(form_data)
-        # If template expects lists for country/domain:
-        # form_data_multidict = MultiDict({
-        #     **form_data,
-        #     'countries': [form_data.get('countries')] if form_data.get('countries') else [],
-        #     'domains': [form_data.get('domains')] if form_data.get('domains') else []
-        # })
-
 
     except json.JSONDecodeError:
         flash('Error parsing metadata for editing.', 'error')
         # Provide default empty structure or fallback
+        data_point['metadata_obj'] = {'Error': 'Invalid JSON'} # Add error info
         form_data_multidict = MultiDict(data_point) # Fallback to raw data_point dict
 
-    # Pass the original data_point dict as well, it contains the raw DB values including the ID
+    # Pass the modified data_point dict (now includes metadata_obj)
     return render_template('edit_data.html',
                            vocabularies=VOCABULARIES,
-                           data_point=data_point, # Pass the original data point (contains ID)
+                           data_point=data_point, # Pass the modified data point
                            form_data=form_data_multidict) # Pass the pre-filled form data
 
 # --- NEW: Edit Resource (POST - Handle Update) ---
