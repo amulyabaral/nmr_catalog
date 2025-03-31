@@ -330,3 +330,40 @@ def delete_pending_submission(submission_id):
         return False
     finally:
         conn.close()
+
+def add_pending_submission(submission_data):
+    """Add a new pending submission to the database."""
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        # Ensure the keys in submission_data match the column names
+        # The order in the VALUES clause must match the order of columns listed
+        c.execute('''INSERT INTO pending_submissions (
+                        countries, domains, primary_hierarchy_path, year_start, year_end,
+                        resource_url, contact_info, description, related_metadata,
+                        keywords, license, submitter_info
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (
+                      submission_data.get('countries'),
+                      submission_data.get('domains'),
+                      submission_data.get('primary_hierarchy_path'),
+                      submission_data.get('year_start'),
+                      submission_data.get('year_end'),
+                      submission_data.get('resource_url'),
+                      submission_data.get('contact_info'),
+                      submission_data.get('description'),
+                      submission_data.get('related_metadata'),
+                      submission_data.get('keywords'),
+                      submission_data.get('license'),
+                      submission_data.get('submitter_info')
+                  ))
+        conn.commit()
+        submission_id = c.lastrowid # Get the ID of the inserted row
+        print(f"Added pending submission with ID: {submission_id}")
+        return submission_id
+    except sqlite3.Error as e:
+        print(f"Error adding pending submission: {e}")
+        conn.rollback()
+        return None # Indicate failure
+    finally:
+        conn.close()
