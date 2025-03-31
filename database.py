@@ -280,3 +280,53 @@ def get_data_point_by_source_id(source_id):
     data_point = c.fetchone()
     conn.close()
     return data_point
+
+def get_pending_submissions():
+    """Get all pending submissions"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM pending_submissions WHERE status = 'pending' ORDER BY submitted_at ASC")
+    submissions = c.fetchall()
+    conn.close()
+    return [dict(row) for row in submissions] # Return as list of dicts
+
+def get_pending_submission_by_id(submission_id):
+    """Get a single pending submission by its ID"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM pending_submissions WHERE submission_id = ?', (submission_id,))
+    submission = c.fetchone()
+    conn.close()
+    return dict(submission) if submission else None # Return as dict or None
+
+def update_pending_submission_status(submission_id, status):
+    """Update the status of a pending submission"""
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('UPDATE pending_submissions SET status = ? WHERE submission_id = ?', (status, submission_id))
+        conn.commit()
+        print(f"Updated submission {submission_id} status to {status}")
+        return True
+    except sqlite3.Error as e:
+        print(f"Error updating submission status: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+def delete_pending_submission(submission_id):
+    """Delete a pending submission (e.g., after approval or rejection)"""
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        c.execute('DELETE FROM pending_submissions WHERE submission_id = ?', (submission_id,))
+        conn.commit()
+        print(f"Deleted submission {submission_id}")
+        return True
+    except sqlite3.Error as e:
+        print(f"Error deleting submission: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()

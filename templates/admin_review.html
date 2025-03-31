@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Review</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        .review-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .submission-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .submission-card h2 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.3em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        .submission-details dl {
+            display: grid;
+            grid-template-columns: max-content auto;
+            gap: 0.5rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .submission-details dt {
+            font-weight: 600;
+            color: #555;
+        }
+        .submission-details dd {
+            margin-left: 0;
+            word-break: break-word;
+        }
+        .submission-actions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .action-button {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .approve-button {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .approve-button:hover {
+            background-color: #00b046;
+        }
+        .reject-button {
+            background-color: #e53935; /* Red */
+            color: white;
+        }
+        .reject-button:hover {
+            background-color: #c62828;
+        }
+        .no-submissions {
+            text-align: center;
+            color: #777;
+            font-size: 1.1em;
+            padding: 2rem;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .logout-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .logout-link:hover {
+            text-decoration: underline;
+        }
+        .flash-message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .error-message { color: #a94442; background-color: #f2dede; border: 1px solid #ebccd1; }
+        .warning-message { color: #8a6d3b; background-color: #fcf8e3; border: 1px solid #faebcc; }
+        .info-message { color: #31708f; background-color: #d9edf7; border: 1px solid #bce8f1; }
+        .success-message { color: #3c763d; background-color: #dff0d8; border: 1px solid #d6e9c6; }
+        .hierarchy-path span, .related-meta span {
+            display: inline-block;
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 5px;
+            margin-bottom: 3px;
+            font-size: 0.9em;
+        }
+        .hierarchy-path span::after {
+            content: ' >';
+            color: #999;
+            margin-left: 3px;
+        }
+        .hierarchy-path span:last-child::after {
+            content: '';
+        }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <a href="/">NoMoReAMR</a>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}">Home</a>
+                {% if session.get('is_admin') %}
+                    <a href="{{ url_for('admin_review') }}">Review Submissions</a>
+                    <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('admin_login') }}">Admin Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="review-container">
+        <div class="admin-header">
+            <h1>Pending Submissions</h1>
+            <a href="{{ url_for('admin_logout') }}" class="logout-link">Logout</a>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash-message {{ category }}-message">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% if submissions %}
+            {% for sub in submissions %}
+            <div class="submission-card">
+                <h2>Submission #{{ sub.submission_id }} ({{ sub.submitted_at[:10] }})</h2>
+                <div class="submission-details">
+                    <dl>
+                        <dt>URL:</dt>
+                        <dd><a href="{{ sub.resource_url }}" target="_blank">{{ sub.resource_url }}</a></dd>
+
+                        <dt>Countries:</dt>
+                        <dd>{{ sub.countries_list | join(', ') }}</dd>
+
+                        <dt>Domains:</dt>
+                        <dd>{{ sub.domains_list | join(', ') }}</dd>
+
+                        <dt>Hierarchy:</dt>
+                        <dd class="hierarchy-path">
+                            {% for level, value in sub.primary_hierarchy_dict.items() %}
+                                <span>{{ value.replace('_', ' ').title() }}</span>
+                            {% endfor %}
+                        </dd>
+
+                        <dt>Years:</dt>
+                        <dd>{{ sub.year_start }} - {{ sub.year_end }}</dd>
+
+                        <dt>Description:</dt>
+                        <dd>{{ sub.description }}</dd>
+
+                        <dt>Keywords:</dt>
+                        <dd>{{ sub.keywords }}</dd>
+
+                        <dt>Contact:</dt>
+                        <dd>{{ sub.contact_info }}</dd>
+
+                        <dt>License:</dt>
+                        <dd>{{ sub.license or 'N/A' }}</dd>
+
+                        <dt>Related Meta:</dt>
+                        <dd class="related-meta">
+                            {% if sub.related_metadata_list %}
+                                {% for item in sub.related_metadata_list %}
+                                    <span>{{ item }}</span>
+                                {% endfor %}
+                            {% else %}
+                                None
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+                <div class="submission-actions">
+                    <form action="{{ url_for('approve_submission', submission_id=sub.submission_id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="action-button approve-button">Approve</button>
+                    </form>
+                    <form action="{{ url_for('reject_submission', submission_id=sub.submission_id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="action-button reject-button">Reject</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-submissions">No pending submissions found.</p>
+        {% endif %}
+    </div>
+
+</body>
+</html> 

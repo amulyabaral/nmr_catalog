@@ -1,13 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash # Added flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session # Added session
+from dotenv import load_dotenv # Import dotenv
 import yaml
 import json
-from database import init_db, add_pending_submission, get_all_data_points, load_initial_data, get_main_categories, get_resource_type_hierarchy, get_data_point_by_id, get_db
+from database import (
+    init_db, add_pending_submission, get_all_data_points, load_initial_data,
+    get_main_categories, get_resource_type_hierarchy, get_data_point_by_id, get_db,
+    get_pending_submissions, get_pending_submission_by_id, delete_pending_submission, # Added DB functions
+    add_data_point, update_pending_submission_status # Added DB functions
+)
 import random # Import random for color generation
 import os # Import os for secret key
+import datetime # Needed for last_updated
+from urllib.parse import urlparse # Needed for repository extraction
+from functools import wraps # Needed for decorator
+
+load_dotenv() # Load environment variables from .env file
 
 app = Flask(__name__)
-# It's important to set a secret key for flashing messages
-app.secret_key = os.urandom(24)
+# Set a secret key for session management
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24)) # Use env var or random bytes
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') # Load admin password from env
 
 # Initialize database at startup
 init_db()
@@ -31,6 +43,16 @@ def load_vocabularies():
 
 # Cache vocabularies at startup
 VOCABULARIES = load_vocabularies()
+
+# --- Authentication Decorator ---
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_admin'):
+            flash('Admin access required.', 'warning')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # --- Helper function to generate distinct colors ---
 def generate_color(seed_string):
@@ -80,7 +102,7 @@ def add_data():
                 'data_type': request.form.get('level4_data_type'),
                 'level5': request.form.get('level5_item')
             }
-            # Remove None values from hierarchy path
+            # Remove None or empty string values from hierarchy path
             primary_hierarchy = {k: v for k, v in primary_hierarchy.items() if v}
 
             year_start = request.form.get('year_start', type=int)
@@ -537,7 +559,153 @@ def get_network_data():
 
     return jsonify({'nodes': nodes, 'edges': edges})
 
+# --- Admin Routes ---
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if session.get('is_admin'):
+        return redirect(url_for('admin_review')) # Already logged in
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password and password == ADMIN_PASSWORD:
+            session['is_admin'] = True
+            flash('Login successful!', 'success')
+            return redirect(url_for('admin_review'))
+        else:
+            flash('Invalid password.', 'error')
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/admin/review')
+@admin_required
+def admin_review():
+    pending = get_pending_submissions()
+    # Parse JSON fields for display in the template
+    for item in pending:
+        try:
+            item['countries_list'] = json.loads(item.get('countries', '[]'))
+            item['domains_list'] = json.loads(item.get('domains', '[]'))
+            item['primary_hierarchy_dict'] = json.loads(item.get('primary_hierarchy_path', '{}'))
+            item['related_metadata_list'] = json.loads(item.get('related_metadata', '[]'))
+        except json.JSONDecodeError:
+            item['countries_list'] = ['Error']
+            item['domains_list'] = ['Error']
+            item['primary_hierarchy_dict'] = {'Error': 'Invalid JSON'}
+            item['related_metadata_list'] = ['Error']
+    return render_template('admin_review.html', submissions=pending)
+
+@app.route('/admin/approve/<int:submission_id>', methods=['POST'])
+@admin_required
+def approve_submission(submission_id):
+    submission = get_pending_submission_by_id(submission_id)
+    if not submission:
+        flash('Submission not found.', 'error')
+        return redirect(url_for('admin_review'))
+
+    try:
+        # --- Transform Submission Data to Data Point Format ---
+        countries = json.loads(submission.get('countries', '[]'))
+        domains = json.loads(submission.get('domains', '[]'))
+        primary_hierarchy = json.loads(submission.get('primary_hierarchy_path', '{}'))
+        related_metadata = json.loads(submission.get('related_metadata', '[]'))
+
+        # Simplification: Use first country/domain for the main table columns
+        country = countries[0] if countries else 'Unknown'
+        domain = domains[0] if domains else 'Unknown'
+
+        # Extract hierarchy levels
+        resource_type = primary_hierarchy.get('resource_type')
+        category = primary_hierarchy.get('category')
+        subcategory = primary_hierarchy.get('subcategory')
+        data_type = primary_hierarchy.get('data_type')
+        level5 = primary_hierarchy.get('level5')
+
+        # Basic validation for core fields
+        if not resource_type or not category or not subcategory:
+             flash(f'Submission {submission_id} missing required hierarchy levels (Type, Category, Subcategory). Cannot approve.', 'error')
+             return redirect(url_for('admin_review'))
+
+        # Generate other fields
+        repository_url = submission.get('resource_url')
+        repository = urlparse(repository_url).netloc if repository_url else 'Unknown' # Extract domain as repository
+        data_description = submission.get('description', '')
+        keywords = submission.get('keywords', '')
+        contact_information = submission.get('contact_info', 'N/A')
+        last_updated = datetime.date.today().isoformat() # Use approval date
+        data_format = 'Unknown' # Default
+        data_resolution = 'Unknown' # Default
+
+        # Create metadata JSON
+        metadata_dict = {
+            "title": data_description.split('.')[0] if data_description else repository_url, # Use first sentence or URL as title
+            "institution": "Unknown", # Consider adding to form
+            "geographic_coverage": countries,
+            "license": submission.get('license'),
+            "version": f"{submission.get('year_start')}-{submission.get('year_end')}",
+            "original_url": repository_url,
+            "related_metadata": related_metadata,
+            "submitted_description": data_description # Keep original description
+        }
+        metadata_json = json.dumps(metadata_dict)
+
+        # Prepare tuple for add_data_point (order matters!)
+        # (None, resource_type, category, subcategory, data_type, level5, data_format,
+        #  data_resolution, repository, repository_url, data_description, keywords,
+        #  last_updated, contact_information, metadata, country, domain)
+        data_point_tuple = (
+            None, resource_type, category, subcategory, data_type, level5, data_format,
+            data_resolution, repository, repository_url, data_description, keywords,
+            last_updated, contact_information, metadata_json, country, domain
+        )
+
+        # --- Add to Main Data Points Table ---
+        new_data_source_id = add_data_point(data_point_tuple)
+
+        if new_data_source_id:
+            # Update status or delete the pending submission
+            # Option 1: Update status
+            # update_pending_submission_status(submission_id, 'approved')
+            # Option 2: Delete after approval
+            delete_pending_submission(submission_id)
+            flash(f'Submission {submission_id} approved and added with ID: {new_data_source_id}.', 'success')
+        else:
+            flash(f'Failed to add approved submission {submission_id} to main database.', 'error')
+
+    except json.JSONDecodeError:
+        flash(f'Error parsing JSON data for submission {submission_id}. Cannot approve.', 'error')
+    except Exception as e:
+        print(f"Error approving submission {submission_id}: {e}")
+        flash(f'An error occurred while approving submission {submission_id}: {e}', 'error')
+
+    return redirect(url_for('admin_review'))
+
+
+@app.route('/admin/reject/<int:submission_id>', methods=['POST'])
+@admin_required
+def reject_submission(submission_id):
+    # Option 1: Update status to 'rejected'
+    if update_pending_submission_status(submission_id, 'rejected'):
+         flash(f'Submission {submission_id} rejected.', 'info')
+    else:
+         flash(f'Failed to update status for submission {submission_id}.', 'error')
+
+    # Option 2: Delete rejected submission
+    # if delete_pending_submission(submission_id):
+    #     flash(f'Submission {submission_id} rejected and removed.', 'info')
+    # else:
+    #     flash(f'Failed to remove rejected submission {submission_id}.', 'error')
+
+    return redirect(url_for('admin_review'))
+
+
 if __name__ == '__main__':
+    if not ADMIN_PASSWORD:
+        print("Warning: ADMIN_PASSWORD environment variable not set. Admin login will not work.")
     # Ensure DB is initialized when running directly
     init_db()
     load_initial_data()
