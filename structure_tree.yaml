@@ -259,6 +259,13 @@ Resource_type_hierarchy:
             level: 3
           - name: international_funding_organizations
             level: 3
+      funding_opportunities:
+        level: 2
+        items:
+          - name: call_for_proposals
+            level: 3
+          - name: funding_opportunities
+            level: 3
       public_health_agencies:
         level: 2
         items:
