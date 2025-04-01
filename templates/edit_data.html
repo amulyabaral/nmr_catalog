@@ -433,13 +433,13 @@
                  minimumInputLength: 2,
                  allowClear: true,
                  ajax: {
-                     url: '/api/search-resources', // Ensure this endpoint exists
+                     url: '/api/search-resources', // <<< UPDATED: Point to the new search endpoint
                      dataType: 'json',
                      delay: 250,
                      data: function (params) { return { q: params.term }; },
                      processResults: function (data) {
-                         // Map results to { id: data_source_id, text: 'Title (ID)' }
-                         return { results: data.map(item => ({ id: item.data_source_id, text: `${item.title || item.data_source_id} (${item.data_source_id})` })) };
+                         // API returns data in the correct {id, text} format
+                         return { results: data };
                      },
                      cache: true
                  }
@@ -459,8 +459,6 @@
 
                 if (Array.isArray(initialRelatedIds) && initialRelatedIds.length > 0) {
                     // Fetch details for these specific IDs to populate the select field initially
-                    // Requires an endpoint that accepts multiple IDs, e.g., /api/resources-by-ids?ids=id1,id2
-                    // Or fetch one by one (less efficient but simpler to implement)
                     const fetchPromises = initialRelatedIds.map(id =>
                         fetch(`/api/resource/${id}`) // Assuming /api/resource/<id> fetches by data_source_id
                             .then(res => res.ok ? res.json() : Promise.reject(`Failed to fetch ${id}`))
@@ -488,7 +486,7 @@
             } catch (e) {
                 console.error("Error parsing or pre-filling initial related resources:", e);
                 // Clear the hidden field if parsing fails?
-                // $('#related_resources').val('[]');
+                $('#related_resources').val('[]');
             }
 
             // Fetch hierarchy data

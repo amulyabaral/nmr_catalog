@@ -646,7 +646,7 @@
             minimumInputLength: 2, // Start searching after 2 characters
             allowClear: true,
             ajax: {
-                url: '/api/search-resources', // Your new API endpoint
+                url: '/api/search-resources', // <<< UPDATED: Point to the new search endpoint
                 dataType: 'json',
                 delay: 250, // Wait 250ms after typing stops
                 data: function (params) {
@@ -656,11 +656,9 @@
                 },
                 processResults: function (data) {
                     // Transform the data into the format Select2 expects ({ id: '', text: '' })
+                    // This mapping should already be correct based on the new API endpoint's response
                     return {
-                        results: data.map(item => ({
-                            id: item.data_source_id, // Use data_source_id as the value
-                            text: `${item.title} (${item.data_source_id})` // Display title and ID
-                        }))
+                        results: data // The API now returns data in the correct {id, text} format
                     };
                 },
                 cache: true
@@ -674,32 +672,40 @@
         });
 
         // --- Pre-fill related resources if form is re-rendered ---
-        // This is slightly more complex with AJAX. We need the initial IDs from Flask,
-        // then fetch their details to display them correctly in Select2.
+        // (This part is more crucial for edit_data.html, but keep the structure)
         try {
-            const initialRelatedIds = JSON.parse('{{ form_data.get("related_resources", "[]") | safe }}');
+            // Get initial IDs from the hidden input (which might hold values if form submission failed)
+            const initialRelatedIdsJson = $('#related_resources').val();
+            const initialRelatedIds = JSON.parse(initialRelatedIdsJson || '[]');
+
             if (Array.isArray(initialRelatedIds) && initialRelatedIds.length > 0) {
                 // Fetch details for these specific IDs to populate the select field initially
-                // You might need another small API endpoint like /api/resources-by-ids?ids=id1,id2,...
-                // Or, iterate and fetch one by one (less efficient)
-                // For simplicity here, we'll assume the IDs are enough for Select2 to potentially re-query if needed,
-                // but ideally, you'd fetch the text labels too.
-                // A simpler approach for now: just set the values if they exist. Select2 might show IDs until searched.
-                initialRelatedIds.forEach(id => {
-                    // Check if the option already exists (it won't initially with AJAX)
-                    // Create a new option element if it doesn't exist
-                    if ($('#related-resources-select').find("option[value='" + id + "']").length === 0) {
-                        // We don't have the text label here without another fetch,
-                        // so we create the option with the ID as text for now.
-                        // Select2 will replace this when the user interacts or if you implement pre-fetching.
-                        var newOption = new Option(id, id, true, true); // Text, Value, defaultSelected, selected
-                        $('#related-resources-select').append(newOption);
-                    }
-                });
-                $('#related-resources-select').trigger('change'); // Notify Select2 of changes
+                const fetchPromises = initialRelatedIds.map(id =>
+                    fetch(`/api/resource/${id}`) // Use existing endpoint to get details by data_source_id
+                        .then(res => res.ok ? res.json() : Promise.reject(`Failed to fetch ${id}`))
+                        .catch(error => { console.error(`Error fetching resource ${id}:`, error); return null; })
+                );
+
+                Promise.all(fetchPromises)
+                    .then(resources => {
+                        resources.forEach(resource => {
+                            if (resource) {
+                                const resourceId = resource.data_source_id;
+                                const resourceTitle = resource.metadata?.title || resourceId;
+                                const resourceText = `${resourceTitle} (${resourceId})`;
+                                // Create a new option element if it doesn't exist
+                                if ($('#related-resources-select').find("option[value='" + resourceId + "']").length === 0) {
+                                    var newOption = new Option(resourceText, resourceId, true, true);
+                                    $('#related-resources-select').append(newOption);
+                                }
+                            }
+                        });
+                        $('#related-resources-select').trigger('change'); // Notify Select2 of changes
+                    });
             }
         } catch (e) {
-            console.error("Error parsing initial related resources:", e);
+            console.error("Error parsing or pre-filling initial related resources:", e);
+            $('#related_resources').val('[]'); // Reset hidden field on error
         }
         // --- End Pre-fill ---
 
@@ -854,6 +860,11 @@
             // Ensure the related resources hidden field is up-to-date
             const selectedIds = $('#related-resources-select').val() || [];
             $('#related_resources').val(JSON.stringify(selectedIds));
+
+            // Update related metadata just in case checkboxes were changed without triggering change event
+            const selectedPaths = [];
+            $('#related-metadata-tree input[type="checkbox"]:checked').each(function() { selectedPaths.push($(this).val()); });
+            $('#related_metadata').val(JSON.stringify(selectedPaths));
         });
 
     });

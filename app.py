@@ -17,6 +17,8 @@ import datetime # Needed for last_updated
 from urllib.parse import urlparse # Needed for repository extraction
 from functools import wraps # Needed for decorator
 from werkzeug.datastructures import MultiDict
+import logging # Ensure logging is imported
+import sqlite3 # Ensure sqlite3 is imported for the new API endpoint
 
 load_dotenv() # Load environment variables from .env file
 
@@ -1074,6 +1076,64 @@ def delete_data(data_id):
 
     return redirect(url_for('admin_manage'))
 
+# --- NEW: API Endpoint for Searching Resources ---
+@app.route('/api/search-resources')
+def search_resources():
+    """API endpoint for Select2 AJAX search."""
+    search_term = request.args.get('q', '').strip()
+    limit = request.args.get('limit', 15, type=int) # Limit results for performance
+
+    if not search_term or len(search_term) < 2: # Require at least 2 characters
+        return jsonify([])
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # Prepare search pattern
+    search_pattern = f"%{search_term}%"
+
+    # Query across multiple fields: data_source_id, keywords, description, and title within metadata JSON
+    # Using LIKE for basic search. For JSON, we use json_extract.
+    # Note: json_extract might be slow on large datasets without indexing.
+    query = """
+        SELECT id, data_source_id, metadata, keywords, data_description
+        FROM data_points
+        WHERE data_source_id LIKE ?
+           OR keywords LIKE ?
+           OR data_description LIKE ?
+           OR json_extract(metadata, '$.title') LIKE ?
+        ORDER BY last_updated DESC
+        LIMIT ?
+    """
+    params = [search_pattern, search_pattern, search_pattern, search_pattern, limit]
+
+    try:
+        c.execute(query, params)
+        results = c.fetchall()
+    except sqlite3.Error as e:
+        logging.error(f"Error searching resources: {e}")
+        results = [] # Return empty on error
+    finally:
+        conn.close()
+
+    # Format results for Select2 { id: data_source_id, text: 'Title (ID)' }
+    formatted_results = []
+    for row in results:
+        row_dict = dict(row)
+        title = row_dict.get('data_source_id', 'Unknown ID') # Default to ID
+        try:
+            metadata = json.loads(row_dict.get('metadata', '{}'))
+            title = metadata.get('title', title) # Use title from metadata if available
+        except json.JSONDecodeError:
+            pass # Keep default title if metadata parsing fails
+
+        formatted_results.append({
+            "id": row_dict['data_source_id'], # Use data_source_id as the value
+            "text": f"{title} ({row_dict['data_source_id']})" # Display text
+        })
+
+    return jsonify(formatted_results)
+# --- END NEW API Endpoint ---
 
 if __name__ == '__main__':
     if not ADMIN_PASSWORD:
