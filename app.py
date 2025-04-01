@@ -570,7 +570,8 @@ def get_network_data():
                     'hover': { 'background': dp_fill_color, 'border': '#E04141' }
                 },
                 'borderWidth': 2,
-                'borderWidthSelected': 4
+                'borderWidthSelected': 4,
+                'dataSourceId': point_dict['data_source_id']
             })
             added_nodes.add(dp_node_id)
 

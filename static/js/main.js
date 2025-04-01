@@ -1710,16 +1710,16 @@ function setupNetworkGraph() {
 
             // --- Updated Event listener for clicking nodes ---
             network.on("click", function (params) {
-                const allNodes = nodes.get({ returnType: "Object" }); // Get all nodes as id:object map
-                const allEdges = edges.get({ returnType: "Object" }); // Get all edges as id:object map
+                const allNodes = nodes.get({ returnType: "Object" });
+                const allEdges = edges.get({ returnType: "Object" });
                 const nodeUpdates = [];
                 const edgeUpdates = [];
-                const lowNodeOpacity = 0.2; // Opacity for non-selected nodes
-                const lowEdgeOpacity = 0.1; // Opacity for non-selected edges
+                const lowNodeOpacity = 0.2;
+                const lowEdgeOpacity = 0.1;
 
                 if (params.nodes.length > 0) {
                     const clickedNodeId = params.nodes[0];
-                    const nodeData = nodes.get(clickedNodeId);
+                    const nodeData = nodes.get(clickedNodeId); // Get the full data object for the clicked node
 
                     // Get IDs of connected nodes and edges
                     const connectedNodes = network.getConnectedNodes(clickedNodeId);
@@ -1750,25 +1750,26 @@ function setupNetworkGraph() {
 
                     // Keep selection for border highlight
                     network.setSelection({
-                        nodes: Array.from(allNodesToSelect), // Convert Set back to Array
-                        edges: Array.from(connectedEdges)   // Convert Set back to Array
+                        nodes: Array.from(allNodesToSelect),
+                        edges: Array.from(connectedEdges)
                     });
 
-                    // --- Optional: Open resource modal if a data point node is clicked ---
-                    if (nodeData && nodeData.group === 'data_point' && clickedNodeId.startsWith('dp_')) {
-                        const dbId = clickedNodeId.substring(3);
+                    // --- MODIFIED: Open resource modal if a data point node is clicked ---
+                    if (nodeData && nodeData.group === 'data_point' && nodeData.dataSourceId) {
                         if (typeof showResourceDetails === 'function') {
-                             console.log("Attempting to show details for DB id:", dbId);
-                             showResourceDetails(parseInt(dbId));
+                             console.log("Network node clicked. Attempting to show details for data_source_id:", nodeData.dataSourceId);
+                             showResourceDetails(nodeData.dataSourceId); // Pass the data_source_id
                         } else {
                              console.error("showResourceDetails function not found");
                         }
                     } else if (nodeData && nodeData.title) {
-                        console.log("Clicked Node Info:", nodeData.title);
+                        // Log info for non-data point nodes if needed
+                        // console.log("Clicked Node Info:", nodeData.title);
                     }
+                    // --- END MODIFICATION ---
 
                 } else {
-                    // Clicked on empty space, reset all opacities to 1.0
+                    // Clicked on empty space, reset all opacities
                     for (const nodeId in allNodes) {
                         const node = allNodes[nodeId];
                         const newColor = updateColorOpacity(node.color, 1.0);
