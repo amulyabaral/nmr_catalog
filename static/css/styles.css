@@ -67,23 +67,48 @@ body {
     display: flex;
     align-items: center;
     color: var(--text-color);
-    margin-top: 60px;
-    padding: 4rem 0;
+    margin-top: 80px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 2rem;
+    padding: 4rem 2rem;
     background-color: var(--background-color);
     text-align: center;
     transition: padding 0.3s ease;
+    max-width: 1200px;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 /* New style for the shorter hero */
 .short-hero {
-    padding: 2rem 0;
+    padding: 2rem 2rem;
     min-height: auto;
+}
+
+/* New style for the background image container */
+.hero-background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/static/images/bacteria.jpg');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15;
+    z-index: 0;
+    border-radius: inherit;
 }
 
 .hero-content {
     max-width: 1000px;
     margin: 0 auto;
     padding: 1rem 2rem;
+    position: relative;
+    z-index: 1;
 }
 
 .hero h1 {
