@@ -419,6 +419,13 @@ function showResourceDetails(resourceId) {
             const domainsDisplayModal = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
             // --- END UPDATE ---
 
+            // --- Parse Description using marked.js ---
+            const descriptionHtml = resource.data_description
+                ? marked.parse(resource.data_description) // Use marked.parse() here
+                : '<p>No description provided.</p>'; // Default if no description
+            // --- End Description Parsing ---
+
+
             detailsContainer.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-column">
@@ -466,7 +473,7 @@ function showResourceDetails(resourceId) {
                         <div class="detail-section">
                             <h3>Description</h3>
                             <div class="detail-description">
-                                ${resource.data_description || 'No description provided.'}
+                                ${descriptionHtml} <!-- Use the parsed HTML -->
                             </div>
                         </div>
 
