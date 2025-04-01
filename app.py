@@ -113,8 +113,12 @@ def add_data():
             # Remove None or empty string values from hierarchy path
             primary_hierarchy = {k: v for k, v in primary_hierarchy.items() if v}
 
-            year_start = request.form.get('year_start', type=int)
-            year_end = request.form.get('year_end', type=int)
+            # Get year values, allowing for empty strings -> None
+            year_start_str = request.form.get('year_start')
+            year_end_str = request.form.get('year_end')
+            year_start = int(year_start_str) if year_start_str else None
+            year_end = int(year_end_str) if year_end_str else None
+
             resource_url = request.form.get('resource_url')
             contact_info = request.form.get('contact_info')
             description = request.form.get('description')
@@ -146,12 +150,18 @@ def add_data():
             if not primary_hierarchy.get('resource_type'):
                  flash('Please select the primary hierarchy path (at least Resource Type).', 'error')
                  return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
-            if not resource_url:
-                 flash('Resource URL is required.', 'error')
-                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
-            if year_start is None or year_end is None or year_start > year_end:
-                 flash('Invalid year range selected.', 'error')
-                 return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
+            # <<< REMOVED validation for resource_url >>>
+            # if not resource_url:
+            #      flash('Resource URL is required.', 'error')
+            #      return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
+            # <<< REMOVED validation for year range >>>
+            # if year_start is None or year_end is None or year_start > year_end:
+            #      flash('Invalid year range selected.', 'error')
+            #      return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
+            # <<< ADDED validation: if both years provided, start <= end >>>
+            if year_start is not None and year_end is not None and year_start > year_end:
+                flash('Invalid year range: Start year cannot be after end year.', 'error')
+                return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
 
 
             # --- Prepare Data for Pending Submission ---
@@ -668,6 +678,7 @@ def approve_submission(submission_id):
         primary_hierarchy = json.loads(submission.get('primary_hierarchy_path', '{}'))
         related_metadata_paths = json.loads(submission.get('related_metadata', '[]'))
         related_resource_ids = json.loads(submission.get('related_resources', '[]'))
+        # <<< Year start/end can be None >>>
         year_start = submission.get('year_start')
         year_end = submission.get('year_end')
 
@@ -686,19 +697,24 @@ def approve_submission(submission_id):
         level5 = primary_hierarchy.get('level5')
 
         # --- Validation ---
-        if not resource_name or not resource_type or year_start is None or year_end is None:
-             flash(f'Submission {submission_id} missing required fields (Name, Type, Year Range). Cannot approve.', 'error')
+        # <<< REMOVED year range check from required fields >>>
+        if not resource_name or not resource_type:
+             flash(f'Submission {submission_id} missing required fields (Name, Type). Cannot approve.', 'error')
              return redirect(url_for('admin_review'))
         # --- End Validation ---
 
+        # <<< Handle potentially None URL >>>
         repository_url = submission.get('resource_url')
-        try:
-            parsed_url = urlparse(repository_url)
-            repository = parsed_url.netloc if parsed_url.netloc else 'Unknown'
-        except Exception:
-            repository = 'Unknown'
+        repository = 'Unknown'
+        if repository_url:
+            try:
+                parsed_url = urlparse(repository_url)
+                repository = parsed_url.netloc if parsed_url.netloc else 'Unknown'
+            except Exception:
+                repository = 'Unknown' # Keep Unknown if URL parsing fails
 
-        data_description = submission.get('description', '')
+        # <<< Description can be None/empty >>>
+        data_description = submission.get('description') # Allow None
         keywords = submission.get('keywords')
         contact_information = submission.get('contact_info')
         last_updated = datetime.date.today().isoformat()
@@ -710,19 +726,20 @@ def approve_submission(submission_id):
             "title": resource_name,
             "institution": "Unknown",
             "license": submission.get('license'),
-            "original_url": repository_url,
+            "original_url": repository_url, # Store None if not provided
             "related_metadata_categories": related_metadata_paths,
             "related_resource_ids": related_resource_ids,
-            "submitted_description": data_description
+            "submitted_description": data_description # Store None if not provided
         }
         metadata_json = json.dumps(metadata_dict)
 
         # Prepare tuple for add_data_point (matching function signature)
+        # <<< Pass potentially None values for year_start, year_end, repository_url, data_description >>>
         data_point_tuple = (
             None, resource_type, category, subcategory, data_type, level5,
             year_start, year_end, data_format, data_resolution, repository, repository_url,
             data_description, keywords, last_updated, contact_information, metadata_json,
-            countries_json, domains_json # <<< Pass JSON strings
+            countries_json, domains_json
         )
 
         # --- Add to Main Data Points Table ---
@@ -932,8 +949,12 @@ def update_data(data_id):
         # Ensure empty strings become None for database consistency
         primary_hierarchy = {k: (v if v else None) for k, v in primary_hierarchy.items()}
 
-        year_start = form_data.get('year_start', type=int)
-        year_end = form_data.get('year_end', type=int)
+        # Get year values, allowing for empty strings -> None
+        year_start_str = form_data.get('year_start')
+        year_end_str = form_data.get('year_end')
+        year_start = int(year_start_str) if year_start_str else None
+        year_end = int(year_end_str) if year_end_str else None
+
         resource_url = form_data.get('resource_url')
         contact_info = form_data.get('contact_info')
         description = form_data.get('description')
@@ -944,12 +965,18 @@ def update_data(data_id):
 
         # --- Basic Validation ---
         # <<< Check if countries_list or domains_list are empty >>>
-        if not resource_name or not countries_list or not domains_list or not primary_hierarchy.get('resource_type') or not resource_url or year_start is None or year_end is None or year_start > year_end:
-             flash('Missing required fields (Name, Country, Domain, Resource Type, URL) or invalid year range.', 'error')
+        if not resource_name or not countries_list or not domains_list or not primary_hierarchy.get('resource_type'):
+             flash('Missing required fields (Name, Country, Domain, Resource Type).', 'error')
              # <<< Prepare original_data_point before re-rendering >>>
              original_data_point = prepare_data_point_for_template(original_data_point)
              # Pass the submitted form data back as MultiDict for pre-filling
              return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
+        # <<< ADDED validation: if both years provided, start <= end >>>
+        if year_start is not None and year_end is not None and year_start > year_end:
+            flash('Invalid year range: Start year cannot be after end year.', 'error')
+            original_data_point = prepare_data_point_for_template(original_data_point)
+            return render_template('edit_data.html', vocabularies=VOCABULARIES, data_point=original_data_point, form_data=MultiDict(form_data))
+
 
         # --- Prepare Data for Update ---
         resource_type = primary_hierarchy.get('resource_type')

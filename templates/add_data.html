@@ -295,6 +295,7 @@
 
                 <div class="form-group">
                     <label for="resource_name">Resource Name / Title:</label>
+                    {# Resource Name remains required #}
                     <input type="text" id="resource_name" name="resource_name" required placeholder="Enter a clear title for the resource" value="{{ form_data.get('resource_name', '') }}">
                 </div>
 
@@ -302,16 +303,20 @@
                     <label for="year_start">Year Range:</label>
                     <div class="year-range-selector">
                         <label for="year_start">From:</label>
-                        <select id="year_start" name="year_start" required class="year-select">
+                        {# Remove required from year_start #}
+                        <select id="year_start" name="year_start" class="year-select">
+                            <option value="">N/A</option> {# Add an option for not applicable #}
                             {% set current_year = 2025 %} {# Or get dynamically #}
                             {% for year in range(1990, current_year + 1) | reverse %}
-                                <option value="{{ year }}" {% if year == form_data.get('year_start', current_year - 1)|int %}selected{% endif %}>{{ year }}</option>
+                                <option value="{{ year }}" {% if year == form_data.get('year_start', '')|int %}selected{% endif %}>{{ year }}</option>
                             {% endfor %}
                         </select>
                         <label for="year_end">To:</label>
-                        <select id="year_end" name="year_end" required class="year-select">
+                         {# Remove required from year_end #}
+                        <select id="year_end" name="year_end" class="year-select">
+                             <option value="">N/A</option> {# Add an option for not applicable #}
                              {% for year in range(1990, current_year + 1) | reverse %}
-                                <option value="{{ year }}" {% if year == form_data.get('year_end', current_year)|int %}selected{% endif %}>{{ year }}</option>
+                                <option value="{{ year }}" {% if year == form_data.get('year_end', '')|int %}selected{% endif %}>{{ year }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -319,21 +324,25 @@
 
                 <div class="form-group">
                     <label for="resource_url">Resource URL:</label>
-                    <input type="url" id="resource_url" name="resource_url" required placeholder="https://example.com/resource" value="{{ form_data.get('resource_url', '') }}">
+                    {# Remove required from resource_url #}
+                    <input type="url" id="resource_url" name="resource_url" placeholder="https://example.com/resource" value="{{ form_data.get('resource_url', '') }}">
                 </div>
 
                 <div class="form-group">
                     <label for="contact_info">Contact Information:</label>
+                    {# Already optional #}
                     <input type="text" id="contact_info" name="contact_info" placeholder="Name, Email, or Website" value="{{ form_data.get('contact_info', '') }}">
                 </div>
 
                 <div class="form-group">
                     <label for="description">Description:</label>
-                    <textarea id="description" name="description" required placeholder="Provide a brief description of the resource...">{{ form_data.get('description', '') }}</textarea>
+                    {# Remove required from description #}
+                    <textarea id="description" name="description" placeholder="Provide a brief description of the resource...">{{ form_data.get('description', '') }}</textarea>
                 </div>
 
                  <div class="form-group">
                     <label for="keywords">Keywords:</label>
+                    {# Already optional #}
                     <input type="text" id="keyword-input" placeholder="Type keywords separated by commas" value="{{ form_data.get('keywords', '') }}">
                     <input type="hidden" id="keywords" name="keywords"> <!-- Hidden field to store final comma-separated list -->
                     <div id="selected-keywords" class="selected-items"></div>
@@ -341,6 +350,7 @@
 
                  <div class="form-group">
                     <label for="license">License (Optional):</label>
+                    {# Already optional #}
                     <input type="text" id="license" name="license" placeholder="e.g., CC BY 4.0, MIT, Public Domain" value="{{ form_data.get('license', '') }}">
                  </div>
 

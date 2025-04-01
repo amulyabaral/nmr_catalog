@@ -50,23 +50,23 @@ def init_db():
                     subcategory TEXT,                   -- Level 3 from YAML (Allow NULL)
                     data_type TEXT,                     -- Level 4 from YAML (Allow NULL)
                     level5 TEXT,                        -- Level 5 from YAML (Allow NULL)
-                    year_start INTEGER,
-                    year_end INTEGER,
+                    year_start INTEGER,                 -- <<< Allow NULL
+                    year_end INTEGER,                   -- <<< Allow NULL
                     data_format TEXT,                   -- File format (Allow NULL)
-                    data_resolution TEXT,               -- <<< MADE NULLABLE
-                    repository TEXT NOT NULL,
-                    repository_url TEXT NOT NULL,
-                    data_description TEXT NOT NULL,
+                    data_resolution TEXT,               -- Already nullable
+                    repository TEXT,                    -- <<< Allow NULL (if URL is null)
+                    repository_url TEXT,                -- <<< Allow NULL
+                    data_description TEXT,              -- <<< Allow NULL
                     keywords TEXT,                      -- Allow NULL
                     last_updated DATE NOT NULL,         -- Date the entry was last updated/approved
                     contact_information TEXT,           -- Allow NULL
                     metadata JSON,                      -- Additional metadata as JSON
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    countries TEXT NOT NULL,            -- <<< RENAMED & TYPE CHANGE (JSON list)
-                    domains TEXT NOT NULL               -- <<< RENAMED & TYPE CHANGE (JSON list)
+                    countries TEXT NOT NULL,            -- JSON list
+                    domains TEXT NOT NULL               -- JSON list
                 )''')
 
-    # Create pending submissions table (already uses JSON lists for countries/domains)
+    # Create pending submissions table (already allows nulls for optional fields)
     c.execute('''CREATE TABLE IF NOT EXISTS pending_submissions (
                     submission_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -159,14 +159,16 @@ def check_duplicate_entry(data):
     """
     Check if a similar entry already exists based on key fields.
     Using repository_url as a strong indicator of duplication.
+    Returns False if repository_url is None or empty.
     """
+    # Indices adjusted for assumed data tuple order: repository_url is index 11
+    repository_url = data[11]
+    if not repository_url:
+        return False # Cannot check for duplicates without a URL
+
     conn = get_db()
     c = conn.cursor()
-    
-    # Check for duplicate based on repository_url
-    # Indices adjusted for assumed data tuple order: repository_url is index 11
-    c.execute('SELECT 1 FROM data_points WHERE repository_url = ?', (data[11],)) # Adjusted index
-    
+    c.execute('SELECT 1 FROM data_points WHERE repository_url = ?', (repository_url,))
     exists = c.fetchone() is not None
     conn.close()
     return exists
@@ -176,24 +178,26 @@ def add_data_point(data):
     # The input 'data' tuple structure is assumed to be:
     # (None, resource_type, category, subcategory, data_type, level5, year_start, year_end, data_format,
     #  data_resolution, repository, repository_url, data_description, keywords,
-    #  last_updated, contact_information, metadata, countries_json, domains_json) # <<< UPDATED
+    #  last_updated, contact_information, metadata, countries_json, domains_json)
     # Indices:   1           2          3            4          5        6           7          8
     #            9              10          11             12                 13
-    #            14             15                  16         17             18         # <<< UPDATED
+    #            14             15                  16         17             18
 
+    # <<< Call check_duplicate_entry which now handles None URL >>>
     if check_duplicate_entry(data):
-        print(f"Warning: Duplicate entry detected based on repository_url: {data[11]}")
+        logging.warning(f"Duplicate entry detected based on repository_url: {data[11]}")
         return None
 
     # Generate unique ID (using same logic, doesn't depend on country/domain)
+    # Pass relevant parts for ID generation
     id_gen_data = (
         None, None, data[2], None, None, None, None, data[7], None, None, None, None, None,
-        data[14], None, data[16]
+        data[14], None, data[16] # category (2), year_end (7), last_updated (14), metadata (16)
     )
     data_source_id = generate_data_source_id(id_gen_data)
 
     # Create new data tuple matching the table columns
-    # Ensure None is used for potentially missing hierarchy levels
+    # Ensure None is used for potentially missing values passed from approve_submission
     new_data = (
         data_source_id,
         data[1],  # resource_type (required)
@@ -201,19 +205,19 @@ def add_data_point(data):
         data[3] or None,  # subcategory
         data[4] or None,  # data_type
         data[5] or None,  # level5
-        data[6],  # year_start (required)
-        data[7],  # year_end (required)
+        data[6],  # year_start (can be None)
+        data[7],  # year_end (can be None)
         data[8] or 'Unknown',  # data_format (default if None)
         data[9] or 'Unknown',  # data_resolution (default if None)
-        data[10], # repository (required)
-        data[11], # repository_url (required)
-        data[12], # data_description (required)
+        data[10] or None, # repository (can be None if URL is None)
+        data[11] or None, # repository_url (can be None)
+        data[12] or None, # data_description (can be None)
         data[13] or None, # keywords
         data[14], # last_updated (required)
         data[15] or None, # contact_information
         data[16] or '{}', # metadata (default if None)
-        data[17], # countries_json (required) # <<< UPDATED
-        data[18]  # domains_json (required)   # <<< UPDATED
+        data[17], # countries_json (required)
+        data[18]  # domains_json (required)
     )
 
     conn = get_db()
@@ -225,15 +229,15 @@ def add_data_point(data):
                         year_start, year_end, data_format, data_resolution, repository, repository_url,
                         data_description, keywords, last_updated, contact_information, metadata,
                         countries, domains
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data) # <<< UPDATED columns
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', new_data)
         conn.commit()
-        print(f"Added data point with ID: {data_source_id}")
+        logging.info(f"Added data point with ID: {data_source_id}")
     except sqlite3.IntegrityError as e:
-         print(f"Error adding data point (IntegrityError, possibly duplicate data_source_id '{data_source_id}'): {e}")
+         logging.error(f"Error adding data point (IntegrityError, possibly duplicate data_source_id '{data_source_id}'): {e}")
          conn.rollback()
          return None
     except sqlite3.Error as e:
-         print(f"Error adding data point: {e}")
+         logging.error(f"Error adding data point: {e}")
          conn.rollback()
          return None
     finally:
