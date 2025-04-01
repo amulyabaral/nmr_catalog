@@ -1708,7 +1708,7 @@ function setupNetworkGraph() {
             // Store original colors for reset (optional, but safer)
             // We'll try resetting without storing originals first by recalculating rgba with alpha=1
 
-            // --- Updated Event listener for clicking nodes ---
+            // --- Event listener for SINGLE clicking nodes (Highlighting) ---
             network.on("click", function (params) {
                 const allNodes = nodes.get({ returnType: "Object" });
                 const allEdges = edges.get({ returnType: "Object" });
@@ -1719,19 +1719,18 @@ function setupNetworkGraph() {
 
                 if (params.nodes.length > 0) {
                     const clickedNodeId = params.nodes[0];
-                    const nodeData = nodes.get(clickedNodeId); // Get the full data object for the clicked node
+                    // const nodeData = nodes.get(clickedNodeId); // No longer needed here for modal
 
                     // Get IDs of connected nodes and edges
                     const connectedNodes = network.getConnectedNodes(clickedNodeId);
-                    const allNodesToSelect = new Set([clickedNodeId, ...connectedNodes]); // Use Set for faster lookup
-                    const connectedEdges = new Set(network.getConnectedEdges(clickedNodeId)); // Use Set
+                    const allNodesToSelect = new Set([clickedNodeId, ...connectedNodes]);
+                    const connectedEdges = new Set(network.getConnectedEdges(clickedNodeId));
 
                     // Update nodes opacity
                     for (const nodeId in allNodes) {
                         const node = allNodes[nodeId];
                         const targetOpacity = allNodesToSelect.has(nodeId) ? 1.0 : lowNodeOpacity;
                         const newColor = updateColorOpacity(node.color, targetOpacity);
-                        // Also ensure font color opacity changes
                         const newFont = { ...(node.font || {}), color: setOpacity((node.font && node.font.color) || '#333333', targetOpacity) };
                         nodeUpdates.push({ id: nodeId, color: newColor, font: newFont });
                     }
@@ -1754,19 +1753,8 @@ function setupNetworkGraph() {
                         edges: Array.from(connectedEdges)
                     });
 
-                    // --- MODIFIED: Open resource modal if a data point node is clicked ---
-                    if (nodeData && nodeData.group === 'data_point' && nodeData.dataSourceId) {
-                        if (typeof showResourceDetails === 'function') {
-                             console.log("Network node clicked. Attempting to show details for data_source_id:", nodeData.dataSourceId);
-                             showResourceDetails(nodeData.dataSourceId); // Pass the data_source_id
-                        } else {
-                             console.error("showResourceDetails function not found");
-                        }
-                    } else if (nodeData && nodeData.title) {
-                        // Log info for non-data point nodes if needed
-                        // console.log("Clicked Node Info:", nodeData.title);
-                    }
-                    // --- END MODIFICATION ---
+                    // --- REMOVED modal opening logic from single click ---
+                    // if (nodeData && nodeData.group === 'data_point' && nodeData.dataSourceId) { ... }
 
                 } else {
                     // Clicked on empty space, reset all opacities
@@ -1790,6 +1778,27 @@ function setupNetworkGraph() {
                     network.unselectAll();
                 }
             });
+
+            // --- NEW Event listener for DOUBLE clicking nodes (Open Modal) ---
+            network.on("doubleClick", function (params) {
+                if (params.nodes.length > 0) {
+                    const clickedNodeId = params.nodes[0];
+                    const nodeData = nodes.get(clickedNodeId); // Get data for the double-clicked node
+
+                    // Check if it's a data point node and has the necessary ID
+                    if (nodeData && nodeData.group === 'data_point' && nodeData.dataSourceId) {
+                        if (typeof showResourceDetails === 'function') {
+                            console.log("Network node double-clicked. Attempting to show details for data_source_id:", nodeData.dataSourceId);
+                            showResourceDetails(nodeData.dataSourceId); // Pass the data_source_id
+                        } else {
+                            console.error("showResourceDetails function not found");
+                        }
+                    }
+                }
+                // No action needed if double-clicking empty space or non-data point node
+            });
+            // --- END NEW Double Click Listener ---
+
 
             // --- Optional: Stop physics after stabilization ---
             network.on("stabilizationIterationsDone", function () {
