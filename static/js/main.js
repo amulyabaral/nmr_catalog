@@ -333,6 +333,11 @@ function displayResults(data) {
                             }
                             // --- End Year Range Display ---
 
+                            // --- UPDATED: Access countries_list and domains_list ---
+                            const countriesDisplay = Array.isArray(resource.countries_list) ? resource.countries_list.join(', ') : 'N/A';
+                            const domainsDisplay = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
+                            // --- END UPDATE ---
+
                             return `
                                 <tr class="data-row" data-id="${resource.data_source_id}"
                                     data-category="${resource.category || ''}"
@@ -349,8 +354,8 @@ function displayResults(data) {
                                             ${resource.level5 ? `<span class="metadata-item">${resource.level5.replace(/_/g, ' ')}</span>` : ''}
                                         </div>
                                     </td>
-                                    <td>${resource.country}</td>
-                                    <td>${resource.domain}</td>
+                                    <td>${countriesDisplay}</td>
+                                    <td>${domainsDisplay}</td>
                                     <td data-year-end="${end || 0}">${yearDisplay}</td>
                                 </tr>
                             `;
@@ -409,6 +414,11 @@ function showResourceDetails(resourceId) {
             }
             // --- End Year Range Display ---
 
+            // --- UPDATED: Access countries_list and domains_list for modal ---
+            const countriesDisplayModal = Array.isArray(resource.countries_list) ? resource.countries_list.join(', ') : 'N/A';
+            const domainsDisplayModal = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
+            // --- END UPDATE ---
+
             detailsContainer.innerHTML = `
                 <div class="detail-grid">
                     <div class="detail-column">
@@ -439,8 +449,8 @@ function showResourceDetails(resourceId) {
                         <div class="detail-section">
                             <h3>Categories</h3>
                             <div class="detail-tags">
-                                <div class="detail-tag country">${resource.country}</div>
-                                <div class="detail-tag domain">${resource.domain}</div>
+                                <div class="detail-tag country">${countriesDisplayModal}</div>
+                                <div class="detail-tag domain">${domainsDisplayModal}</div>
                                 <div class="detail-tag resource-type">${resource.resource_type}</div>
                             </div>
                             <div class="subcategory-tags">
