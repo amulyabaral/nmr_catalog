@@ -156,7 +156,7 @@ Resource_type_hierarchy:
                 level: 4
               - name: climate_monitoring_stations
                 level: 4
-          integrated_amr_amu_surveillance:
+          amr_amu_surveillance:
             level: 3
       analysis_platforms_and_tools:
         level: 2
