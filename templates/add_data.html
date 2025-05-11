@@ -223,11 +223,15 @@
         <!-- NEW AI URL Processing Form -->
         <fieldset style="background-color: #eef7ff; border-color: #b3d7ff;">
             <legend style="color: #0056b3;">AI-Powered Pre-fill (Experimental)</legend>
-            <form method="POST" action="{{ url_for('ai_process_url') }}" id="ai-url-form">
+            <form method="POST" action="{{ url_for('ai_process_input') }}" id="ai-input-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="ai_url">Enter URL of the resource (webpage, PDF link):</label>
                     <input type="url" id="ai_url" name="ai_url" placeholder="https://example.com/resource-document.pdf" style="margin-bottom: 0.5rem;">
-                    <small>The AI will attempt to extract information from the URL to pre-fill this form. Processing might take a minute.</small>
+                </div>
+                <div class="form-group">
+                    <label for="ai_file">Or upload a file (PDF, TXT, HTML):</label>
+                    <input type="file" id="ai_file" name="ai_file" accept=".pdf,.txt,.html,.htm">
+                    <small>The AI will attempt to extract information from the URL or file to pre-fill this form. Processing might take a minute.</small>
                 </div>
                 <button type="submit" class="submit-button" style="background-color: var(--secondary-color); padding: 0.7rem 1.5rem; font-size: 1rem;">Process with AI</button>
             </form>

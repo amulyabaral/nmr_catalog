@@ -99,38 +99,98 @@ def index():
 
 # --- NEW HELPER FUNCTIONS FOR AI PROCESSING ---
 
-def extract_text_from_url(url):
-    """Fetches content from URL and extracts text based on content type."""
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'} # Be a good web citizen
-        response = requests.get(url, headers=headers, timeout=20, allow_redirects=True)
-        response.raise_for_status() # Raise an exception for bad status codes
-        
-        content_type = response.headers.get('content-type', '').lower()
-        
-        if 'html' in content_type:
-            soup = BeautifulSoup(response.content, 'html.parser')
-            # Remove script and style elements
-            for script_or_style in soup(["script", "style"]):
-                script_or_style.decompose()
-            # Get text
-            text = soup.get_text(separator='\n', strip=True)
-            # Reduce multiple newlines
-            text = re.sub(r'\n\s*\n', '\n\n', text)
-            return text, None
-        elif 'pdf' in content_type:
-            with fitz.open(stream=response.content, filetype="pdf") as doc:
-                text = ""
-                for page in doc:
-                    text += page.get_text()
-            return text, None
-        else:
-            return None, f"Unsupported content type: {content_type}"
+def extract_text_from_source(input_source, source_name, content_type_hint=None):
+    """
+    Extracts text from a given input_source (URL string or file-like object).
+    source_name is the URL or filename for context.
+    content_type_hint is the mimetype from the uploaded file.
+    """
+    if isinstance(input_source, str): # It's a URL
+        url = input_source
+        logging.info(f"Extracting text from URL: {url}")
+        try:
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            response = requests.get(url, headers=headers, timeout=30, allow_redirects=True) # Increased timeout
+            response.raise_for_status()
             
-    except requests.exceptions.RequestException as e:
-        return None, f"Error fetching URL: {e}"
-    except Exception as e:
-        return None, f"Error processing content: {e}"
+            content_type = response.headers.get('content-type', '').lower()
+            
+            if 'html' in content_type:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for script_or_style in soup(["script", "style"]):
+                    script_or_style.decompose()
+                text = soup.get_text(separator='\n', strip=True)
+                text = re.sub(r'\n\s*\n', '\n\n', text)
+                return text, None
+            elif 'pdf' in content_type:
+                with fitz.open(stream=response.content, filetype="pdf") as doc:
+                    text = "".join(page.get_text() for page in doc)
+                return text, None
+            elif 'text/plain' in content_type: # Handle plain text from URL
+                return response.text, None
+            else:
+                return None, f"Unsupported content type from URL: {content_type}"
+                
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching URL {url}: {e}")
+            return None, f"Error fetching URL: {e}"
+        except Exception as e:
+            logging.error(f"Error processing content from URL {url}: {e}")
+            return None, f"Error processing content: {e}"
+
+    elif hasattr(input_source, 'read'): # It's a file-like object (uploaded file stream)
+        filename = source_name
+        file_content_type = content_type_hint or ''
+        logging.info(f"Extracting text from uploaded file: {filename}, MIME hint: {file_content_type}")
+
+        # Try to infer content type from filename if not provided by upload or is generic
+        if (not file_content_type or file_content_type == 'application/octet-stream') and filename:
+            if filename.lower().endswith('.pdf'):
+                file_content_type = 'application/pdf'
+            elif filename.lower().endswith('.txt'):
+                file_content_type = 'text/plain'
+            elif filename.lower().endswith(('.html', '.htm')):
+                file_content_type = 'text/html'
+
+        try:
+            # Ensure the stream is at the beginning if it might have been read before
+            if hasattr(input_source, 'seek'):
+                input_source.seek(0)
+            
+            file_bytes = input_source.read() # Read once
+
+            if 'pdf' in file_content_type:
+                with fitz.open(stream=file_bytes, filetype="pdf") as doc:
+                    text = "".join(page.get_text() for page in doc)
+                return text, None
+            elif 'text/plain' in file_content_type:
+                text = file_bytes.decode('utf-8', errors='replace')
+                return text, None
+            elif 'html' in file_content_type:
+                soup = BeautifulSoup(file_bytes, 'html.parser')
+                for script_or_style in soup(["script", "style"]):
+                    script_or_style.decompose()
+                text = soup.get_text(separator='\n', strip=True)
+                text = re.sub(r'\n\s*\n', '\n\n', text)
+                return text, None
+            else:
+                # Attempt to read as plain text as a last resort if type is unknown
+                try:
+                    logging.info(f"Unknown file type for {filename}, attempting to read as text.")
+                    text = file_bytes.decode('utf-8', errors='replace')
+                    if text.strip(): # If we got some text
+                        return text, None
+                    else:
+                        return None, f"Unsupported file type or empty file: {filename} (MIME: {file_content_type or 'unknown'})"
+                except Exception as e_text:
+                    logging.error(f"Could not read {filename} as text: {e_text}")
+                    return None, f"Unsupported file type: {filename} (MIME: {file_content_type or 'unknown'})"
+        except Exception as e:
+            logging.error(f"Error processing file {filename}: {e}", exc_info=True)
+            return None, f"Error processing file {filename}: {e}"
+    else:
+        return None, "Invalid input type for text extraction."
+
 
 def get_detailed_vocab_text():
     """Extracts a more detailed list of terms from vocabularies to guide the LLM."""
@@ -198,7 +258,7 @@ def get_detailed_vocab_text():
     return vocab_summary
 
 
-def call_gemini_api(text_content, input_url):
+def call_gemini_api(text_content, source_identifier):
     """Calls the Gemini API to extract information."""
     if not GEMINI_API_KEY:
         return None, "GEMINI_API_KEY not configured."
@@ -214,8 +274,19 @@ def call_gemini_api(text_content, input_url):
 
     vocab_context = get_detailed_vocab_text()
 
+    prompt_source_guidance = ""
+    original_input_url_for_prompt = "" # Will hold the URL if the source was a URL
+
+    if source_identifier.startswith('http://') or source_identifier.startswith('https://'):
+        prompt_source_guidance = f"The content was sourced from the URL: {source_identifier}."
+        original_input_url_for_prompt = source_identifier
+    else:
+        prompt_source_guidance = f"The content was sourced from an uploaded file named: {source_identifier}."
+
+
     prompt = f"""
-    You are a meticulous data extraction assistant. Your task is to analyze the text content from the URL '{input_url}' and populate a JSON object.
+    You are a meticulous data extraction assistant.
+    Your task is to analyze the text content from the source and populate a JSON object. {prompt_source_guidance}
     **CRITICAL INSTRUCTIONS:**
     1.  **Strict Vocabulary Adherence**: You MUST use the exact internal keys/names (e.g., 'omics_data', 'whole_genome_sequencing') provided in the "Vocabulary and Hierarchy" section below for categorization fields ("countries", "domains", "primary_hierarchy" levels) in your JSON output. Do NOT use display titles or variations.
     2.  **No Hallucination**: If information for a field is NOT explicitly present in the text, OMIT the field from the JSON or set its value to null. DO NOT invent or infer data.
@@ -239,9 +310,9 @@ def call_gemini_api(text_content, input_url):
         - "level5_item": (string, optional) e.g., "clinical_isolates". Must be an L5 key/item.
     - "year_start": (integer, optional) The start year. Extract if clearly stated.
     - "year_end": (integer, optional) The end year. Extract if clearly stated.
-    - "resource_url": (string) This MUST be the original input URL: "{input_url}".
+    - "resource_url": (string, optional) If the analyzed text explicitly mentions a primary URL for the resource itself, provide that. {'If no specific URL is found in the text, you may use the source URL: "' + original_input_url_for_prompt + '" if the content was sourced from a URL.' if original_input_url_for_prompt else 'If the content was from an uploaded file and no URL is found in its text, omit this field or set it to null.'}
     - "contact_info": (string, optional) Contact email, person, or organization, if found.
-    - "description": (string) A concise summary (max 200 words) extracted directly from the text. If no summary, state "No summary found in text."
+    - "description": (string) Detailed info about the resource extracted directly from the text/file. Try to extract as much info as you can, but when writing it here be concise and straight to the point. Paste any found links as links. If no summary, state "No summary found in text."
     - "keywords": (list of strings, optional) Keywords explicitly mentioned or strongly implied by the text.
     - "license": (string, optional) License information, if found.
 
@@ -341,34 +412,60 @@ def call_gemini_api(text_content, input_url):
         return None, f"Error calling Gemini API: {e}"
 
 # --- NEW ROUTE FOR AI URL PROCESSING ---
-@app.route('/ai-process-url', methods=['POST'])
-def ai_process_url():
+@app.route('/ai-process-input', methods=['POST']) # Renamed route
+def ai_process_input():
     url_to_process = request.form.get('ai_url')
-    if not url_to_process:
-        flash('No URL provided for AI processing.', 'error')
+    uploaded_file = request.files.get('ai_file')
+    
+    text_content = None
+    error = None
+    source_identifier = None # For the LLM prompt and pre-filling resource_url if it's a URL
+    # source_for_redirect is used to pass the original URL back to the form if AI fails or for pre-filling
+    source_for_redirect_url = None 
+
+    if uploaded_file and uploaded_file.filename:
+        filename = uploaded_file.filename
+        source_identifier = filename # Use filename as identifier for file uploads
+        # For file uploads, we don't have a URL to pre-fill in the resource_url field by default
+        source_for_redirect_url = None 
+        logging.info(f"Processing uploaded file: {filename}, MIME type: {uploaded_file.content_type}")
+        # Pass uploaded_file.stream which is a file-like object
+        text_content, error = extract_text_from_source(uploaded_file.stream, filename, uploaded_file.content_type)
+        if not text_content and not error:
+            error = "Could not extract text from uploaded file."
+            logging.warning(f"No text extracted from {filename} and no specific error returned.")
+
+
+    elif url_to_process:
+        source_identifier = url_to_process
+        source_for_redirect_url = url_to_process # Pass URL back for pre-fill
+        logging.info(f"Processing URL: {url_to_process}")
+        text_content, error = extract_text_from_source(url_to_process, url_to_process)
+        if not text_content and not error:
+            error = "Could not extract text from URL."
+            logging.warning(f"No text extracted from URL {url_to_process} and no specific error returned.")
+    else:
+        flash('No URL or file provided for AI processing.', 'error')
         return redirect(url_for('add_data'))
 
-    text_content, error = extract_text_from_url(url_to_process)
     if error:
-        flash(f'Error extracting content from URL: {error}', 'error')
-        # Pass the URL back so the user doesn't have to re-type it in the main form
-        return redirect(url_for('add_data', resource_url=url_to_process)) 
+        flash(f'Error extracting content: {error}', 'error')
+        return redirect(url_for('add_data', resource_url=source_for_redirect_url)) 
     
     if not text_content:
-        flash('Could not extract any text content from the URL.', 'warning')
-        return redirect(url_for('add_data', resource_url=url_to_process))
+        flash('Could not extract any text content from the source.', 'warning')
+        return redirect(url_for('add_data', resource_url=source_for_redirect_url))
 
-    extracted_data, gemini_error = call_gemini_api(text_content, url_to_process)
+    extracted_data, gemini_error = call_gemini_api(text_content, source_identifier)
     if gemini_error:
         flash(f'AI processing error: {gemini_error}', 'error')
-        return redirect(url_for('add_data', resource_url=url_to_process, description=text_content[:500])) # Pre-fill description with extracted text
+        return redirect(url_for('add_data', resource_url=source_for_redirect_url, description=text_content[:500]))
 
     if not extracted_data:
         flash('AI could not extract data. Please fill the form manually.', 'warning')
-        return redirect(url_for('add_data', resource_url=url_to_process, description=text_content[:500]))
+        return redirect(url_for('add_data', resource_url=source_for_redirect_url, description=text_content[:500]))
 
     # Prepare query parameters for redirecting to add_data
-    # The add_data route's GET handler will need to process these.
     query_params = {}
     if extracted_data.get("resource_name"):
         query_params["resource_name"] = extracted_data["resource_name"]
@@ -409,7 +506,14 @@ def ai_process_url():
     if extracted_data.get("year_end"):
         query_params["year_end"] = str(extracted_data["year_end"])
     
-    query_params["resource_url"] = extracted_data.get("resource_url", url_to_process) # Default to input URL
+    # Handle resource_url pre-fill:
+    # If the original input was a URL, prioritize that for pre-filling.
+    # Otherwise, use what the LLM extracted (if anything).
+    if source_for_redirect_url: # Original input was a URL
+        query_params["resource_url"] = source_for_redirect_url
+    elif extracted_data.get("resource_url"): # LLM extracted a URL from file content
+        query_params["resource_url"] = extracted_data.get("resource_url")
+    # If it was a file and LLM found no URL, resource_url won't be in query_params.
     
     if extracted_data.get("contact_info"):
         query_params["contact_info"] = extracted_data["contact_info"]
