@@ -132,30 +132,69 @@ def extract_text_from_url(url):
     except Exception as e:
         return None, f"Error processing content: {e}"
 
-def get_relevant_vocab_text():
-    """Extracts key terms from vocabularies to guide the LLM."""
+def get_detailed_vocab_text():
+    """Extracts a more detailed list of terms from vocabularies to guide the LLM."""
     main_cats = VOCABULARIES.get('main_categories', {})
     hierarchy = VOCABULARIES.get('resource_type_hierarchy', {})
     
-    vocab_summary = "Available Main Categories:\n"
+    vocab_summary = "You MUST use the following vocabulary. Only select terms from this list for categorization.\n\n"
+    vocab_summary += "== Main Categories ==\n"
     if main_cats.get('Country'):
-        vocab_summary += f"Countries: {', '.join(main_cats['Country'][:10])}...\n" # Show a few
+        vocab_summary += f"Countries: {', '.join(main_cats['Country'])}\n"
     if main_cats.get('Domain'):
         vocab_summary += f"Domains: {', '.join(main_cats['Domain'])}\n"
-    if main_cats.get('Resource_type'):
-        vocab_summary += f"Resource Types (Level 1): {', '.join(main_cats['Resource_type'])}\n\n"
+    
+    vocab_summary += "\n== Resource Hierarchy (Levels 1-5) ==\n"
+    vocab_summary += "The values you return in the JSON for primary_hierarchy levels (e.g. level1_resource_type) MUST be the internal keys/names (e.g., 'omics_data', 'whole_genome_sequencing') and NOT the display titles (e.g., 'Omics Data').\n"
+    vocab_summary += "Format: L1_key > L2_key > L3_key > L4_key > L5_key (item name)\n"
+    vocab_summary += "Select the most specific path that applies. Only use terms exactly as listed below for the JSON values.\n"
 
-    vocab_summary += "Resource Type Hierarchy (Examples):\n"
-    for l1_key, l1_val in list(hierarchy.items())[:2]: # Show a couple of L1s
-        vocab_summary += f"- {l1_val.get('title', l1_key.replace('_', ' ').title())}\n"
-        if l1_val.get('sub_categories'):
-            for l2_key, l2_val in list(l1_val['sub_categories'].items())[:2]:
-                vocab_summary += f"  - {l2_val.get('title', l2_key.replace('_', ' ').title())}\n"
-                if l2_val.get('items'):
-                     vocab_summary += f"    - Items: {', '.join(str(i.get('name', i)) for i in l2_val['items'][:2])}...\n"
-                elif l2_val.get('sub_categories'):
-                    for l3_key, l3_val in list(l2_val['sub_categories'].items())[:1]:
-                        vocab_summary += f"    - {l3_val.get('title', l3_key.replace('_', ' ').title())}...\n"
+    def format_internal_key(key): # Helper to ensure we are referring to keys
+        return key
+
+    def get_display_name(key, details_dict): # Helper for constructing the text for LLM
+        return details_dict.get('title', key.replace('_', ' ').title())
+
+    # Iterate through L1 resource types
+    for l1_key, l1_details in hierarchy.items():
+        l1_display_name = get_display_name(l1_key, l1_details)
+        vocab_summary += f"\n--- Resource Type (L1): {l1_display_name} (key: {format_internal_key(l1_key)}) ---\n"
+        
+        if l1_details.get('sub_categories'):
+            for l2_key, l2_details in l1_details['sub_categories'].items():
+                l2_display_name = get_display_name(l2_key, l2_details)
+                vocab_summary += f"  L2: {l2_display_name} (key: {format_internal_key(l2_key)}) under {l1_display_name}\n"
+                
+                if l2_details.get('sub_categories'):
+                    for l3_key, l3_details in l2_details['sub_categories'].items():
+                        l3_display_name = get_display_name(l3_key, l3_details)
+                        vocab_summary += f"    L3: {l3_display_name} (key: {format_internal_key(l3_key)}) under {l2_display_name}\n"
+                        
+                        if l3_details.get('sub_categories'):
+                            for l4_key, l4_details in l3_details['sub_categories'].items():
+                                l4_display_name = get_display_name(l4_key, l4_details)
+                                vocab_summary += f"      L4: {l4_display_name} (key: {format_internal_key(l4_key)}) under {l3_display_name}\n"
+                                if l4_details.get('items'):
+                                    for item in l4_details['items']:
+                                        item_key = item.get('name', str(item))
+                                        item_display_name = get_display_name(item_key, item)
+                                        vocab_summary += f"        L5 Item: {item_display_name} (key: {format_internal_key(item_key)}) under {l4_display_name}\n"
+                        elif l3_details.get('items'): 
+                            for item in l3_details['items']:
+                                item_key = item.get('name', str(item))
+                                item_display_name = get_display_name(item_key, item)
+                                vocab_summary += f"      L4 Item: {item_display_name} (key: {format_internal_key(item_key)}) under {l3_display_name}\n"
+
+                elif l2_details.get('items'):
+                     for item in l2_details['items']:
+                        item_key = item.get('name', str(item))
+                        item_display_name = get_display_name(item_key, item)
+                        vocab_summary += f"    L3 Item: {item_display_name} (key: {format_internal_key(item_key)}) under {l2_display_name}\n"
+        elif l1_details.get('items'): 
+            for item in l1_details['items']:
+                item_key = item.get('name', str(item))
+                item_display_name = get_display_name(item_key, item)
+                vocab_summary += f"  L2 Item: {item_display_name} (key: {format_internal_key(item_key)}) under {l1_display_name}\n"
     return vocab_summary
 
 
@@ -173,57 +212,56 @@ def call_gemini_api(text_content, input_url):
     # I will use the latter in the URL.
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={GEMINI_API_KEY}"
 
-    vocab_context = get_relevant_vocab_text()
+    vocab_context = get_detailed_vocab_text()
 
     prompt = f"""
-    You are an expert data extraction assistant. Your task is to analyze the following text content extracted from the URL '{input_url}' and populate a JSON object with information relevant to cataloging a research resource.
+    You are a meticulous data extraction assistant. Your task is to analyze the text content from the URL '{input_url}' and populate a JSON object.
+    **CRITICAL INSTRUCTIONS:**
+    1.  **Strict Vocabulary Adherence**: You MUST use the exact internal keys/names (e.g., 'omics_data', 'whole_genome_sequencing') provided in the "Vocabulary and Hierarchy" section below for categorization fields ("countries", "domains", "primary_hierarchy" levels) in your JSON output. Do NOT use display titles or variations.
+    2.  **No Hallucination**: If information for a field is NOT explicitly present in the text, OMIT the field from the JSON or set its value to null. DO NOT invent or infer data.
+    3.  **Single Resource Focus**: If the document describes multiple distinct resources, focus on extracting information for the most prominent one or the first one described in detail. The system currently processes one resource at a time.
+    4.  **JSON Output Only**: Your entire response MUST be a single, valid JSON object. Do not include any explanatory text before or after the JSON.
 
-    Available vocabulary terms for guidance (try to map to these where appropriate):
+    **Vocabulary and Hierarchy (Use EXACT internal keys/names from here for JSON values):**
+    --- VOCABULARY START ---
     {vocab_context}
+    --- VOCABULARY END ---
 
-    Extract the following fields and structure them in a JSON object:
+    **JSON Output Structure and Fields:**
     - "resource_name": (string) The primary title or name of the resource.
-    - "countries": (list of strings) Relevant countries. If multiple, list them.
-    - "domains": (list of strings) Relevant domains (e.g., Human, Animal, Environment).
-    - "primary_hierarchy": (object) The most specific classification.
-        - "level1_resource_type": (string) e.g., Data, Systems, Publications.
-        - "level2_category": (string, optional) e.g., omics_data, surveillance_network.
-        - "level3_subcategory": (string, optional) e.g., genomic, pathogen_tracking_systems.
-        - "level4_data_type": (string, optional) e.g., whole_genome_sequencing, clinical_isolate_registry.
-        - "level5_item": (string, optional) e.g., clinical_isolates, wastewater_surveillance.
-    - "year_start": (integer, optional) The start year of the resource or data.
-    - "year_end": (integer, optional) The end year. If ongoing or single year, can be same as start or current year.
-    - "resource_url": (string) This should be the original input URL: "{input_url}".
-    - "contact_info": (string, optional) Contact email, person, or organization.
-    - "description": (string) A concise summary of the resource. Max 200 words.
-    - "keywords": (list of strings, optional) Relevant keywords.
-    - "license": (string, optional) License information (e.g., CC BY 4.0, MIT).
+    - "countries": (list of strings) Relevant countries, selected ONLY from the 'Countries' list in the vocabulary.
+    - "domains": (list of strings) Relevant domains, selected ONLY from the 'Domains' list in the vocabulary.
+    - "primary_hierarchy": (object) The most specific classification path found in the text, matching the "Resource Hierarchy" provided. Values for levels MUST be the internal keys.
+        - "level1_resource_type": (string) e.g., "Data", "Systems". Must be an L1 key.
+        - "level2_category": (string, optional) e.g., "omics_data". Must be an L2 key under the selected L1.
+        - "level3_subcategory": (string, optional) e.g., "genomic". Must be an L3 key under the selected L2.
+        - "level4_data_type": (string, optional) e.g., "whole_genome_sequencing". Must be an L4 key/item.
+        - "level5_item": (string, optional) e.g., "clinical_isolates". Must be an L5 key/item.
+    - "year_start": (integer, optional) The start year. Extract if clearly stated.
+    - "year_end": (integer, optional) The end year. Extract if clearly stated.
+    - "resource_url": (string) This MUST be the original input URL: "{input_url}".
+    - "contact_info": (string, optional) Contact email, person, or organization, if found.
+    - "description": (string) A concise summary (max 200 words) extracted directly from the text. If no summary, state "No summary found in text."
+    - "keywords": (list of strings, optional) Keywords explicitly mentioned or strongly implied by the text.
+    - "license": (string, optional) License information, if found.
 
-    If a field is not found or not applicable, you can omit it from the JSON or set its value to null (prefer omitting for optional fields).
-    For hierarchy, try to find the most specific level. If only Level 1 is clear, provide that.
-    For countries and domains, if the text mentions specific Nordic countries (Denmark, Finland, Norway, Sweden), prioritize them.
-
-    JSON Output Example:
-    {{
-      "resource_name": "Nordic AMR Surveillance Data 2022",
-      "countries": ["Norway", "Sweden"],
-      "domains": ["Human"],
-      "primary_hierarchy": {{
+    **Example of how to select hierarchy (use the internal keys for the JSON values):**
+    If the text discusses "wastewater metagenomes", and the vocabulary shows:
+    --- Resource Type (L1): Data (key: Data) ---
+      L2: omics_data (key: omics_data) under Data
+        L3: metagenomic (key: metagenomic) under omics_data
+          L4 Item: wastewater_metagenomes (key: wastewater_metagenomes) under metagenomic
+    Then the JSON for primary_hierarchy should be:
+    "primary_hierarchy": {{
         "level1_resource_type": "Data",
-        "level2_category": "population_data",
-        "level3_subcategory": "disease_incidence"
-      }},
-      "year_start": 2022,
-      "year_end": 2022,
-      "resource_url": "{input_url}",
-      "description": "Annual report on antimicrobial resistance surveillance in Nordic countries for human health.",
-      "keywords": ["AMR", "surveillance", "Nordic", "report"],
-      "license": "Government Open License"
+        "level2_category": "omics_data",
+        "level3_subcategory": "metagenomic",
+        "level4_data_type": "wastewater_metagenomes"
     }}
 
-    Now, analyze this text:
+    **Analyze the following text content:**
     --- TEXT START ---
-    {text_content[:300000]} 
+    {text_content[:800000]}
     --- TEXT END ---
 
     Return ONLY the JSON object.
