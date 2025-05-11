@@ -231,9 +231,10 @@
                 <div class="form-group">
                     <label for="ai_file">Or upload a file (PDF, TXT, HTML):</label>
                     <input type="file" id="ai_file" name="ai_file" accept=".pdf,.txt,.html,.htm">
-                    <small>The AI will attempt to extract information from the URL or file to pre-fill this form. Processing might take a minute.</small>
+                    <small>The AI will attempt to extract information from the URL or file. Processing might take a minute.</small>
                 </div>
-                <button type="submit" class="submit-button" style="background-color: var(--secondary-color); padding: 0.7rem 1.5rem; font-size: 1rem;">Process with AI</button>
+                <button type="submit" name="submit_action" value="prefill" class="submit-button" style="background-color: var(--secondary-color); padding: 0.7rem 1.5rem; font-size: 1rem; margin-right: 10px;">Process & Pre-fill Form</button>
+                <button type="submit" name="submit_action" value="direct_submit" class="submit-button" style="background-color: var(--primary-color); padding: 0.7rem 1.5rem; font-size: 1rem;">Process & Submit Directly</button>
             </form>
         </fieldset>
         <!-- END NEW AI URL Processing Form -->

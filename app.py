@@ -416,6 +416,7 @@ def call_gemini_api(text_content, source_identifier):
 def ai_process_input():
     url_to_process = request.form.get('ai_url')
     uploaded_file = request.files.get('ai_file')
+    submit_action = request.form.get('submit_action') # Check which button was pressed
     
     text_content = None
     error = None
@@ -465,65 +466,168 @@ def ai_process_input():
         flash('AI could not extract data. Please fill the form manually.', 'warning')
         return redirect(url_for('add_data', resource_url=source_for_redirect_url, description=text_content[:500]))
 
-    # Prepare query parameters for redirecting to add_data
-    query_params = {}
-    if extracted_data.get("resource_name"):
-        query_params["resource_name"] = extracted_data["resource_name"]
-    
-    # For lists like countries, domains, keywords, join them if they are lists
-    if isinstance(extracted_data.get("countries"), list):
-        for country in extracted_data["countries"]:
-            query_params.setdefault("countries", []).append(country)
-    elif isinstance(extracted_data.get("countries"), str): # if LLM returns a single string
-        query_params.setdefault("countries", []).append(extracted_data["countries"])
+    # --- Action: Pre-fill and Edit Form ---
+    if submit_action == 'prefill':
+        query_params = {}
+        if extracted_data.get("resource_name"):
+            query_params["resource_name"] = extracted_data["resource_name"]
+        
+        if isinstance(extracted_data.get("countries"), list):
+            for country in extracted_data["countries"]:
+                query_params.setdefault("countries", []).append(country)
+        elif isinstance(extracted_data.get("countries"), str):
+            query_params.setdefault("countries", []).append(extracted_data["countries"])
 
-    if isinstance(extracted_data.get("domains"), list):
-        for domain in extracted_data["domains"]:
-            query_params.setdefault("domains", []).append(domain)
-    elif isinstance(extracted_data.get("domains"), str):
-        query_params.setdefault("domains", []).append(extracted_data["domains"])
+        if isinstance(extracted_data.get("domains"), list):
+            for domain in extracted_data["domains"]:
+                query_params.setdefault("domains", []).append(domain)
+        elif isinstance(extracted_data.get("domains"), str):
+            query_params.setdefault("domains", []).append(extracted_data["domains"])
 
-    if isinstance(extracted_data.get("keywords"), list):
-        query_params["keywords"] = ",".join(extracted_data["keywords"])
-    elif isinstance(extracted_data.get("keywords"), str):
-         query_params["keywords"] = extracted_data["keywords"]
+        if isinstance(extracted_data.get("keywords"), list):
+            query_params["keywords"] = ",".join(extracted_data["keywords"])
+        elif isinstance(extracted_data.get("keywords"), str):
+            query_params["keywords"] = extracted_data["keywords"]
 
 
-    hierarchy = extracted_data.get("primary_hierarchy", {})
-    if hierarchy.get("level1_resource_type"):
-        query_params["level1_resource_type"] = hierarchy["level1_resource_type"]
-    if hierarchy.get("level2_category"):
-        query_params["level2_category"] = hierarchy["level2_category"]
-    if hierarchy.get("level3_subcategory"):
-        query_params["level3_subcategory"] = hierarchy["level3_subcategory"]
-    if hierarchy.get("level4_data_type"):
-        query_params["level4_data_type"] = hierarchy["level4_data_type"]
-    if hierarchy.get("level5_item"):
-        query_params["level5_item"] = hierarchy["level5_item"]
+        hierarchy = extracted_data.get("primary_hierarchy", {})
+        if hierarchy.get("level1_resource_type"):
+            query_params["level1_resource_type"] = hierarchy["level1_resource_type"]
+        if hierarchy.get("level2_category"):
+            query_params["level2_category"] = hierarchy["level2_category"]
+        if hierarchy.get("level3_subcategory"):
+            query_params["level3_subcategory"] = hierarchy["level3_subcategory"]
+        if hierarchy.get("level4_data_type"):
+            query_params["level4_data_type"] = hierarchy["level4_data_type"]
+        if hierarchy.get("level5_item"):
+            query_params["level5_item"] = hierarchy["level5_item"]
 
-    if extracted_data.get("year_start"):
-        query_params["year_start"] = str(extracted_data["year_start"])
-    if extracted_data.get("year_end"):
-        query_params["year_end"] = str(extracted_data["year_end"])
-    
-    # Handle resource_url pre-fill:
-    # If the original input was a URL, prioritize that for pre-filling.
-    # Otherwise, use what the LLM extracted (if anything).
-    if source_for_redirect_url: # Original input was a URL
-        query_params["resource_url"] = source_for_redirect_url
-    elif extracted_data.get("resource_url"): # LLM extracted a URL from file content
-        query_params["resource_url"] = extracted_data.get("resource_url")
-    # If it was a file and LLM found no URL, resource_url won't be in query_params.
-    
-    if extracted_data.get("contact_info"):
-        query_params["contact_info"] = extracted_data["contact_info"]
-    if extracted_data.get("description"):
-        query_params["description"] = extracted_data["description"]
-    if extracted_data.get("license"):
-        query_params["license"] = extracted_data["license"]
+        if extracted_data.get("year_start"):
+            query_params["year_start"] = str(extracted_data["year_start"])
+        if extracted_data.get("year_end"):
+            query_params["year_end"] = str(extracted_data["year_end"])
+        
+        if source_for_redirect_url:
+            query_params["resource_url"] = source_for_redirect_url
+        elif extracted_data.get("resource_url"):
+            query_params["resource_url"] = extracted_data.get("resource_url")
+        
+        if extracted_data.get("contact_info"):
+            query_params["contact_info"] = extracted_data["contact_info"]
+        if extracted_data.get("description"):
+            query_params["description"] = extracted_data["description"]
+        if extracted_data.get("license"):
+            query_params["license"] = extracted_data["license"]
 
-    flash('AI processing complete. Please review and complete the form.', 'success')
-    return redirect(url_for('add_data', **query_params))
+        flash('AI processing complete. Please review and complete the form.', 'success')
+        return redirect(url_for('add_data', **query_params))
+
+    # --- Action: Direct AI Submit to Pending ---
+    elif submit_action == 'direct_submit':
+        logging.info(f"Attempting direct AI submission for source: {source_identifier}")
+        
+        # Validate essential fields from AI output
+        resource_name = extracted_data.get("resource_name")
+        countries = extracted_data.get("countries") # Can be list or string
+        domains = extracted_data.get("domains") # Can be list or string
+        primary_hierarchy = extracted_data.get("primary_hierarchy", {})
+        level1_resource_type = primary_hierarchy.get("level1_resource_type")
+
+        missing_fields = []
+        if not resource_name: missing_fields.append("Resource Name")
+        if not countries: missing_fields.append("Countries")
+        if not domains: missing_fields.append("Domains")
+        if not level1_resource_type: missing_fields.append("Level 1 Resource Type (Primary Hierarchy)")
+
+        if missing_fields:
+            flash(f"AI could not extract all required fields for direct submission: {', '.join(missing_fields)}. Please complete the form manually.", 'warning')
+            # Redirect to pre-fill form instead of direct submission
+            # We can reuse the query_params logic from the 'prefill' action
+            query_params = {}
+            if resource_name: query_params["resource_name"] = resource_name
+            if countries:
+                if isinstance(countries, list): query_params["countries"] = countries
+                else: query_params.setdefault("countries", []).append(countries)
+            if domains:
+                if isinstance(domains, list): query_params["domains"] = domains
+                else: query_params.setdefault("domains", []).append(domains)
+            if isinstance(extracted_data.get("keywords"), list): query_params["keywords"] = ",".join(extracted_data["keywords"])
+            elif isinstance(extracted_data.get("keywords"), str): query_params["keywords"] = extracted_data["keywords"]
+            if level1_resource_type: query_params["level1_resource_type"] = level1_resource_type
+            if primary_hierarchy.get("level2_category"): query_params["level2_category"] = primary_hierarchy["level2_category"]
+            if primary_hierarchy.get("level3_subcategory"): query_params["level3_subcategory"] = primary_hierarchy["level3_subcategory"]
+            if primary_hierarchy.get("level4_data_type"): query_params["level4_data_type"] = primary_hierarchy["level4_data_type"]
+            if primary_hierarchy.get("level5_item"): query_params["level5_item"] = primary_hierarchy["level5_item"]
+            if extracted_data.get("year_start"): query_params["year_start"] = str(extracted_data["year_start"])
+            if extracted_data.get("year_end"): query_params["year_end"] = str(extracted_data["year_end"])
+            if source_for_redirect_url: query_params["resource_url"] = source_for_redirect_url
+            elif extracted_data.get("resource_url"): query_params["resource_url"] = extracted_data.get("resource_url")
+            if extracted_data.get("contact_info"): query_params["contact_info"] = extracted_data["contact_info"]
+            if extracted_data.get("description"): query_params["description"] = extracted_data["description"]
+            if extracted_data.get("license"): query_params["license"] = extracted_data["license"]
+            return redirect(url_for('add_data', **query_params))
+
+        # Prepare data for add_pending_submission
+        submission_data = {
+            'resource_name': resource_name,
+            'countries': json.dumps(countries if isinstance(countries, list) else [countries]),
+            'domains': json.dumps(domains if isinstance(domains, list) else [domains]),
+            'primary_hierarchy_path': json.dumps(primary_hierarchy),
+            'year_start': extracted_data.get('year_start'),
+            'year_end': extracted_data.get('year_end'),
+            'resource_url': extracted_data.get('resource_url') if extracted_data.get('resource_url') else source_for_redirect_url, # Prioritize extracted, then original URL
+            'contact_info': extracted_data.get('contact_info'),
+            'description': extracted_data.get('description'),
+            'related_metadata': json.dumps(extracted_data.get('related_metadata_categories', [])), # Assuming AI might provide this
+            'related_resources': json.dumps(extracted_data.get('related_resource_ids', [])), # Assuming AI might provide this
+            'keywords': ",".join(extracted_data.get("keywords", [])) if isinstance(extracted_data.get("keywords"), list) else extracted_data.get("keywords"),
+            'license': extracted_data.get('license'),
+            'submitter_info': 'AI Direct Submission' # Indicate source
+        }
+        
+        # Add year validation: if both years provided, start <= end
+        year_start_val = submission_data.get('year_start')
+        year_end_val = submission_data.get('year_end')
+        if year_start_val is not None and year_end_val is not None and int(year_start_val) > int(year_end_val):
+            flash('AI extracted an invalid year range (Start year after end year). Please review and submit manually.', 'warning')
+            # Redirect to pre-fill form
+            # Re-construct query_params for prefill as done in the missing_fields block
+            query_params = {k: v for k, v in extracted_data.items() if v is not None} # Basic prefill
+            if source_for_redirect_url: query_params["resource_url"] = source_for_redirect_url
+            if isinstance(query_params.get("countries"), list): pass # Already a list
+            elif query_params.get("countries"): query_params["countries"] = [query_params["countries"]]
+            if isinstance(query_params.get("domains"), list): pass
+            elif query_params.get("domains"): query_params["domains"] = [query_params["domains"]]
+            if isinstance(query_params.get("keywords"), list): query_params["keywords"] = ",".join(query_params["keywords"])
+            # primary hierarchy needs to be flattened for query_params
+            ph = query_params.pop("primary_hierarchy", {})
+            for k,v in ph.items(): query_params[k] = v
+            
+            return redirect(url_for('add_data', **query_params))
+
+
+        submission_id = add_pending_submission(submission_data)
+        if submission_id:
+            flash(f'Resource "{resource_name}" directly submitted by AI for admin review (Submission ID: {submission_id}).', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('AI direct submission failed. Please try pre-filling and submitting manually.', 'error')
+            # Fallback to pre-fill form
+            query_params = {k: v for k, v in extracted_data.items() if v is not None}
+            if source_for_redirect_url: query_params["resource_url"] = source_for_redirect_url
+            if isinstance(query_params.get("countries"), list): pass
+            elif query_params.get("countries"): query_params["countries"] = [query_params["countries"]]
+            if isinstance(query_params.get("domains"), list): pass
+            elif query_params.get("domains"): query_params["domains"] = [query_params["domains"]]
+            if isinstance(query_params.get("keywords"), list): query_params["keywords"] = ",".join(query_params["keywords"])
+            ph = query_params.pop("primary_hierarchy", {})
+            for k,v in ph.items(): query_params[k] = v
+            return redirect(url_for('add_data', **query_params))
+
+    else:
+        # Should not happen if buttons have values
+        flash('Invalid action specified for AI processing.', 'error')
+        return redirect(url_for('add_data'))
 
 
 @app.route('/add', methods=['GET', 'POST'])
