@@ -290,10 +290,14 @@ def call_gemini_api(source_identifier, prompt_text_content=None, file_bytes=None
     You are a meticulous data extraction assistant.
     Your task is to analyze the content from the source and populate a JSON object. {prompt_source_guidance}
     **CRITICAL INSTRUCTIONS:**
-    1.  **Strict Vocabulary Adherence**: You MUST use the exact internal keys/names (e.g., 'omics_data', 'whole_genome_sequencing') provided in the "Vocabulary and Hierarchy" section below for categorization fields ("countries", "domains", "primary_hierarchy" levels) in your JSON output. Do NOT use display titles or variations.
-    2.  **No Hallucination**: If information for a field is NOT explicitly present in the text, OMIT the field from the JSON or set its value to null. DO NOT invent or infer data.
-    3.  **Single Resource Focus**: If the document describes multiple distinct resources, focus on extracting information for the most prominent one or the first one described in detail. The system currently processes one resource at a time.
-    4.  **JSON Output Only**: Your entire response MUST be a single, valid JSON object. Do not include any explanatory text before or after the JSON.
+    1.  **Primary Resource Classification**: First, determine the fundamental nature of the input source itself.
+        *   If the source is a document (e.g., a PDF file, a webpage of an article, a report), its primary classification should reflect that (e.g., "Publications" -> "Research Articles", "Publications" -> "Policy Documents"). The `level1_resource_type` in your JSON output MUST be one of "Data", "Systems", "Publications", "Entities", or "Utilities" from the vocabulary.
+        *   Only if the source is a direct link to a dataset, a database, or a software tool/system, should its primary classification be "Data" or "Systems".
+        *   The goal is to classify the item you are *directly analyzing*, not just the topics mentioned within it. For example, a PDF of a research paper *about* omics data is primarily a "Publication", not "Data".
+    2.  **Strict Vocabulary Adherence**: You MUST use the exact internal keys/names (e.g., 'omics_data', 'whole_genome_sequencing') provided in the "Vocabulary and Hierarchy" section below for categorization fields ("countries", "domains", "primary_hierarchy" levels) in your JSON output. Do NOT use display titles or variations.
+    3.  **No Hallucination**: If information for a field is NOT explicitly present in the text, OMIT the field from the JSON or set its value to null. DO NOT invent or infer data.
+    4.  **Single Resource Focus**: If the document describes multiple distinct resources, focus on extracting information for the most prominent one or the first one described in detail. The system currently processes one resource at a time.
+    5.  **JSON Output Only**: Your entire response MUST be a single, valid JSON object. Do not include any explanatory text before or after the JSON.
 
     **Vocabulary and Hierarchy (Use EXACT internal keys/names from here for JSON values):**
     --- VOCABULARY START ---
