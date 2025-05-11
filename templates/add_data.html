@@ -233,6 +233,11 @@
                     <input type="file" id="ai_file" name="ai_file" accept=".pdf,.txt,.html,.htm">
                     <small>The AI will attempt to extract information from the URL or file. Processing might take a minute.</small>
                 </div>
+                <!-- Status and Spinner -->
+                <div id="ai-status-container" style="margin-top: 1rem; display: none; text-align: center;">
+                    <div class="spinner" style="margin-bottom: 0.5rem;"></div>
+                    <p id="ai-status-message" style="font-style: italic; color: #555;"></p>
+                </div>
                 <button type="submit" name="submit_action" value="prefill" class="submit-button" style="background-color: var(--secondary-color); padding: 0.7rem 1.5rem; font-size: 1rem; margin-right: 10px;">Process & Pre-fill Form</button>
                 <button type="submit" name="submit_action" value="direct_submit" class="submit-button" style="background-color: var(--primary-color); padding: 0.7rem 1.5rem; font-size: 1rem;">Process & Submit Directly</button>
             </form>

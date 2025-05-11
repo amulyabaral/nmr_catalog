@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add the hierarchy level styles
     addHierarchyStyles();
+    setupAIFormListener();
 });
 
 function setupBrowseTabs() {
@@ -775,7 +776,7 @@ function addSubcategories(parentNode, hierarchyNodeData, data, currentPath, pare
 }
 
 // Updated function to create tree node with optional toggle
-function createTreeNode(name, cssClass, count = 0, hasChildren = false) { // Added hasChildren parameter
+function createTreeNode(name, cssClass, count = 0, hasChildren = false) {
     const node = document.createElement('div');
     node.className = `tree-node ${cssClass}-node`; // Base class + specific level/type class
 
@@ -1823,3 +1824,49 @@ $(document).ready(function() {
     });
     // ... rest of the JS ...
 });
+
+// <<< NEW FUNCTION for AI Form Spinner and Logs >>>
+function setupAIFormListener() {
+    const aiForm = document.getElementById('ai-input-form');
+    if (!aiForm) return;
+
+    const aiStatusContainer = document.getElementById('ai-status-container');
+    const aiStatusMessage = document.getElementById('ai-status-message');
+    const aiButtons = aiForm.querySelectorAll('button[type="submit"]');
+    const aiUrlInput = document.getElementById('ai_url');
+    const aiFileInput = document.getElementById('ai_file');
+
+    aiForm.addEventListener('submit', function(event) {
+        // Basic client-side validation
+        if (!aiUrlInput.value.trim() && (!aiFileInput.files || aiFileInput.files.length === 0)) {
+            if (aiStatusContainer) aiStatusContainer.style.display = 'block';
+            if (aiStatusMessage) aiStatusMessage.textContent = 'Please provide a URL or upload a file.';
+            // Hide spinner if it was somehow visible
+            if (aiStatusContainer) {
+                const spinner = aiStatusContainer.querySelector('.spinner');
+                if(spinner) spinner.style.display = 'none';
+            }
+            event.preventDefault(); // Stop form submission
+            return;
+        }
+
+        if (aiStatusContainer) {
+            aiStatusContainer.style.display = 'block';
+            const spinner = aiStatusContainer.querySelector('.spinner');
+            if(spinner) spinner.style.display = 'inline-block'; // Make sure spinner is visible
+        }
+
+        if (aiStatusMessage) {
+            if (aiFileInput.files && aiFileInput.files.length > 0) {
+                aiStatusMessage.textContent = 'Uploading and processing file... This may take a moment.';
+            } else if (aiUrlInput.value.trim()) {
+                aiStatusMessage.textContent = 'Processing URL... This may take a moment.';
+            } else {
+                aiStatusMessage.textContent = 'Preparing for AI processing...'; // Fallback
+            }
+        }
+        aiButtons.forEach(button => button.disabled = true);
+        // The form will now submit and the page will reload or redirect.
+    });
+}
+// <<< END NEW FUNCTION >>>

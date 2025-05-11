@@ -23,6 +23,7 @@ import requests
 from bs4 import BeautifulSoup
 import fitz # PyMuPDF
 import re
+import base64 # <<< Import base64 for encoding file content
 
 load_dotenv() # Load environment variables from .env file
 
@@ -104,17 +105,19 @@ def extract_text_from_source(input_source, source_name, content_type_hint=None):
     Extracts text from a given input_source (URL string or file-like object).
     source_name is the URL or filename for context.
     content_type_hint is the mimetype from the uploaded file.
+    Primarily for HTML and TXT files now. PDFs will be handled directly by Gemini.
     """
     if isinstance(input_source, str): # It's a URL
         url = input_source
-        logging.info(f"Extracting text from URL: {url}")
+        logging.info(f"Extracting text from URL (non-PDF): {url}")
         try:
             headers = {'User-Agent': 'Mozilla/5.0'}
-            response = requests.get(url, headers=headers, timeout=30, allow_redirects=True) # Increased timeout
+            response = requests.get(url, headers=headers, timeout=30, allow_redirects=True)
             response.raise_for_status()
             
             content_type = response.headers.get('content-type', '').lower()
             
+            # This function will now primarily be called for HTML or plain text from URLs
             if 'html' in content_type:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 for script_or_style in soup(["script", "style"]):
@@ -122,14 +125,23 @@ def extract_text_from_source(input_source, source_name, content_type_hint=None):
                 text = soup.get_text(separator='\n', strip=True)
                 text = re.sub(r'\n\s*\n', '\n\n', text)
                 return text, None
-            elif 'pdf' in content_type:
-                with fitz.open(stream=response.content, filetype="pdf") as doc:
-                    text = "".join(page.get_text() for page in doc)
-                return text, None
-            elif 'text/plain' in content_type: # Handle plain text from URL
+            elif 'text/plain' in content_type:
                 return response.text, None
+            # PDF handling removed from here, as Gemini will process it directly
+            # elif 'pdf' in content_type:
+            #     return "IS_PDF_URL", None # Signal that it's a PDF URL
             else:
-                return None, f"Unsupported content type from URL: {content_type}"
+                # Attempt to read as plain text if content type is not explicitly handled
+                logging.warning(f"Unsupported or ambiguous content type from URL {url}: {content_type}. Attempting to read as text.")
+                try:
+                    text = response.text
+                    if text.strip():
+                        return text, None
+                    else:
+                        return None, f"Content from URL {url} (type: {content_type}) is empty or not readable as text."
+                except Exception as e_text:
+                    logging.error(f"Could not read content from URL {url} as text: {e_text}")
+                    return None, f"Unsupported content type from URL: {content_type}. Could not read as text."
                 
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching URL {url}: {e}")
@@ -141,29 +153,21 @@ def extract_text_from_source(input_source, source_name, content_type_hint=None):
     elif hasattr(input_source, 'read'): # It's a file-like object (uploaded file stream)
         filename = source_name
         file_content_type = content_type_hint or ''
-        logging.info(f"Extracting text from uploaded file: {filename}, MIME hint: {file_content_type}")
+        logging.info(f"Extracting text from uploaded file (non-PDF): {filename}, MIME hint: {file_content_type}")
 
-        # Try to infer content type from filename if not provided by upload or is generic
         if (not file_content_type or file_content_type == 'application/octet-stream') and filename:
-            if filename.lower().endswith('.pdf'):
-                file_content_type = 'application/pdf'
-            elif filename.lower().endswith('.txt'):
+            if filename.lower().endswith('.txt'):
                 file_content_type = 'text/plain'
             elif filename.lower().endswith(('.html', '.htm')):
                 file_content_type = 'text/html'
+            # PDF handling removed from here
 
         try:
-            # Ensure the stream is at the beginning if it might have been read before
             if hasattr(input_source, 'seek'):
                 input_source.seek(0)
-            
-            file_bytes = input_source.read() # Read once
+            file_bytes = input_source.read()
 
-            if 'pdf' in file_content_type:
-                with fitz.open(stream=file_bytes, filetype="pdf") as doc:
-                    text = "".join(page.get_text() for page in doc)
-                return text, None
-            elif 'text/plain' in file_content_type:
+            if 'text/plain' in file_content_type:
                 text = file_bytes.decode('utf-8', errors='replace')
                 return text, None
             elif 'html' in file_content_type:
@@ -173,20 +177,21 @@ def extract_text_from_source(input_source, source_name, content_type_hint=None):
                 text = soup.get_text(separator='\n', strip=True)
                 text = re.sub(r'\n\s*\n', '\n\n', text)
                 return text, None
+            # PDF handling removed from here
             else:
                 # Attempt to read as plain text as a last resort if type is unknown
                 try:
-                    logging.info(f"Unknown file type for {filename}, attempting to read as text.")
+                    logging.info(f"Unknown non-PDF file type for {filename}, attempting to read as text.")
                     text = file_bytes.decode('utf-8', errors='replace')
-                    if text.strip(): # If we got some text
+                    if text.strip():
                         return text, None
                     else:
-                        return None, f"Unsupported file type or empty file: {filename} (MIME: {file_content_type or 'unknown'})"
+                        return None, f"Unsupported non-PDF file type or empty file: {filename} (MIME: {file_content_type or 'unknown'})"
                 except Exception as e_text:
                     logging.error(f"Could not read {filename} as text: {e_text}")
-                    return None, f"Unsupported file type: {filename} (MIME: {file_content_type or 'unknown'})"
+                    return None, f"Unsupported non-PDF file type: {filename} (MIME: {file_content_type or 'unknown'})"
         except Exception as e:
-            logging.error(f"Error processing file {filename}: {e}", exc_info=True)
+            logging.error(f"Error processing non-PDF file {filename}: {e}", exc_info=True)
             return None, f"Error processing file {filename}: {e}"
     else:
         return None, "Invalid input type for text extraction."
@@ -258,35 +263,32 @@ def get_detailed_vocab_text():
     return vocab_summary
 
 
-def call_gemini_api(text_content, source_identifier):
-    """Calls the Gemini API to extract information."""
+def call_gemini_api(source_identifier, prompt_text_content=None, file_bytes=None, file_mime_type=None, pdf_url=None):
+    """
+    Calls the Gemini API to extract information.
+    Can handle pre-extracted text_content, direct file_bytes (e.g., for PDF), or a pdf_url.
+    """
     if not GEMINI_API_KEY:
         return None, "GEMINI_API_KEY not configured."
 
-    # Using the experimental model name provided by the user
-    # model_name = "gemini-2.5-pro-exp-03-25" # As requested
-    # The curl example used gemini-2.0-flash. Let's use a generally available one for stability if the exp is tricky.
-    # For now, sticking to the user's specified experimental model.
-    # If issues arise, consider 'gemini-1.5-flash-latest' or 'gemini-1.5-pro-latest' via SDK.
-    # Since the user provided a curl for gemini-2.0-flash, and asked for gemini-2.5-pro-exp-03-25,
-    # I will use the latter in the URL.
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={GEMINI_API_KEY}"
-
     vocab_context = get_detailed_vocab_text()
 
     prompt_source_guidance = ""
-    original_input_url_for_prompt = "" # Will hold the URL if the source was a URL
+    original_input_url_for_prompt = ""
 
     if source_identifier.startswith('http://') or source_identifier.startswith('https://'):
         prompt_source_guidance = f"The content was sourced from the URL: {source_identifier}."
-        original_input_url_for_prompt = source_identifier
+        if pdf_url or file_mime_type == 'application/pdf': # If it's a PDF URL being processed by Gemini
+             original_input_url_for_prompt = source_identifier
+        # If it's an HTML URL, prompt_text_content will contain its text, so original_input_url_for_prompt might not be needed in the same way for resource_url fallback.
     else:
         prompt_source_guidance = f"The content was sourced from an uploaded file named: {source_identifier}."
 
-
-    prompt = f"""
+    # Base prompt structure
+    base_prompt = f"""
     You are a meticulous data extraction assistant.
-    Your task is to analyze the text content from the source and populate a JSON object. {prompt_source_guidance}
+    Your task is to analyze the content from the source and populate a JSON object. {prompt_source_guidance}
     **CRITICAL INSTRUCTIONS:**
     1.  **Strict Vocabulary Adherence**: You MUST use the exact internal keys/names (e.g., 'omics_data', 'whole_genome_sequencing') provided in the "Vocabulary and Hierarchy" section below for categorization fields ("countries", "domains", "primary_hierarchy" levels) in your JSON output. Do NOT use display titles or variations.
     2.  **No Hallucination**: If information for a field is NOT explicitly present in the text, OMIT the field from the JSON or set its value to null. DO NOT invent or infer data.
@@ -310,7 +312,7 @@ def call_gemini_api(text_content, source_identifier):
         - "level5_item": (string, optional) e.g., "clinical_isolates". Must be an L5 key/item.
     - "year_start": (integer, optional) The start year. Extract if clearly stated.
     - "year_end": (integer, optional) The end year. Extract if clearly stated.
-    - "resource_url": (string, optional) If the analyzed text explicitly mentions a primary URL for the resource itself, provide that. {'If no specific URL is found in the text, you may use the source URL: "' + original_input_url_for_prompt + '" if the content was sourced from a URL.' if original_input_url_for_prompt else 'If the content was from an uploaded file and no URL is found in its text, omit this field or set it to null.'}
+    - "resource_url": (string, optional) If the analyzed text explicitly mentions a primary URL for the resource itself, provide that. {'If no specific URL is found in the text, you may use the source URL: "' + original_input_url_for_prompt + '" if the content was sourced from a URL and is a PDF.' if original_input_url_for_prompt else 'If the content was from an uploaded file and no URL is found in its text, or if it was a non-PDF URL, omit this field or set it to null unless a URL is found in the document.'}
     - "contact_info": (string, optional) Contact email, person, or organization, if found.
     - "description": (string) Detailed info about the resource extracted directly from the text/file. Try to extract as much info as you can, but when writing it here be concise and straight to the point. Paste any found links as links. If no summary, state "No summary found in text."
     - "keywords": (list of strings, optional) Keywords explicitly mentioned or strongly implied by the text.
@@ -329,30 +331,72 @@ def call_gemini_api(text_content, source_identifier):
         "level3_subcategory": "metagenomic",
         "level4_data_type": "wastewater_metagenomes"
     }}
+    """
 
+    gemini_parts = []
+    final_prompt_text = ""
+
+    if prompt_text_content: # For HTML/TXT where text is pre-extracted
+        final_prompt_text = base_prompt + f"""
     **Analyze the following text content:**
     --- TEXT START ---
-    {text_content[:800000]}
+    {prompt_text_content[:800000]} 
     --- TEXT END ---
 
     Return ONLY the JSON object.
     """
-    # Truncate text_content to avoid exceeding token limits, Gemini 2.5 Pro has a large input limit, but good practice.
+        gemini_parts.append({"text": final_prompt_text})
+    elif file_bytes or pdf_url: # For PDFs handled directly by Gemini
+        final_prompt_text = base_prompt + """
+    **Analyze the provided document (which is included as a separate part in this request) to extract the information.**
+
+    Return ONLY the JSON object.
+    """
+        gemini_parts.append({"text": final_prompt_text})
+        
+        if file_bytes and file_mime_type:
+            base64_encoded_data = base64.b64encode(file_bytes).decode('utf-8')
+            gemini_parts.append({
+                "inlineData": {
+                    "mimeType": file_mime_type,
+                    "data": base64_encoded_data
+                }
+            })
+            logging.info(f"Sending uploaded file {source_identifier} ({len(file_bytes)} bytes, type: {file_mime_type}) to Gemini as inlineData.")
+        elif pdf_url:
+            try:
+                logging.info(f"Fetching PDF content from URL: {pdf_url} for Gemini.")
+                headers = {'User-Agent': 'Mozilla/5.0'}
+                response = requests.get(pdf_url, headers=headers, timeout=60, allow_redirects=True) # Increased timeout for fetching
+                response.raise_for_status()
+                pdf_content_bytes = response.content
+                base64_encoded_pdf_data = base64.b64encode(pdf_content_bytes).decode('utf-8')
+                gemini_parts.append({
+                    "inlineData": {
+                        "mimeType": "application/pdf", # Assuming it's a PDF
+                        "data": base64_encoded_pdf_data
+                    }
+                })
+                logging.info(f"Sending PDF from URL {pdf_url} ({len(pdf_content_bytes)} bytes) to Gemini as inlineData.")
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Error fetching PDF from URL {pdf_url} for Gemini: {e}")
+                return None, f"Error fetching PDF from URL for AI: {e}"
+            except Exception as e:
+                logging.error(f"Error processing PDF from URL {pdf_url} for Gemini: {e}")
+                return None, f"Error processing PDF from URL for AI: {e}"
+    else:
+        return None, "No content provided to Gemini API (no text, file, or PDF URL)."
+
 
     payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }],
-        "generationConfig": { # Optional: control generation parameters
-            "temperature": 0.3, # Lower temperature for more factual extraction
+        "contents": [{"parts": gemini_parts}],
+        "generationConfig": {
+            "temperature": 0.3,
             "topK": 1,
             "topP": 1,
-            "maxOutputTokens": 8192, # Max output for the model
-            "responseMimeType": "application/json", # Request JSON output
+            "maxOutputTokens": 8192,
+            "responseMimeType": "application/json",
         },
-        # "systemInstruction": { # For more persistent instructions - might be useful
-        # "parts": [{"text": "You are an expert data extraction assistant. Always return your answer in JSON format."}]
-        # }
     }
 
     try:
@@ -418,53 +462,87 @@ def ai_process_input():
     uploaded_file = request.files.get('ai_file')
     submit_action = request.form.get('submit_action') # Check which button was pressed
     
-    text_content = None
-    error = None
-    source_identifier = None # For the LLM prompt and pre-filling resource_url if it's a URL
-    # source_for_redirect is used to pass the original URL back to the form if AI fails or for pre-filling
+    extracted_data = None # Will hold data from Gemini
+    gemini_error = None
+    source_identifier = None 
     source_for_redirect_url = None 
 
+    # Determine input type and prepare for Gemini
     if uploaded_file and uploaded_file.filename:
         filename = uploaded_file.filename
-        source_identifier = filename # Use filename as identifier for file uploads
-        # For file uploads, we don't have a URL to pre-fill in the resource_url field by default
-        source_for_redirect_url = None 
-        logging.info(f"Processing uploaded file: {filename}, MIME type: {uploaded_file.content_type}")
-        # Pass uploaded_file.stream which is a file-like object
-        text_content, error = extract_text_from_source(uploaded_file.stream, filename, uploaded_file.content_type)
-        if not text_content and not error:
-            error = "Could not extract text from uploaded file."
-            logging.warning(f"No text extracted from {filename} and no specific error returned.")
+        source_identifier = filename
+        file_content_type = uploaded_file.content_type or ''
+        
+        logging.info(f"AI Processing: Uploaded file: {filename}, MIME type: {file_content_type}")
 
+        if 'pdf' in file_content_type.lower():
+            try:
+                file_bytes = uploaded_file.stream.read()
+                if not file_bytes:
+                    gemini_error = "Uploaded PDF file is empty."
+                else:
+                    # Pass bytes and mime type directly to Gemini
+                    extracted_data, gemini_error = call_gemini_api(
+                        source_identifier=filename, 
+                        file_bytes=file_bytes, 
+                        file_mime_type=file_content_type
+                    )
+            except Exception as e:
+                logging.error(f"Error reading uploaded PDF file {filename}: {e}", exc_info=True)
+                gemini_error = f"Error reading uploaded PDF file: {e}"
+        else: # HTML, TXT, or other non-PDF files
+            text_content, error = extract_text_from_source(uploaded_file.stream, filename, file_content_type)
+            if error:
+                gemini_error = f'Error extracting content from uploaded file: {error}'
+            elif not text_content:
+                gemini_error = 'Could not extract any text content from the uploaded file.'
+            else:
+                extracted_data, gemini_error = call_gemini_api(source_identifier=filename, prompt_text_content=text_content)
+        
+        # source_for_redirect_url remains None for file uploads unless explicitly set later from extracted_data
 
     elif url_to_process:
         source_identifier = url_to_process
-        source_for_redirect_url = url_to_process # Pass URL back for pre-fill
-        logging.info(f"Processing URL: {url_to_process}")
-        text_content, error = extract_text_from_source(url_to_process, url_to_process)
-        if not text_content and not error:
-            error = "Could not extract text from URL."
-            logging.warning(f"No text extracted from URL {url_to_process} and no specific error returned.")
+        source_for_redirect_url = url_to_process
+        logging.info(f"AI Processing: URL: {url_to_process}")
+
+        # Simple check for PDF URL, or let Gemini attempt if type is unknown via URL
+        # For more robust URL type detection, a HEAD request could check Content-Type
+        is_pdf_url = url_to_process.lower().endswith('.pdf')
+        # Attempt to get content type from URL without downloading full content yet
+        try:
+            head_response = requests.head(url_to_process, timeout=10, allow_redirects=True, headers={'User-Agent': 'Mozilla/5.0'})
+            if 'application/pdf' in head_response.headers.get('content-type','').lower():
+                is_pdf_url = True
+        except requests.exceptions.RequestException as e:
+            logging.warning(f"Could not perform HEAD request for {url_to_process}: {e}")
+
+
+        if is_pdf_url:
+            # Pass PDF URL directly to Gemini call
+            extracted_data, gemini_error = call_gemini_api(source_identifier=url_to_process, pdf_url=url_to_process)
+        else: # HTML or other web content
+            text_content, error = extract_text_from_source(url_to_process, url_to_process)
+            if error:
+                gemini_error = f'Error extracting content from URL: {error}'
+            elif not text_content:
+                gemini_error = 'Could not extract any text content from the URL.'
+            else:
+                extracted_data, gemini_error = call_gemini_api(source_identifier=url_to_process, prompt_text_content=text_content)
     else:
         flash('No URL or file provided for AI processing.', 'error')
         return redirect(url_for('add_data'))
 
-    if error:
-        flash(f'Error extracting content: {error}', 'error')
-        return redirect(url_for('add_data', resource_url=source_for_redirect_url)) 
-    
-    if not text_content:
-        flash('Could not extract any text content from the source.', 'warning')
-        return redirect(url_for('add_data', resource_url=source_for_redirect_url))
-
-    extracted_data, gemini_error = call_gemini_api(text_content, source_identifier)
+    # Handle results from Gemini
     if gemini_error:
         flash(f'AI processing error: {gemini_error}', 'error')
-        return redirect(url_for('add_data', resource_url=source_for_redirect_url, description=text_content[:500]))
+        # Pass back original URL if available, and potentially some extracted text if that part succeeded
+        # For now, just the URL. Description prefill might be tricky if only PDF processing failed.
+        return redirect(url_for('add_data', resource_url=source_for_redirect_url))
 
     if not extracted_data:
         flash('AI could not extract data. Please fill the form manually.', 'warning')
-        return redirect(url_for('add_data', resource_url=source_for_redirect_url, description=text_content[:500]))
+        return redirect(url_for('add_data', resource_url=source_for_redirect_url))
 
     # --- Action: Pre-fill and Edit Form ---
     if submit_action == 'prefill':
