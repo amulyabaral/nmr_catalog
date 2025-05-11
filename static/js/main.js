@@ -1828,7 +1828,10 @@ $(document).ready(function() {
 // <<< NEW FUNCTION for AI Form Spinner and Logs >>>
 function setupAIFormListener() {
     const aiForm = document.getElementById('ai-input-form');
-    if (!aiForm) return;
+    if (!aiForm) {
+        console.log("AI Form not found, spinner not set up."); // Debug
+        return;
+    }
 
     const aiStatusContainer = document.getElementById('ai-status-container');
     const aiStatusMessage = document.getElementById('ai-status-message');
@@ -1837,23 +1840,32 @@ function setupAIFormListener() {
     const aiFileInput = document.getElementById('ai_file');
 
     aiForm.addEventListener('submit', function(event) {
+        console.log("AI form submitted."); // Debug
+
         // Basic client-side validation
         if (!aiUrlInput.value.trim() && (!aiFileInput.files || aiFileInput.files.length === 0)) {
             if (aiStatusContainer) aiStatusContainer.style.display = 'block';
             if (aiStatusMessage) aiStatusMessage.textContent = 'Please provide a URL or upload a file.';
-            // Hide spinner if it was somehow visible
             if (aiStatusContainer) {
                 const spinner = aiStatusContainer.querySelector('.spinner');
                 if(spinner) spinner.style.display = 'none';
             }
-            event.preventDefault(); // Stop form submission
+            console.log("AI form validation failed: No URL or file."); // Debug
+            event.preventDefault(); 
             return;
         }
 
         if (aiStatusContainer) {
             aiStatusContainer.style.display = 'block';
             const spinner = aiStatusContainer.querySelector('.spinner');
-            if(spinner) spinner.style.display = 'inline-block'; // Make sure spinner is visible
+            if(spinner) {
+                spinner.style.display = 'inline-block'; 
+                console.log("Spinner and status container should be visible now."); // Debug
+            } else {
+                console.log("Spinner element not found in container."); // Debug
+            }
+        } else {
+            console.log("AI status container not found."); // Debug
         }
 
         if (aiStatusMessage) {
@@ -1862,11 +1874,13 @@ function setupAIFormListener() {
             } else if (aiUrlInput.value.trim()) {
                 aiStatusMessage.textContent = 'Processing URL... This may take a moment.';
             } else {
-                aiStatusMessage.textContent = 'Preparing for AI processing...'; // Fallback
+                aiStatusMessage.textContent = 'Preparing for AI processing...';
             }
+            console.log("AI Status message set:", aiStatusMessage.textContent); // Debug
         }
         aiButtons.forEach(button => button.disabled = true);
-        // The form will now submit and the page will reload or redirect.
+        console.log("AI form buttons disabled. Submitting..."); // Debug
+        // The form will now submit
     });
 }
 // <<< END NEW FUNCTION >>>
