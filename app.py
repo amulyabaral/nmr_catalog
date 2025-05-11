@@ -314,7 +314,7 @@ def call_gemini_api(source_identifier, prompt_text_content=None, file_bytes=None
     - "year_end": (integer, optional) The end year. Extract if clearly stated.
     - "resource_url": (string, optional) If the analyzed text explicitly mentions a primary URL for the resource itself, provide that. {'If no specific URL is found in the text, you may use the source URL: "' + original_input_url_for_prompt + '" if the content was sourced from a URL and is a PDF.' if original_input_url_for_prompt else 'If the content was from an uploaded file and no URL is found in its text, or if it was a non-PDF URL, omit this field or set it to null unless a URL is found in the document.'}
     - "contact_info": (string, optional) Contact email, person, or organization, if found.
-    - "description": (string) Detailed info about the resource extracted directly from the text/file. Try to extract as much info as you can, but when writing it here be concise and straight to the point. Paste any found links as links. If no summary, state "No summary found in text."
+    - "description": (string) Detailed info about the resource extracted directly from the text/file (max 1000 words). Try to be as informative as possible, but be concise and straight to the point. Paste any found links as links. If no summary, state "No summary found in text."
     - "keywords": (list of strings, optional) Keywords explicitly mentioned or strongly implied by the text.
     - "license": (string, optional) License information, if found.
 
