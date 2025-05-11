@@ -271,7 +271,7 @@ def call_gemini_api(source_identifier, prompt_text_content=None, file_bytes=None
     if not GEMINI_API_KEY:
         return None, "GEMINI_API_KEY not configured."
 
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={GEMINI_API_KEY}"
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
     vocab_context = get_detailed_vocab_text()
 
     prompt_source_guidance = ""
