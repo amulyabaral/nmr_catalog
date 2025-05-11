@@ -12,6 +12,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
     <!-- Add Marked.js library for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Add Select2 CSS for AI chat resource selector -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <!-- Remove 3D Graph Scripts -->
     <!-- <script src="//unpkg.com/three"></script> -->
     <!-- <script src="//unpkg.com/3d-force-graph"></script> -->
@@ -23,6 +25,7 @@
                 <a href="/">NoMoReAMR</a>
             </div>
             <div class="nav-links">
+                <button id="ai-chat-toggle-btn" class="submit-btn" style="margin-right: 1rem; background-color: var(--secondary-color);">Find with AI</button>
                 <a href="{{ url_for('add_data') }}" class="submit-btn">Submit Data</a>
             </div>
         </div>
@@ -202,6 +205,33 @@
 
     </main>
 
+    <!-- AI Chat Modal -->
+    <div id="ai-chat-modal" class="ai-chat-modal">
+        <div class="ai-chat-container">
+            <div class="ai-chat-header">
+                <h3>AI Resource Finder</h3>
+                <span class="close-ai-chat">&times;</span>
+            </div>
+            <div class="ai-chat-messages">
+                <!-- Messages will appear here -->
+                <div class="ai-message">
+                    <p>Hello! How can I help you find a resource today? You can ask me questions, or select specific resources below to discuss them.</p>
+                </div>
+            </div>
+            <div class="ai-chat-context-selection">
+                <label for="ai-chat-resource-select">Add specific resources to our discussion:</label>
+                <select id="ai-chat-resource-select" multiple="multiple" style="width: 100%;"></select>
+            </div>
+            <div class="ai-chat-input-area">
+                <textarea id="ai-chat-input" placeholder="Ask about resources, e.g., 'Find data on wastewater surveillance in Sweden'"></textarea>
+                <button id="ai-chat-send-btn">Send</button>
+            </div>
+            <div id="ai-chat-loading" class="ai-chat-loading-indicator" style="display: none;">
+                <div class="spinner"></div> Thinking...
+            </div>
+        </div>
+    </div>
+
     <!-- Resource Details Modal -->
     <div id="resource-modal" class="modal">
         <div class="modal-content">
@@ -253,6 +283,8 @@
         </div>
     </footer>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

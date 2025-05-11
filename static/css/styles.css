@@ -1808,4 +1808,187 @@ div.vis-tooltip {
 /* Network Legend */
 /* ... (ensure legend styles are appropriate for 2D) ... */
 
-/* ... (rest of styles) ... */ 
+/* ... (rest of styles) ... */
+
+/* AI Chat Modal Styles */
+.ai-chat-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 2000; /* Higher than other modals */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    align-items: center; /* For vertical centering of container */
+    justify-content: center; /* For horizontal centering of container */
+}
+
+.ai-chat-container {
+    background-color: #fff;
+    margin: auto; /* Fallback for centering if flex not fully supported */
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.ai-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--gray-medium);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.ai-chat-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 1.4rem;
+}
+
+.close-ai-chat {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.close-ai-chat:hover {
+    color: #333;
+}
+
+.ai-chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid var(--gray-light);
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    min-height: 200px;
+}
+
+.user-message, .ai-message {
+    margin-bottom: 12px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    line-height: 1.5;
+    max-width: 85%;
+}
+
+.user-message {
+    background-color: var(--secondary-color);
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 5px;
+}
+
+.ai-message {
+    background-color: var(--gray-light);
+    color: var(--text-color);
+    margin-right: auto;
+    border-bottom-left-radius: 5px;
+}
+
+.ai-message p, .user-message p {
+    margin: 0;
+}
+
+.ai-message strong { /* For resource titles from AI */
+    color: var(--primary-color);
+}
+.ai-message ul {
+    padding-left: 20px;
+    margin-top: 5px;
+}
+.ai-message li {
+    margin-bottom: 3px;
+}
+
+.ai-chat-context-selection {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f0f5f9;
+    border-radius: 4px;
+}
+.ai-chat-context-selection label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+/* Select2 specific styles for AI chat */
+.ai-chat-context-selection .select2-container .select2-selection--multiple {
+    border: 1px solid #ccc !important;
+    min-height: 38px;
+}
+
+
+.ai-chat-input-area {
+    display: flex;
+    gap: 10px;
+    align-items: stretch; /* Make textarea and button same height */
+}
+
+.ai-chat-input-area textarea {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid var(--gray-medium);
+    border-radius: var(--border-radius);
+    resize: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    min-height: 50px; /* Minimum height */
+    max-height: 120px; /* Maximum height before scroll */
+    overflow-y: auto; /* Add scroll if content exceeds max-height */
+}
+
+.ai-chat-input-area button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0 20px; /* Adjust padding */
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: var(--transition);
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.ai-chat-input-area button:hover {
+    background: #00b046;
+}
+
+.ai-chat-loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    font-style: italic;
+    color: #555;
+    gap: 8px;
+}
+
+/* Responsive AI Chat */
+@media (max-width: 768px) {
+    .ai-chat-container {
+        width: 95%;
+        max-height: 90vh;
+        padding: 15px;
+    }
+    .ai-chat-header h3 {
+        font-size: 1.2rem;
+    }
+    .ai-chat-messages {
+        min-height: 150px;
+    }
+} 

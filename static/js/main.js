@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add the hierarchy level styles
     addHierarchyStyles();
     setupAIFormListener();
+    setupAIChatInterface();
 });
 
 function setupBrowseTabs() {
@@ -1882,5 +1883,127 @@ function setupAIFormListener() {
         console.log("AI form buttons disabled. Submitting..."); // Debug
         // The form will now submit
     });
+}
+// <<< END NEW FUNCTION >>>
+
+// <<< NEW FUNCTION for AI Chat Interface >>>
+function setupAIChatInterface() {
+    const chatModal = document.getElementById('ai-chat-modal');
+    const toggleButton = document.getElementById('ai-chat-toggle-btn');
+    const closeButton = chatModal.querySelector('.close-ai-chat');
+    const sendButton = document.getElementById('ai-chat-send-btn');
+    const messageInput = document.getElementById('ai-chat-input');
+    const messagesContainer = chatModal.querySelector('.ai-chat-messages');
+    const resourceSelect = $('#ai-chat-resource-select'); // jQuery selector for Select2
+    const loadingIndicator = document.getElementById('ai-chat-loading');
+
+    let selectedResourceIdsForAIChat = [];
+
+    if (!chatModal || !toggleButton || !closeButton || !sendButton || !messageInput || !messagesContainer || !resourceSelect.length) {
+        console.warn('AI Chat interface elements not found. Feature may not work.');
+        return;
+    }
+
+    // Initialize Select2 for resource selection
+    resourceSelect.select2({
+        placeholder: 'Search and select resources by name or ID...',
+        minimumInputLength: 2,
+        allowClear: true,
+        ajax: {
+            url: '/api/search-resources', // Existing endpoint
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                return { results: data };
+            },
+            cache: true
+        }
+    });
+
+    resourceSelect.on('change', function() {
+        selectedResourceIdsForAIChat = $(this).val() || [];
+        console.log('AI Chat - Selected resource IDs:', selectedResourceIdsForAIChat);
+    });
+
+    toggleButton.addEventListener('click', () => {
+        chatModal.style.display = 'flex'; // Use flex for centering
+    });
+
+    closeButton.addEventListener('click', () => {
+        chatModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === chatModal) {
+            chatModal.style.display = 'none';
+        }
+    });
+
+    sendButton.addEventListener('click', sendMessageToAI);
+    messageInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessageToAI();
+        }
+    });
+
+    function sendMessageToAI() {
+        const userQuery = messageInput.value.trim();
+        if (!userQuery) return;
+
+        appendMessage(userQuery, 'user-message');
+        messageInput.value = '';
+        loadingIndicator.style.display = 'flex';
+        sendButton.disabled = true;
+
+        fetch('/api/ai-chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: userQuery,
+                selected_resource_ids: selectedResourceIdsForAIChat
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.error || 'Network response was not ok'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            appendMessage(data.reply, 'ai-message');
+        })
+        .catch(error => {
+            console.error('AI Chat Error:', error);
+            appendMessage(`Sorry, I encountered an error: ${error.message}`, 'ai-message');
+        })
+        .finally(() => {
+            loadingIndicator.style.display = 'none';
+            sendButton.disabled = false;
+            messageInput.focus();
+        });
+    }
+
+    function appendMessage(text, type) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add(type);
+        
+        // Use marked to parse Markdown content from AI
+        if (type === 'ai-message') {
+            messageDiv.innerHTML = marked.parse(text);
+        } else {
+            const p = document.createElement('p');
+            p.textContent = text;
+            messageDiv.appendChild(p);
+        }
+        
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to bottom
+    }
 }
 // <<< END NEW FUNCTION >>>

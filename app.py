@@ -1764,6 +1764,167 @@ def search_resources():
     return jsonify(formatted_results)
 # --- END NEW API Endpoint ---
 
+# --- NEW API ENDPOINT FOR AI CHAT ---
+@app.route('/api/ai-chat', methods=['POST'])
+def ai_chat_handler():
+    if not GEMINI_API_KEY:
+        return jsonify({"error": "AI service not configured."}), 503
+
+    data = request.json
+    user_query = data.get('query')
+    selected_resource_ids = data.get('selected_resource_ids', []) # List of data_source_id
+
+    if not user_query:
+        return jsonify({"error": "No query provided."}), 400
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # 1. Fetch summary of all resources (ID, Title, Resource Type, Keywords)
+    # These will form the general knowledge base for the AI for this turn.
+    try:
+        c.execute("SELECT data_source_id, metadata, resource_type, category, keywords FROM data_points")
+        all_resources_rows = c.fetchall()
+    except sqlite3.Error as e:
+        logging.error(f"AI Chat - DB error fetching all resources: {e}")
+        return jsonify({"error": "Database error fetching resource summary."}), 500
+    
+    all_resources_summary = []
+    for row in all_resources_rows:
+        row_dict = dict(row)
+        title = row_dict.get('data_source_id', 'Unknown ID')
+        try:
+            metadata = json.loads(row_dict.get('metadata', '{}'))
+            title = metadata.get('title', title)
+        except json.JSONDecodeError:
+            pass
+        all_resources_summary.append(
+            f"- ID: {row_dict['data_source_id']}, Title: {title}, Type: {row_dict.get('resource_type', 'N/A')}, Category: {row_dict.get('category', 'N/A')}, Keywords: {row_dict.get('keywords', 'N/A')}"
+        )
+    
+    # 2. Fetch details for specifically selected resources
+    selected_resources_details_text = ""
+    if selected_resource_ids:
+        try:
+            # Ensure selected_resource_ids is a list of strings for the query
+            placeholders = ','.join('?' for _ in selected_resource_ids)
+            c.execute(f"SELECT data_source_id, metadata, resource_type, category, subcategory, data_type, level5, data_description, keywords, countries, domains, year_start, year_end FROM data_points WHERE data_source_id IN ({placeholders})", selected_resource_ids)
+            selected_rows = c.fetchall()
+            
+            if selected_rows:
+                selected_resources_details_text += "\n\n== Details for Specifically Selected Resources ==\n"
+                for row in selected_rows:
+                    row_dict = dict(row)
+                    title = row_dict.get('data_source_id', 'Unknown ID')
+                    try:
+                        metadata = json.loads(row_dict.get('metadata', '{}'))
+                        title = metadata.get('title', title)
+                    except json.JSONDecodeError:
+                        pass
+                    
+                    countries_list = json.loads(row_dict.get('countries', '[]'))
+                    domains_list = json.loads(row_dict.get('domains', '[]'))
+
+                    selected_resources_details_text += (
+                        f"\n---\n"
+                        f"Resource ID: {row_dict['data_source_id']}\n"
+                        f"Title: {title}\n"
+                        f"Resource Type: {row_dict.get('resource_type')}\n"
+                        f"Category: {row_dict.get('category')}\n"
+                        f"Subcategory: {row_dict.get('subcategory')}\n"
+                        f"Data Type: {row_dict.get('data_type')}\n"
+                        f"Level 5 Item: {row_dict.get('level5')}\n"
+                        f"Description: {row_dict.get('data_description', 'N/A')}\n"
+                        f"Keywords: {row_dict.get('keywords', 'N/A')}\n"
+                        f"Countries: {', '.join(countries_list)}\n"
+                        f"Domains: {', '.join(domains_list)}\n"
+                        f"Year Range: {row_dict.get('year_start', 'N/A')} - {row_dict.get('year_end', 'N/A')}\n"
+                        f"---\n"
+                    )
+            else:
+                selected_resources_details_text = "\n\n(No details found for the specifically selected resource IDs, or none were selected.)\n"
+        except sqlite3.Error as e:
+            logging.error(f"AI Chat - DB error fetching selected resources: {e}")
+            selected_resources_details_text = "\n\n(Error fetching details for selected resources.)\n"
+    
+    conn.close()
+
+    # 3. Get Vocabulary/Hierarchy Text
+    hierarchy_context = get_detailed_vocab_text() # This provides the structure
+
+    # 4. Construct the prompt for Gemini
+    # This prompt needs to be carefully crafted.
+    prompt = f"""
+You are an AI assistant for the NoMoReAMR resource portal. Your primary goal is to help users find relevant resources based on the information available in our database.
+**CRITICAL INSTRUCTIONS:**
+1.  **Strictly Adhere to Provided Data**: Base ALL your answers *only* on the "Resource Summaries", "Details for Specifically Selected Resources" (if any), and "Vocabulary and Hierarchy" provided below. DO NOT use any external knowledge or make assumptions.
+2.  **Identify Relevant Resources**: When a user asks a question, identify which resources from the "Resource Summaries" or "Details for Specifically Selected Resources" are most relevant. List their full "Title" and "ID".
+3.  **Explain Relevance**: Briefly explain *why* a resource is relevant, citing specific information from its summary or details (e.g., keywords, description snippets, category).
+4.  **Use Hierarchy for Understanding**: Use the "Vocabulary and Hierarchy" to understand the relationships between resource types, categories, etc., which can help in finding related information.
+5.  **If No Match**: If no resources match the query based on the provided data, clearly state that you couldn't find a match *within the current database information*. Do not suggest external searches.
+6.  **Be Concise**: Provide clear and concise answers.
+7.  **Refer to Selected Resources**: If the user has selected specific resources (their details are provided), focus your answers primarily on those, but you can also mention other relevant resources from the general summary if applicable.
+8.  **Output Format**: Present information clearly. Use Markdown for lists or emphasis if it helps. For example, when listing resources:
+    *   **Resource Title** (ID: `THE_ACTUAL_ID`): Brief reason for relevance.
+
+**User's Question:** {user_query}
+
+**Vocabulary and Hierarchy (Use this to understand resource structure):**
+--- VOCABULARY START ---
+{hierarchy_context}
+--- VOCABULARY END ---
+
+**Resource Summaries (General overview of all available resources):**
+--- SUMMARY START ---
+{chr(10).join(all_resources_summary) if all_resources_summary else "No resource summaries available."}
+--- SUMMARY END ---
+"""
+    if selected_resources_details_text:
+        prompt += selected_resources_details_text
+
+    # Call Gemini API (Simplified call, assuming text-only interaction for chat)
+    gemini_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.4, # Slightly more creative for chat but still factual
+            "topK": 1,
+            "topP": 0.95,
+            "maxOutputTokens": 2048,
+            # "responseMimeType": "text/plain", # Expecting markdown/text reply
+        },
+         "safetySettings": [ # Add safety settings
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}
+        ]
+    }
+
+    try:
+        response = requests.post(gemini_api_url, json=payload, headers={'Content-Type': 'application/json'}, timeout=60)
+        response.raise_for_status()
+        response_json = response.json()
+        
+        ai_reply = "Sorry, I couldn't generate a response." # Default
+        if 'candidates' in response_json and response_json['candidates']:
+            content = response_json['candidates'][0].get('content', {})
+            if 'parts' in content and content['parts']:
+                ai_reply = content['parts'][0].get('text', ai_reply)
+        
+        return jsonify({"reply": ai_reply})
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"AI Chat - Gemini API request error: {e}")
+        if e.response is not None:
+            logging.error(f"AI Chat - Gemini API response content: {e.response.text}")
+            return jsonify({"error": f"AI service request error: {e}. Response: {e.response.text[:200]}"}), 502
+        return jsonify({"error": f"AI service request error: {e}"}), 502
+    except Exception as e:
+        logging.error(f"AI Chat - Error calling Gemini API: {e}", exc_info=True)
+        return jsonify({"error": f"AI service processing error: {e}"}), 500
+# --- END NEW API ENDPOINT ---
+
 if __name__ == '__main__':
     if not ADMIN_PASSWORD:
         print("Warning: ADMIN_PASSWORD environment variable not set. Admin login will not work.")
