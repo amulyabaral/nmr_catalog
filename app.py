@@ -19,6 +19,10 @@ from functools import wraps # Needed for decorator
 from werkzeug.datastructures import MultiDict
 import logging # Ensure logging is imported
 import sqlite3 # Ensure sqlite3 is imported for the new API endpoint
+import requests
+from bs4 import BeautifulSoup
+import fitz # PyMuPDF
+import re
 
 load_dotenv() # Load environment variables from .env file
 
@@ -26,6 +30,8 @@ app = Flask(__name__)
 # Set a secret key for session management
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24)) # Use env var or random bytes
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') # Load admin password from env
+# <<< NEW: GEMINI API KEY >>>
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 # Initialize database at startup
 init_db()
@@ -91,12 +97,306 @@ def index():
     # data_points = get_all_data_points() # No longer needed directly here if fetched by JS
     return render_template('index.html', vocabularies=VOCABULARIES) # Pass vocabularies
 
-# --- Updated Add Data Route ---
+# --- NEW HELPER FUNCTIONS FOR AI PROCESSING ---
+
+def extract_text_from_url(url):
+    """Fetches content from URL and extracts text based on content type."""
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'} # Be a good web citizen
+        response = requests.get(url, headers=headers, timeout=20, allow_redirects=True)
+        response.raise_for_status() # Raise an exception for bad status codes
+        
+        content_type = response.headers.get('content-type', '').lower()
+        
+        if 'html' in content_type:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # Remove script and style elements
+            for script_or_style in soup(["script", "style"]):
+                script_or_style.decompose()
+            # Get text
+            text = soup.get_text(separator='\n', strip=True)
+            # Reduce multiple newlines
+            text = re.sub(r'\n\s*\n', '\n\n', text)
+            return text, None
+        elif 'pdf' in content_type:
+            with fitz.open(stream=response.content, filetype="pdf") as doc:
+                text = ""
+                for page in doc:
+                    text += page.get_text()
+            return text, None
+        else:
+            return None, f"Unsupported content type: {content_type}"
+            
+    except requests.exceptions.RequestException as e:
+        return None, f"Error fetching URL: {e}"
+    except Exception as e:
+        return None, f"Error processing content: {e}"
+
+def get_relevant_vocab_text():
+    """Extracts key terms from vocabularies to guide the LLM."""
+    main_cats = VOCABULARIES.get('main_categories', {})
+    hierarchy = VOCABULARIES.get('resource_type_hierarchy', {})
+    
+    vocab_summary = "Available Main Categories:\n"
+    if main_cats.get('Country'):
+        vocab_summary += f"Countries: {', '.join(main_cats['Country'][:10])}...\n" # Show a few
+    if main_cats.get('Domain'):
+        vocab_summary += f"Domains: {', '.join(main_cats['Domain'])}\n"
+    if main_cats.get('Resource_type'):
+        vocab_summary += f"Resource Types (Level 1): {', '.join(main_cats['Resource_type'])}\n\n"
+
+    vocab_summary += "Resource Type Hierarchy (Examples):\n"
+    for l1_key, l1_val in list(hierarchy.items())[:2]: # Show a couple of L1s
+        vocab_summary += f"- {l1_val.get('title', l1_key.replace('_', ' ').title())}\n"
+        if l1_val.get('sub_categories'):
+            for l2_key, l2_val in list(l1_val['sub_categories'].items())[:2]:
+                vocab_summary += f"  - {l2_val.get('title', l2_key.replace('_', ' ').title())}\n"
+                if l2_val.get('items'):
+                     vocab_summary += f"    - Items: {', '.join(str(i.get('name', i)) for i in l2_val['items'][:2])}...\n"
+                elif l2_val.get('sub_categories'):
+                    for l3_key, l3_val in list(l2_val['sub_categories'].items())[:1]:
+                        vocab_summary += f"    - {l3_val.get('title', l3_key.replace('_', ' ').title())}...\n"
+    return vocab_summary
+
+
+def call_gemini_api(text_content, input_url):
+    """Calls the Gemini API to extract information."""
+    if not GEMINI_API_KEY:
+        return None, "GEMINI_API_KEY not configured."
+
+    # Using the experimental model name provided by the user
+    # model_name = "gemini-2.5-pro-exp-03-25" # As requested
+    # The curl example used gemini-2.0-flash. Let's use a generally available one for stability if the exp is tricky.
+    # For now, sticking to the user's specified experimental model.
+    # If issues arise, consider 'gemini-1.5-flash-latest' or 'gemini-1.5-pro-latest' via SDK.
+    # Since the user provided a curl for gemini-2.0-flash, and asked for gemini-2.5-pro-exp-03-25,
+    # I will use the latter in the URL.
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={GEMINI_API_KEY}"
+
+    vocab_context = get_relevant_vocab_text()
+
+    prompt = f"""
+    You are an expert data extraction assistant. Your task is to analyze the following text content extracted from the URL '{input_url}' and populate a JSON object with information relevant to cataloging a research resource.
+
+    Available vocabulary terms for guidance (try to map to these where appropriate):
+    {vocab_context}
+
+    Extract the following fields and structure them in a JSON object:
+    - "resource_name": (string) The primary title or name of the resource.
+    - "countries": (list of strings) Relevant countries. If multiple, list them.
+    - "domains": (list of strings) Relevant domains (e.g., Human, Animal, Environment).
+    - "primary_hierarchy": (object) The most specific classification.
+        - "level1_resource_type": (string) e.g., Data, Systems, Publications.
+        - "level2_category": (string, optional) e.g., omics_data, surveillance_network.
+        - "level3_subcategory": (string, optional) e.g., genomic, pathogen_tracking_systems.
+        - "level4_data_type": (string, optional) e.g., whole_genome_sequencing, clinical_isolate_registry.
+        - "level5_item": (string, optional) e.g., clinical_isolates, wastewater_surveillance.
+    - "year_start": (integer, optional) The start year of the resource or data.
+    - "year_end": (integer, optional) The end year. If ongoing or single year, can be same as start or current year.
+    - "resource_url": (string) This should be the original input URL: "{input_url}".
+    - "contact_info": (string, optional) Contact email, person, or organization.
+    - "description": (string) A concise summary of the resource. Max 200 words.
+    - "keywords": (list of strings, optional) Relevant keywords.
+    - "license": (string, optional) License information (e.g., CC BY 4.0, MIT).
+
+    If a field is not found or not applicable, you can omit it from the JSON or set its value to null (prefer omitting for optional fields).
+    For hierarchy, try to find the most specific level. If only Level 1 is clear, provide that.
+    For countries and domains, if the text mentions specific Nordic countries (Denmark, Finland, Norway, Sweden), prioritize them.
+
+    JSON Output Example:
+    {{
+      "resource_name": "Nordic AMR Surveillance Data 2022",
+      "countries": ["Norway", "Sweden"],
+      "domains": ["Human"],
+      "primary_hierarchy": {{
+        "level1_resource_type": "Data",
+        "level2_category": "population_data",
+        "level3_subcategory": "disease_incidence"
+      }},
+      "year_start": 2022,
+      "year_end": 2022,
+      "resource_url": "{input_url}",
+      "description": "Annual report on antimicrobial resistance surveillance in Nordic countries for human health.",
+      "keywords": ["AMR", "surveillance", "Nordic", "report"],
+      "license": "Government Open License"
+    }}
+
+    Now, analyze this text:
+    --- TEXT START ---
+    {text_content[:300000]} 
+    --- TEXT END ---
+
+    Return ONLY the JSON object.
+    """
+    # Truncate text_content to avoid exceeding token limits, Gemini 2.5 Pro has a large input limit, but good practice.
+
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": { # Optional: control generation parameters
+            "temperature": 0.3, # Lower temperature for more factual extraction
+            "topK": 1,
+            "topP": 1,
+            "maxOutputTokens": 8192, # Max output for the model
+            "responseMimeType": "application/json", # Request JSON output
+        },
+        # "systemInstruction": { # For more persistent instructions - might be useful
+        # "parts": [{"text": "You are an expert data extraction assistant. Always return your answer in JSON format."}]
+        # }
+    }
+
+    try:
+        response = requests.post(api_url, json=payload, headers={'Content-Type': 'application/json'}, timeout=120) # Increased timeout
+        response.raise_for_status()
+        
+        # Gemini might return JSON directly, or a JSON string within its response structure.
+        # The `responseMimeType: "application/json"` should make it return raw JSON.
+        response_json = response.json()
+
+        # If `responseMimeType: "application/json"` works as expected, response_json is the direct data.
+        # If it's nested (older API versions or different models):
+        # extracted_text = response_json.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+        # For direct JSON output, the structure might be simpler.
+        # Let's assume `responseMimeType` gives us the direct JSON.
+        # If the model doesn't directly output JSON in the main body with responseMimeType,
+        # we might need to parse its 'text' part which should contain the JSON string.
+        
+        if 'candidates' in response_json and response_json['candidates']:
+            content = response_json['candidates'][0].get('content', {})
+            if 'parts' in content and content['parts']:
+                # If responseMimeType was application/json, the part *should* be the JSON object itself.
+                # However, the API might still wrap it in a text field.
+                json_text_part = content['parts'][0].get('text')
+                if json_text_part:
+                    try:
+                        # Attempt to parse the text part as JSON
+                        return json.loads(json_text_part), None
+                    except json.JSONDecodeError as e:
+                        logging.error(f"Gemini API returned text that is not valid JSON: {json_text_part}. Error: {e}")
+                        return None, f"Gemini API returned non-JSON text. Raw: {json_text_part[:500]}"
+                else: # If responseMimeType worked and 'parts'[0] is the JSON object directly
+                    # This case might not happen if 'text' is always populated.
+                    # Check if parts[0] itself is a dict (the JSON object)
+                    if isinstance(content['parts'][0], dict):
+                         # This assumes the API directly puts the JSON object here when responseMimeType is application/json
+                         # This part is speculative based on how `responseMimeType` *should* work.
+                         # The Gemini API docs for direct JSON output are a bit sparse for REST.
+                         # For now, we rely on the 'text' field containing the JSON string.
+                         pass # Fall through to error if json_text_part was empty
+        
+        # Fallback or if the structure is different
+        logging.error(f"Unexpected Gemini API response structure: {response_json}")
+        return None, f"Unexpected Gemini API response structure. Check logs. Response: {str(response_json)[:500]}"
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Gemini API request error: {e}")
+        if e.response is not None:
+            logging.error(f"Gemini API response content: {e.response.text}")
+            return None, f"Gemini API request error: {e}. Response: {e.response.text[:500]}"
+        return None, f"Gemini API request error: {e}"
+    except json.JSONDecodeError as e: # If response.json() itself fails
+        logging.error(f"Failed to decode Gemini API JSON response: {e}. Raw response: {response.text}")
+        return None, f"Failed to decode Gemini API JSON response. Raw: {response.text[:500]}"
+    except Exception as e:
+        logging.error(f"Error calling Gemini API: {e}", exc_info=True)
+        return None, f"Error calling Gemini API: {e}"
+
+# --- NEW ROUTE FOR AI URL PROCESSING ---
+@app.route('/ai-process-url', methods=['POST'])
+def ai_process_url():
+    url_to_process = request.form.get('ai_url')
+    if not url_to_process:
+        flash('No URL provided for AI processing.', 'error')
+        return redirect(url_for('add_data'))
+
+    text_content, error = extract_text_from_url(url_to_process)
+    if error:
+        flash(f'Error extracting content from URL: {error}', 'error')
+        # Pass the URL back so the user doesn't have to re-type it in the main form
+        return redirect(url_for('add_data', resource_url=url_to_process)) 
+    
+    if not text_content:
+        flash('Could not extract any text content from the URL.', 'warning')
+        return redirect(url_for('add_data', resource_url=url_to_process))
+
+    extracted_data, gemini_error = call_gemini_api(text_content, url_to_process)
+    if gemini_error:
+        flash(f'AI processing error: {gemini_error}', 'error')
+        return redirect(url_for('add_data', resource_url=url_to_process, description=text_content[:500])) # Pre-fill description with extracted text
+
+    if not extracted_data:
+        flash('AI could not extract data. Please fill the form manually.', 'warning')
+        return redirect(url_for('add_data', resource_url=url_to_process, description=text_content[:500]))
+
+    # Prepare query parameters for redirecting to add_data
+    # The add_data route's GET handler will need to process these.
+    query_params = {}
+    if extracted_data.get("resource_name"):
+        query_params["resource_name"] = extracted_data["resource_name"]
+    
+    # For lists like countries, domains, keywords, join them if they are lists
+    if isinstance(extracted_data.get("countries"), list):
+        for country in extracted_data["countries"]:
+            query_params.setdefault("countries", []).append(country)
+    elif isinstance(extracted_data.get("countries"), str): # if LLM returns a single string
+        query_params.setdefault("countries", []).append(extracted_data["countries"])
+
+    if isinstance(extracted_data.get("domains"), list):
+        for domain in extracted_data["domains"]:
+            query_params.setdefault("domains", []).append(domain)
+    elif isinstance(extracted_data.get("domains"), str):
+        query_params.setdefault("domains", []).append(extracted_data["domains"])
+
+    if isinstance(extracted_data.get("keywords"), list):
+        query_params["keywords"] = ",".join(extracted_data["keywords"])
+    elif isinstance(extracted_data.get("keywords"), str):
+         query_params["keywords"] = extracted_data["keywords"]
+
+
+    hierarchy = extracted_data.get("primary_hierarchy", {})
+    if hierarchy.get("level1_resource_type"):
+        query_params["level1_resource_type"] = hierarchy["level1_resource_type"]
+    if hierarchy.get("level2_category"):
+        query_params["level2_category"] = hierarchy["level2_category"]
+    if hierarchy.get("level3_subcategory"):
+        query_params["level3_subcategory"] = hierarchy["level3_subcategory"]
+    if hierarchy.get("level4_data_type"):
+        query_params["level4_data_type"] = hierarchy["level4_data_type"]
+    if hierarchy.get("level5_item"):
+        query_params["level5_item"] = hierarchy["level5_item"]
+
+    if extracted_data.get("year_start"):
+        query_params["year_start"] = str(extracted_data["year_start"])
+    if extracted_data.get("year_end"):
+        query_params["year_end"] = str(extracted_data["year_end"])
+    
+    query_params["resource_url"] = extracted_data.get("resource_url", url_to_process) # Default to input URL
+    
+    if extracted_data.get("contact_info"):
+        query_params["contact_info"] = extracted_data["contact_info"]
+    if extracted_data.get("description"):
+        query_params["description"] = extracted_data["description"]
+    if extracted_data.get("license"):
+        query_params["license"] = extracted_data["license"]
+
+    flash('AI processing complete. Please review and complete the form.', 'success')
+    return redirect(url_for('add_data', **query_params))
+
+
 @app.route('/add', methods=['GET', 'POST'])
 def add_data():
     # Use MultiDict for both GET and POST
-    form_data = request.form if request.method == 'POST' else MultiDict()
-    
+    if request.method == 'POST':
+        form_data = request.form
+    else: # GET request
+        # Pre-fill from query parameters if present (from AI redirect)
+        # Create a mutable dictionary from request.args
+        query_data_dict = {key: request.args.getlist(key) if len(request.args.getlist(key)) > 1 else request.args.get(key) 
+                           for key in request.args}
+        form_data = MultiDict(query_data_dict)
+
+
     if request.method == 'POST':
         try:
             # --- Collect Form Data ---
@@ -1139,6 +1439,8 @@ def search_resources():
 if __name__ == '__main__':
     if not ADMIN_PASSWORD:
         print("Warning: ADMIN_PASSWORD environment variable not set. Admin login will not work.")
+    if not GEMINI_API_KEY: # <<< Check for Gemini key
+        print("Warning: GEMINI_API_KEY environment variable not set. AI processing will not work.")
     # Ensure DB is initialized when running directly
     init_db()
     # load_initial_data() # <<< REMOVE THIS CALL
