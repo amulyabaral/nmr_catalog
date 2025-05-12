@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session, send_file # Added send_file
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session, send_file, send_from_directory # Added send_file and send_from_directory
 from dotenv import load_dotenv # Import dotenv
 import yaml
 import json
@@ -29,7 +29,7 @@ load_dotenv() # Load environment variables from .env file
 
 app = Flask(__name__)
 # Set a secret key for session management
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24)) # Use env var or random bytes
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'a_very_secret_key_for_dev_only') # Use env var or random bytes
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') # Load admin password from env
 # <<< NEW: GEMINI API KEY >>>
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
@@ -318,7 +318,7 @@ def call_gemini_api(source_identifier, prompt_text_content=None, file_bytes=None
     - "year_end": (integer, optional) The end year. Extract if clearly stated.
     - "resource_url": (string, optional) If the analyzed text explicitly mentions a primary URL for the resource itself, provide that. {'If no specific URL is found in the text, you may use the source URL: "' + original_input_url_for_prompt + '" if the content was sourced from a URL and is a PDF.' if original_input_url_for_prompt else 'If the content was from an uploaded file and no URL is found in its text, or if it was a non-PDF URL, omit this field or set it to null unless a URL is found in the document.'}
     - "contact_info": (string, optional) Contact email, person, or organization, if found.
-    - "description": (string) Detailed info about the resource extracted directly from the text/file (max 1000 words). Try to be as informative as possible, but be concise and straight to the point. Paste any found links as links. If no summary, state "No summary found in text."
+    - "description": (string) Detailed info about the resource extracted directly from the text/file (max 3000 words). Try to be as informative as possible, but be straight to the point. Paste any found links as links. If no summary, state "No summary found in text."
     - "keywords": (list of strings, optional) Keywords explicitly mentioned or strongly implied by the text.
     - "license": (string, optional) License information, if found.
 
@@ -697,7 +697,7 @@ def ai_process_input():
             # Fallback to pre-fill form
             query_params = {k: v for k, v in extracted_data.items() if v is not None}
             if source_for_redirect_url: query_params["resource_url"] = source_for_redirect_url
-            if isinstance(query_params.get("countries"), list): pass
+            if isinstance(query_params.get("countries"), list): pass # Already a list
             elif query_params.get("countries"): query_params["countries"] = [query_params["countries"]]
             if isinstance(query_params.get("domains"), list): pass
             elif query_params.get("domains"): query_params["domains"] = [query_params["domains"]]
@@ -712,19 +712,35 @@ def ai_process_input():
         return redirect(url_for('add_data'))
 
 
-@app.route('/add', methods=['GET', 'POST'])
+@app.route('/add-data', methods=['GET', 'POST'])
 def add_data():
-    # Use MultiDict for both GET and POST
-    if request.method == 'POST':
-        form_data = request.form
-    else: # GET request
-        # Pre-fill from query parameters if present (from AI redirect)
-        # Create a mutable dictionary from request.args
-        query_data_dict = {key: request.args.getlist(key) if len(request.args.getlist(key)) > 1 else request.args.get(key) 
-                           for key in request.args}
-        form_data = MultiDict(query_data_dict)
+    form_data = MultiDict() # Initialize form_data as MultiDict
 
+    if request.method == 'GET':
+        # <<< Check session for pre-fill data >>>
+        if 'prefill_data' in session:
+            prefill_data = session.pop('prefill_data', None) # Get and remove from session
+            if prefill_data:
+                # Convert the prefill_data (which was likely a simple dict)
+                # into a MultiDict suitable for the template's form_data expectations.
+                # Handle lists specifically for countries and domains.
+                temp_form_data = {}
+                for key, value in prefill_data.items():
+                    if key in ['countries', 'domains'] and isinstance(value, list):
+                        # For lists, add each item individually to the MultiDict
+                        for item in value:
+                            temp_form_data.setdefault(key, []).append(item)
+                    else:
+                        # For other items, just assign them
+                        temp_form_data[key] = value
+                form_data = MultiDict(temp_form_data)
+                flash('AI extraction results pre-filled. Please review and submit.', 'info')
+        # <<< End session check >>>
 
+        # Render the form, potentially pre-filled from session
+        return render_template('add_data.html', vocabularies=VOCABULARIES, form_data=form_data)
+
+    # --- POST Request Handling (Manual Submission) ---
     if request.method == 'POST':
         try:
             # --- Collect Form Data ---
