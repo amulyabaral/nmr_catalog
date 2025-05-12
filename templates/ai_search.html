@@ -47,6 +47,15 @@
         .select2-dropdown {
             z-index: 2050; /* High z-index */
         }
+        
+        /* Additional styles to ensure Select2 works properly */
+        .ai-chat-context-selection {
+            margin-bottom: 1rem;
+        }
+        
+        .select2-container {
+            width: 100% !important; /* Force correct width */
+        }
     </style>
 </head>
 <body>
@@ -139,6 +148,30 @@
             // No specific button to toggle chat modal here as it's a full page.
             // If setupAIChatInterface relies on elements that were specific to the modal *container*
             // those might need slight adjustment if IDs changed, but we kept them.
+            
+            // Initialize Select2 for resource selection directly - don't rely solely on main.js
+            $('#ai-chat-resource-select').select2({
+                placeholder: 'Search and select resources by name or ID...',
+                minimumInputLength: 2,
+                allowClear: true,
+                ajax: {
+                    url: '/api/search-resources',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { q: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: data }; // API returns {id, text}
+                    },
+                    cache: true
+                }
+            });
+
+            // Handle resource selection changes
+            $('#ai-chat-resource-select').on('change', function() {
+                console.log('Selected resources:', $(this).val());
+            });
         });
     </script>
 </body>
