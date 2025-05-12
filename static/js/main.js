@@ -1829,55 +1829,71 @@ function setupAIChatInterface() {
 
     // Check if essential chat elements are present on the page
     if (!chatInterfaceContainer || !sendButton || !messageInput || !messagesContainer || !resourceSelect.length) {
-        // console.log('AI Chat interface elements not found on this page. Skipping setup.');
+        console.log('AI Chat interface elements not found or incomplete on this page. Skipping setup. Ensure all IDs like "ai-chat-send-btn", "ai-chat-input" etc. are correct in your HTML.');
         return;
     }
-    console.log('Setting up AI Chat Interface...');
+    console.log('Setting up AI Chat Interface: All essential elements found.');
 
 
     let selectedResourceIdsForAIChat = [];
 
     // Initialize Select2 for resource selection
-    resourceSelect.select2({
-        placeholder: 'Search and select resources by name or ID...',
-        minimumInputLength: 2,
-        allowClear: true,
-        dropdownParent: $('.ai-chat-context-selection'), // Ensures dropdown is positioned correctly relative to its parent
-        ajax: {
-            url: '/api/search-resources',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return { q: params.term };
-            },
-            processResults: function (data) {
-                return { results: data }; // API returns {id, text}
-            },
-            cache: true
-        }
-    });
+    // Check if Select2 is already initialized to prevent re-initialization issues
+    if (!resourceSelect.data('select2')) {
+        console.log('Initializing Select2 for AI Chat resource selection.');
+        resourceSelect.select2({
+            placeholder: 'Search and select resources by name or ID...',
+            minimumInputLength: 2,
+            allowClear: true,
+            dropdownParent: $('.ai-chat-context-selection'), // Ensures dropdown is positioned correctly relative to its parent
+            ajax: {
+                url: '/api/search-resources',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term };
+                },
+                processResults: function (data) {
+                    return { results: data }; // API returns {id, text}
+                },
+                cache: true
+            }
+        });
+    } else {
+        console.log('Select2 already initialized for AI Chat resource selection.');
+    }
 
     resourceSelect.on('change', function() {
         selectedResourceIdsForAIChat = $(this).val() || [];
         console.log('AI Chat - Selected resource IDs:', selectedResourceIdsForAIChat);
     });
 
-    sendButton.addEventListener('click', sendMessageToAI);
+    sendButton.addEventListener('click', function() {
+        console.log("Send button clicked!"); // Log when the button is clicked
+        sendMessageToAI();
+    });
+
     messageInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
+            console.log("Enter key pressed in chat input!"); // Log enter key press
             sendMessageToAI();
         }
     });
 
     function sendMessageToAI() {
+        console.log("sendMessageToAI function called."); // Log when this function starts
         const userQuery = messageInput.value.trim();
-        if (!userQuery) return;
+        if (!userQuery) {
+            console.log("User query is empty, not sending.");
+            return;
+        }
 
         appendMessage(userQuery, 'user-message', messagesContainer);
         messageInput.value = '';
         if(loadingIndicator) loadingIndicator.style.display = 'flex';
         sendButton.disabled = true;
+        console.log("Send button disabled, preparing to fetch AI response.");
 
         fetch('/api/ai-chat', {
             method: 'POST',
@@ -1890,22 +1906,28 @@ function setupAIChatInterface() {
             })
         })
         .then(response => {
+            console.log("Received response from /api/ai-chat");
             if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.error || 'Network response was not ok'); });
+                return response.json().then(err => { 
+                    console.error("AI Chat API error response:", err);
+                    throw new Error(err.error || 'Network response was not ok'); 
+                });
             }
             return response.json();
         })
         .then(data => {
+            console.log("AI response data:", data);
             appendMessage(data.reply, 'ai-message', messagesContainer);
         })
         .catch(error => {
-            console.error('AI Chat Error:', error);
+            console.error('AI Chat Error during fetch or processing:', error);
             appendMessage(`Sorry, I encountered an error: ${error.message}`, 'ai-message', messagesContainer);
         })
         .finally(() => {
             if(loadingIndicator) loadingIndicator.style.display = 'none';
             sendButton.disabled = false;
             messageInput.focus();
+            console.log("Send button re-enabled in finally block.");
         });
     }
 }
