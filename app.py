@@ -1855,54 +1855,31 @@ def ai_chat_handler():
     # 4. Construct the prompt for Gemini
     # This prompt needs to be carefully crafted.
     prompt = f"""
-You are an AI assistant for the NoMoReAMR resource portal. Your primary goal is to help users find relevant resources based on the information available in our database.
-**CRITICAL INSTRUCTIONS:**
-1.  **Strictly Adhere to Provided Data**: Base ALL your answers *only* on the "Resource Summaries", "Details for Specifically Selected Resources" (if any), and "Vocabulary and Hierarchy" provided below. DO NOT use any external knowledge or make assumptions.
-2.  **Identify Relevant Resources**: When a user asks a question, identify which resources from the "Resource Summaries" or "Details for Specifically Selected Resources" are most relevant. List their full "Title" and "ID".
-3.  **Explain Relevance**: Briefly explain *why* a resource is relevant, citing specific information from its summary or details (e.g., keywords, description snippets, category).
-4.  **Use Hierarchy for Understanding**: Use the "Vocabulary and Hierarchy" to understand the relationships between resource types, categories, etc., which can help in finding related information.
-5.  **If No Match**: If no resources match the query based on the provided data, clearly state that you couldn't find a match *within the current database information*. Do not suggest external searches.
-6.  **Be Concise**: Provide clear and concise answers.
-7.  **Refer to Selected Resources**: If the user has selected specific resources (their details are provided), focus your answers primarily on those, but you can also mention other relevant resources from the general summary if applicable.
-8.  **Output Format**: Present information clearly. Use Markdown for lists or emphasis if it helps. For example, when listing resources:
-    *   **Resource Title** (ID: `THE_ACTUAL_ID`): Brief reason for relevance.
+You are a helpful assistant for the NoMoReAMR database.
+Your goal is to help users find relevant data points based on their query.
+Use the provided vocabulary and resource details to answer.
+Be concise and helpful.
 
-**User's Question:** {user_query}
+User query: "{user_query}"
 
-**Vocabulary and Hierarchy (Use this to understand resource structure):**
---- VOCABULARY START ---
+Available Vocabulary/Hierarchy (for context on how data is structured):
 {hierarchy_context}
---- VOCABULARY END ---
 
-**Resource Summaries (General overview of all available resources):**
---- SUMMARY START ---
-{chr(10).join(all_resources_summary) if all_resources_summary else "No resource summaries available."}
---- SUMMARY END ---
+Details for specifically selected resources by the user (if any, these are high priority for context):
+{selected_resources_details_text}
+
+All available resources (general context, use if no specific resources are selected by user or if query is broad):
+{all_resources_summary}
+
+Based on the user's query and the available information, provide a helpful response.
+If you identify specific resources relevant to the query, list their Title and Data Source ID.
+When you mention a resource that the user can click on for more details, format it as a Markdown link like this: [Resource Title (DataSourceID)](resource_click://DataSourceID).
+For example: [Swedish Wastewater Data (SWE_WW_DATA_001)](resource_click://SWE_WW_DATA_001).
+Ensure your entire response is formatted using Markdown.
 """
-    if selected_resources_details_text:
-        prompt += selected_resources_details_text
-
-    # Call Gemini API (Simplified call, assuming text-only interaction for chat)
-    gemini_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.4, # Slightly more creative for chat but still factual
-            "topK": 1,
-            "topP": 0.95,
-            "maxOutputTokens": 2048,
-            # "responseMimeType": "text/plain", # Expecting markdown/text reply
-        },
-         "safetySettings": [ # Add safety settings
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}
-        ]
-    }
 
     try:
-        response = requests.post(gemini_api_url, json=payload, headers={'Content-Type': 'application/json'}, timeout=60)
+        response = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}", json={"contents": [{"parts": [{"text": prompt}]}]}, headers={"Content-Type": "application/json"})
         response.raise_for_status()
         response_json = response.json()
         
@@ -1924,6 +1901,18 @@ You are an AI assistant for the NoMoReAMR resource portal. Your primary goal is 
         logging.error(f"AI Chat - Error calling Gemini API: {e}", exc_info=True)
         return jsonify({"error": f"AI service processing error: {e}"}), 500
 # --- END NEW API ENDPOINT ---
+
+# --- NEW ROUTE FOR AI EXPLORER PAGE ---
+@app.route('/ai-explorer')
+def ai_explorer():
+    """Serves the dedicated AI Explorer page."""
+    # Pass vocabularies if needed by any components on this page, though chat primarily uses API
+    vocabularies = {
+        "main_categories": get_main_categories(),
+        "resource_type_hierarchy": get_resource_type_hierarchy()
+    }
+    return render_template('ai_explorer.html', vocabularies=vocabularies)
+# --- END NEW ROUTE ---
 
 if __name__ == '__main__':
     if not ADMIN_PASSWORD:

@@ -1810,30 +1810,27 @@ div.vis-tooltip {
 
 /* ... (rest of styles) ... */
 
-/* AI Chat Modal Styles */
-.ai-chat-modal {
-    display: none; /* Hidden by default */
-    position: fixed;
-    z-index: 2000; /* Higher than other modals */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.6);
-    align-items: center; /* For vertical centering of container */
-    justify-content: center; /* For horizontal centering of container */
+/* AI Chat Modal Styles - ADAPTED for a page or keep if modal is still used elsewhere */
+.ai-chat-modal { /* This class might be repurposed or a new one used for the page */
+    display: none; /* Hidden by default if still used as a modal trigger */
+    /* Keep other modal properties if it's sometimes a modal */
+    /* For a dedicated page, these would be different: */
+    /* position: static; */
+    /* width: 100%; */
+    /* height: auto; */
+    /* background-color: transparent; */
 }
 
+/* Styles for the AI chat interface elements, largely reusable */
 .ai-chat-container {
     background-color: #fff;
-    margin: auto; /* Fallback for centering if flex not fully supported */
+    /* margin: auto; */ /* Centering for modal */
     padding: 20px;
     border-radius: var(--border-radius);
-    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
-    width: 90%;
-    max-width: 700px;
-    max-height: 85vh;
+    /* box-shadow: 0 5px 25px rgba(0,0,0,0.2); */ /* Shadow for modal */
+    /* width: 90%; */
+    /* max-width: 700px; */
+    /* max-height: 85vh; */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -1929,6 +1926,21 @@ div.vis-tooltip {
 .ai-chat-context-selection .select2-container .select2-selection--multiple {
     border: 1px solid #ccc !important;
     min-height: 38px;
+}
+/* Ensure Select2 dropdown options are visible */
+.select2-container--default .select2-results__option {
+    color: #333; /* Ensure text is visible */
+    background-color: #fff; /* Ensure background is plain white */
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--primary-color); /* Highlight color */
+    color: white;
+}
+.select2-dropdown {
+    border: 1px solid #aaa;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: white; /* Ensure dropdown background is white */
+    z-index: 2050; /* Ensure it's above other elements */
 }
 
 

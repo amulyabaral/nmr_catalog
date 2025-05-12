@@ -1886,38 +1886,45 @@ function setupAIFormListener() {
 }
 // <<< END NEW FUNCTION >>>
 
-// <<< NEW FUNCTION for AI Chat Interface >>>
+// <<< UPDATED FUNCTION for AI Chat Interface >>>
 function setupAIChatInterface() {
-    const chatModal = document.getElementById('ai-chat-modal');
-    const toggleButton = document.getElementById('ai-chat-toggle-btn');
-    const closeButton = chatModal.querySelector('.close-ai-chat');
+    // Adjusted for dedicated page: ai-chat-modal is now the main page container for chat.
+    // No modal show/hide logic needed here if it's a full page.
+    const chatInterfaceContainer = document.querySelector('.ai-chat-container'); // Main container on the AI explorer page
+    
+    // If these elements are not on the current page, the function will exit early.
+    // This allows main.js to be included on all pages without error.
     const sendButton = document.getElementById('ai-chat-send-btn');
     const messageInput = document.getElementById('ai-chat-input');
-    const messagesContainer = chatModal.querySelector('.ai-chat-messages');
+    const messagesContainer = document.querySelector('.ai-chat-messages');
     const resourceSelect = $('#ai-chat-resource-select'); // jQuery selector for Select2
     const loadingIndicator = document.getElementById('ai-chat-loading');
 
-    let selectedResourceIdsForAIChat = [];
-
-    if (!chatModal || !toggleButton || !closeButton || !sendButton || !messageInput || !messagesContainer || !resourceSelect.length) {
-        console.warn('AI Chat interface elements not found. Feature may not work.');
+    // Check if essential chat elements are present on the page
+    if (!chatInterfaceContainer || !sendButton || !messageInput || !messagesContainer || !resourceSelect.length) {
+        // console.log('AI Chat interface elements not found on this page. Skipping setup.');
         return;
     }
+    console.log('Setting up AI Chat Interface...');
+
+
+    let selectedResourceIdsForAIChat = [];
 
     // Initialize Select2 for resource selection
     resourceSelect.select2({
         placeholder: 'Search and select resources by name or ID...',
         minimumInputLength: 2,
         allowClear: true,
+        dropdownParent: $('.ai-chat-context-selection'), // Ensures dropdown is positioned correctly relative to its parent
         ajax: {
-            url: '/api/search-resources', // Existing endpoint
+            url: '/api/search-resources',
             dataType: 'json',
             delay: 250,
             data: function (params) {
                 return { q: params.term };
             },
             processResults: function (data) {
-                return { results: data };
+                return { results: data }; // API returns {id, text}
             },
             cache: true
         }
@@ -1926,20 +1933,6 @@ function setupAIChatInterface() {
     resourceSelect.on('change', function() {
         selectedResourceIdsForAIChat = $(this).val() || [];
         console.log('AI Chat - Selected resource IDs:', selectedResourceIdsForAIChat);
-    });
-
-    toggleButton.addEventListener('click', () => {
-        chatModal.style.display = 'flex'; // Use flex for centering
-    });
-
-    closeButton.addEventListener('click', () => {
-        chatModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === chatModal) {
-            chatModal.style.display = 'none';
-        }
     });
 
     sendButton.addEventListener('click', sendMessageToAI);
@@ -1954,9 +1947,9 @@ function setupAIChatInterface() {
         const userQuery = messageInput.value.trim();
         if (!userQuery) return;
 
-        appendMessage(userQuery, 'user-message');
+        appendMessage(userQuery, 'user-message', messagesContainer);
         messageInput.value = '';
-        loadingIndicator.style.display = 'flex';
+        if(loadingIndicator) loadingIndicator.style.display = 'flex';
         sendButton.disabled = true;
 
         fetch('/api/ai-chat', {
@@ -1976,34 +1969,62 @@ function setupAIChatInterface() {
             return response.json();
         })
         .then(data => {
-            appendMessage(data.reply, 'ai-message');
+            appendMessage(data.reply, 'ai-message', messagesContainer);
         })
         .catch(error => {
             console.error('AI Chat Error:', error);
-            appendMessage(`Sorry, I encountered an error: ${error.message}`, 'ai-message');
+            appendMessage(`Sorry, I encountered an error: ${error.message}`, 'ai-message', messagesContainer);
         })
         .finally(() => {
-            loadingIndicator.style.display = 'none';
+            if(loadingIndicator) loadingIndicator.style.display = 'none';
             sendButton.disabled = false;
             messageInput.focus();
         });
     }
-
-    function appendMessage(text, type) {
-        const messageDiv = document.createElement('div');
-        messageDiv.classList.add(type);
-        
-        // Use marked to parse Markdown content from AI
-        if (type === 'ai-message') {
-            messageDiv.innerHTML = marked.parse(text);
-        } else {
-            const p = document.createElement('p');
-            p.textContent = text;
-            messageDiv.appendChild(p);
-        }
-        
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to bottom
-    }
 }
-// <<< END NEW FUNCTION >>>
+
+// UPDATED appendMessage to handle clickable resource links
+function appendMessage(text, type, messagesContainerElement) {
+    if (!messagesContainerElement) {
+        console.error("Messages container not found for appending message.");
+        return;
+    }
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add(type);
+    
+    if (type === 'ai-message') {
+        // Use marked to parse Markdown content from AI
+        let htmlContent = marked.parse(text);
+        messageDiv.innerHTML = htmlContent;
+
+        // Find and process resource_click:// links
+        const resourceLinks = messageDiv.querySelectorAll('a[href^="resource_click://"]');
+        resourceLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            const resourceId = href.substring("resource_click://".length);
+            if (resourceId) {
+                link.href = '#'; // Prevent default navigation
+                link.style.cursor = 'pointer';
+                link.style.textDecoration = 'underline';
+                link.style.color = 'var(--secondary-color)'; // Or your preferred link color
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log(`Resource link clicked: ${resourceId}`);
+                    showResourceDetails(resourceId); // Assumes showResourceDetails is globally available
+                });
+            }
+        });
+
+    } else { // user-message
+        const p = document.createElement('p');
+        p.textContent = text;
+        messageDiv.appendChild(p);
+    }
+    
+    messagesContainerElement.appendChild(messageDiv);
+    messagesContainerElement.scrollTop = messagesContainerElement.scrollHeight; // Scroll to bottom
+}
+
+// Ensure setupAIChatInterface is called on DOMContentLoaded,
+// it will check for necessary elements before proceeding.
+// The main DOMContentLoaded listener in main.js already calls setupAIChatInterface.

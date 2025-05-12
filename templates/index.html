@@ -25,7 +25,7 @@
                 <a href="/">NoMoReAMR</a>
             </div>
             <div class="nav-links">
-                <button id="ai-chat-toggle-btn" class="submit-btn" style="margin-right: 1rem; background-color: var(--secondary-color);">Find with AI</button>
+                <a href="{{ url_for('ai_explorer') }}" class="submit-btn" style="margin-right: 1rem; background-color: var(--secondary-color);">Find with AI</a>
                 <a href="{{ url_for('add_data') }}" class="submit-btn">Submit Data</a>
             </div>
         </div>
@@ -204,33 +204,6 @@
         </section>
 
     </main>
-
-    <!-- AI Chat Modal -->
-    <div id="ai-chat-modal" class="ai-chat-modal">
-        <div class="ai-chat-container">
-            <div class="ai-chat-header">
-                <h3>AI Resource Finder</h3>
-                <span class="close-ai-chat">&times;</span>
-            </div>
-            <div class="ai-chat-messages">
-                <!-- Messages will appear here -->
-                <div class="ai-message">
-                    <p>Hello! How can I help you find a resource today? You can ask me questions, or select specific resources below to discuss them.</p>
-                </div>
-            </div>
-            <div class="ai-chat-context-selection">
-                <label for="ai-chat-resource-select">Add specific resources to our discussion:</label>
-                <select id="ai-chat-resource-select" multiple="multiple" style="width: 100%;"></select>
-            </div>
-            <div class="ai-chat-input-area">
-                <textarea id="ai-chat-input" placeholder="Ask about resources, e.g., 'Find data on wastewater surveillance in Sweden'"></textarea>
-                <button id="ai-chat-send-btn">Send</button>
-            </div>
-            <div id="ai-chat-loading" class="ai-chat-loading-indicator" style="display: none;">
-                <div class="spinner"></div> Thinking...
-            </div>
-        </div>
-    </div>
 
     <!-- Resource Details Modal -->
     <div id="resource-modal" class="modal">
