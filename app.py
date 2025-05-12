@@ -1903,15 +1903,15 @@ Ensure your entire response is formatted using Markdown.
 # --- END NEW API ENDPOINT ---
 
 # --- NEW ROUTE FOR AI EXPLORER PAGE ---
-@app.route('/ai-explorer')
-def ai_explorer():
-    """Serves the dedicated AI Explorer page."""
+@app.route('/ai-search')
+def ai_search():
+    """Serves the dedicated AI Search page."""
     # Pass vocabularies if needed by any components on this page, though chat primarily uses API
     vocabularies = {
         "main_categories": get_main_categories(),
         "resource_type_hierarchy": get_resource_type_hierarchy()
     }
-    return render_template('ai_explorer.html', vocabularies=vocabularies)
+    return render_template('ai_search.html', vocabularies=vocabularies)
 # --- END NEW ROUTE ---
 
 if __name__ == '__main__':
