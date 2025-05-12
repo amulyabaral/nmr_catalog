@@ -48,6 +48,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function setupBrowseTabs() {
     const tabs = document.querySelectorAll('.browse-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    if (tabs.length === 0 || tabContents.length === 0) {
+        // console.log("Browse tab elements not found on this page. Skipping setupBrowseTabs.");
+        return;
+    }
     
     tabs.forEach(tab => {
         tab.addEventListener('click', function() {
@@ -71,7 +77,11 @@ function setupBrowseTabs() {
 
 function setupCategoryCheckboxes() {
     const checkboxes = document.querySelectorAll('.category-checkbox');
-    console.log('Setting up checkboxes:', checkboxes.length);
+    // console.log('Setting up checkboxes:', checkboxes.length); // Already logged at the top
+    if (checkboxes.length === 0) {
+        // console.log("No category checkboxes found on this page. Skipping setupCategoryCheckboxes.");
+        return;
+    }
     
     checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
@@ -171,7 +181,7 @@ function updateCategoryCount(category) {
 
 function updateExploreButtonState() {
     const exploreButton = document.getElementById('explore-button');
-    if (!exploreButton) return; // Add safety check
+    if (!exploreButton) return; // Add safety check - already present, good.
     
     const hasSelection = ['countries', 'domains', 'resource-types'].some(category => {
         const container = document.querySelector(`#selected-${category} .selected-tags`);
@@ -191,6 +201,12 @@ function updateExploreButtonState() {
 
 function setupExploreButton() {
     const exploreButton = document.getElementById('explore-button');
+    const clearFiltersButton = document.getElementById('clear-filters');
+
+    if (!exploreButton || !clearFiltersButton) {
+        // console.log("Explore button or clear filters button not found on this page. Skipping setupExploreButton.");
+        return;
+    }
     
     exploreButton.addEventListener('click', function() {
         // Get selected categories
@@ -210,7 +226,7 @@ function setupExploreButton() {
     });
     
     // Setup clear filters
-    document.getElementById('clear-filters').addEventListener('click', clearAllFilters);
+    clearFiltersButton.addEventListener('click', clearAllFilters);
 }
 
 function getSelectedValues(category) {
@@ -249,6 +265,11 @@ function clearAllFilters() {
 function setupModal() {
     const modal = document.getElementById('resource-modal');
     const closeBtn = document.querySelector('.close-modal');
+
+    if (!modal || !closeBtn) {
+        // console.log("Modal elements not found on this page. Skipping setupModal.");
+        return;
+    }
     
     closeBtn.onclick = () => modal.style.display = 'none';
     window.onclick = (event) => {
@@ -1545,6 +1566,11 @@ function updateColorOpacity(colorProperty, opacity) {
 // --- Updated Function for Physics-Based Network Graph ---
 function setupNetworkGraph() {
     const container = document.getElementById('network-graph-container');
+    
+    if (!container) {
+        // console.log("Network graph container not found on this page. Skipping setupNetworkGraph.");
+        return;
+    }
     const loadingIndicator = container.querySelector('.loading-indicator');
 
     // Check for vis library
