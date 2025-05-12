@@ -1789,19 +1789,35 @@ def ai_chat_handler():
         logging.error(f"AI Chat - DB error fetching all resources: {e}")
         return jsonify({"error": "Database error fetching resource summary."}), 500
     
-    all_resources_summary = []
-    for row in all_resources_rows:
+    all_resources_summary_list = []
+    for row_idx, row in enumerate(all_resources_rows):
         row_dict = dict(row)
-        title = row_dict.get('data_source_id', 'Unknown ID')
+        title = row_dict.get('data_source_id', f'Unknown Resource {row_idx+1}')
         try:
             metadata = json.loads(row_dict.get('metadata', '{}'))
             title = metadata.get('title', title)
         except json.JSONDecodeError:
             pass
-        all_resources_summary.append(
-            f"- ID: {row_dict['data_source_id']}, Title: {title}, Type: {row_dict.get('resource_type', 'N/A')}, Category: {row_dict.get('category', 'N/A')}, Keywords: {row_dict.get('keywords', 'N/A')}"
+        
+        countries_list_summary = json.loads(row_dict.get('countries', '[]'))
+        domains_list_summary = json.loads(row_dict.get('domains', '[]'))
+
+        summary_entry = (
+            f"- ID: {row_dict['data_source_id']}\n"
+            f"  Title: {title}\n"
+            f"  Resource Type: {row_dict.get('resource_type', 'N/A')}\n"
+            f"  Category: {row_dict.get('category', 'N/A')}\n"
+            f"  Keywords: {row_dict.get('keywords', 'N/A')}\n"
+            f"  Countries: {', '.join(countries_list_summary)}\n"
+            f"  Domains: {', '.join(domains_list_summary)}\n"
+            f"  Years: {row_dict.get('year_start','N/A')}-{row_dict.get('year_end','N/A')}"
         )
+        all_resources_summary_list.append(summary_entry)
     
+    all_resources_summary_text = "\n".join(all_resources_summary_list)
+    if not all_resources_summary_text:
+        all_resources_summary_text = "No resources found in the database."
+
     # 2. Fetch details for specifically selected resources
     selected_resources_details_text = ""
     if selected_resource_ids:
@@ -1853,29 +1869,42 @@ def ai_chat_handler():
     hierarchy_context = get_detailed_vocab_text() # This provides the structure
 
     # 4. Construct the prompt for Gemini
-    # This prompt needs to be carefully crafted.
     prompt = f"""
-You are a helpful assistant for the NoMoReAMR database.
-Your goal is to help users find relevant data points based on their query.
-Use the provided vocabulary and resource details to answer.
-Be concise and helpful.
+You are a specialized AI assistant for the NoMoReAMR database, a Nordic initiative for antimicrobial resistance research.
+Your primary goal is to help users discover relevant data points, systems, publications, or entities within this database.
+You must use the provided information (Vocabulary/Hierarchy, All Available Resources Summary, and Details for Specifically Selected Resources) to answer the user's query.
+Be concise, helpful, and professional. Your responses must be in Markdown format.
 
-User query: "{user_query}"
+User's Query: "{user_query}"
 
-Available Vocabulary/Hierarchy (for context on how data is structured):
-{hierarchy_context}
+--------------------------------------------------
+CONTEXTUAL INFORMATION:
+--------------------------------------------------
 
-Details for specifically selected resources by the user (if any, these are high priority for context):
-{selected_resources_details_text}
+1.  VOCABULARY & HIERARCHY:
+    This describes how resources are categorized in the NoMoReAMR database.
+    {hierarchy_context}
 
-All available resources (general context, use if no specific resources are selected by user or if query is broad):
-{all_resources_summary}
+2.  DETAILS FOR SPECIFICALLY SELECTED RESOURCES (if any, these are high priority for context):
+    The user has explicitly selected these resources to discuss. Focus on these if the query relates to them.
+    {selected_resources_details_text if selected_resources_details_text.strip() else "No specific resources were selected by the user for this query."}
 
-Based on the user's query and the available information, provide a helpful response.
-If you identify specific resources relevant to the query, list their Title and Data Source ID.
-When you mention a resource that the user can click on for more details, format it as a Markdown link like this: [Resource Title (DataSourceID)](resource_click://DataSourceID).
-For example: [Swedish Wastewater Data (SWE_WW_DATA_001)](resource_click://SWE_WW_DATA_001).
-Ensure your entire response is formatted using Markdown.
+3.  SUMMARY OF ALL AVAILABLE RESOURCES IN THE DATABASE (general context, use if no specific resources are selected or if query is broad):
+    This is a list of all resources. Use this to find potentially relevant items if the query is general.
+    {all_resources_summary_text}
+
+--------------------------------------------------
+RESPONSE INSTRUCTIONS:
+--------------------------------------------------
+
+Based on the user's query and ALL the contextual information above:
+*   Provide a helpful and informative response.
+*   If you identify specific resources relevant to the query, you MUST list their Title and Data Source ID.
+*   CRITICAL: When you mention a resource that the user might want to view in detail, you MUST format it as a Markdown link using the special 'resource_click://' protocol followed by the resource's 'data_source_id'.
+    Example: If a resource has Title "Swedish Wastewater Data" and ID "SWE_WW_DATA_001", you must link it as: [Swedish Wastewater Data (SWE_WW_DATA_001)](resource_click://SWE_WW_DATA_001)
+*   Do NOT invent resource IDs or details. Only refer to information present in the provided context.
+*   If the query is too vague or if no relevant resources are found, politely state that and perhaps suggest how the user could refine their query.
+*   Ensure your entire response is formatted using Markdown (e.g., use bullet points for lists, bold for emphasis).
 """
 
     try:

@@ -378,173 +378,100 @@ function displayResults(data) {
 }
 
 function showResourceDetails(resourceId) {
+    const modal = document.getElementById('resource-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDetailsContainer = document.getElementById('modal-details'); // Corrected ID
+    const resourceLink = document.getElementById('resource-link');
+
+    if (!modal || !modalTitle || !modalDetailsContainer || !resourceLink) {
+        console.error('Modal elements not found for showResourceDetails! Ensure modal HTML is on the page and IDs are correct (modal-details).');
+        return;
+    }
+
+    // Show loading state in modal
+    modalTitle.textContent = 'Loading...';
+    modalDetailsContainer.innerHTML = '<div class="spinner" style="margin: 20px auto;"></div>';
+    resourceLink.style.display = 'none';
+    modal.style.display = 'block';
+
     fetch(`/api/resource/${resourceId}`)
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`Network response was not ok for resource ${resourceId}. Status: ${response.status}`);
             }
             return response.json();
-         })
-        .then(resource => {
-            // Metadata might already be an object from the API
-            let metadataObj = resource.metadata || {};
-            if (typeof metadataObj === 'string') {
-                try {
-                    metadataObj = JSON.parse(metadataObj);
-                } catch(e) {
-                    console.error('Failed to parse metadata in modal:', e);
-                    metadataObj = {};
-                }
+        })
+        .then(data => {
+            if (!data) {
+                modalTitle.textContent = 'Error';
+                modalDetailsContainer.innerHTML = '<p>Resource details not found.</p>';
+                return;
             }
 
-            // Update modal title with resource name from metadata if available
-            document.getElementById('modal-title').textContent = metadataObj.title || resource.data_source_id;
+            modalTitle.textContent = data.metadata?.title || data.data_source_id || 'Resource Details';
+            
+            let detailsHtml = '<div class="detail-grid">';
 
-            // Build a more comprehensive and well-organized display
-            const detailsContainer = document.getElementById('modal-details');
-
-            // --- Create Year Range Display ---
-            const start = resource.year_start;
-            const end = resource.year_end;
-            let yearDisplay = 'N/A';
-             if (start && end) {
-                yearDisplay = start === end ? start.toString() : `${start}-${end}`;
-            } else if (start) {
-                yearDisplay = `${start}-Present`;
-            } else if (end) {
-                yearDisplay = `Up to ${end}`;
+            // Section 1: General Info
+            detailsHtml += '<div class="detail-section"><h3>General Information</h3>';
+            detailsHtml += `<div class="detail-row"><span class="detail-label">ID:</span> <span class="detail-value">${data.data_source_id}</span></div>`;
+            
+            const description = data.metadata?.description || data.data_description;
+            if (description) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Description:</span> <span class="detail-value detail-description">${description}</span></div>`;
             }
-            // --- End Year Range Display ---
+            if (data.year_start || data.year_end) { // Show even if one is present
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Year Range:</span> <span class="detail-value">${data.year_start || 'N/A'} - ${data.year_end || 'N/A'}</span></div>`;
+            }
+            const contact = data.metadata?.contact_info || data.contact_information;
+            if (contact) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Contact:</span> <span class="detail-value detail-contact">${contact}</span></div>`;
+            }
+            if (data.metadata?.license) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">License:</span> <span class="detail-value">${data.metadata.license}</span></div>`;
+            }
+            detailsHtml += '</div>'; 
 
-            // --- UPDATED: Access countries_list and domains_list for modal ---
-            const countriesDisplayModal = Array.isArray(resource.countries_list) ? resource.countries_list.join(', ') : 'N/A';
-            const domainsDisplayModal = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
-            // --- END UPDATE ---
+            // Section 2: Classification & Tags
+            detailsHtml += '<div class="detail-section"><h3>Classification & Tags</h3>';
+            const hierarchyPath = [
+                data.resource_type, data.category, data.subcategory, data.data_type, data.level5
+            ].filter(Boolean).map(s => s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(' > ');
+            if (hierarchyPath) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Primary Path:</span> <span class="detail-value">${hierarchyPath}</span></div>`;
+            }
 
-            // --- Parse Description using marked.js ---
-            const descriptionHtml = resource.data_description
-                ? marked.parse(resource.data_description) // Use marked.parse() here
-                : '<p>No description provided.</p>'; // Default if no description
-            // --- End Description Parsing ---
+            if (data.countries_list && data.countries_list.length > 0) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Countries:</span> <span class="detail-value detail-tags">${data.countries_list.map(c => `<span class="detail-tag country">${c}</span>`).join('')}</span></div>`;
+            }
+            if (data.domains_list && data.domains_list.length > 0) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Domains:</span> <span class="detail-value detail-tags">${data.domains_list.map(d => `<span class="detail-tag domain">${d}</span>`).join('')}</span></div>`;
+            }
+            if (data.keywords) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Keywords:</span> <span class="detail-value keyword-tags">${data.keywords.split(',').map(k => k.trim()).filter(Boolean).map(kw => `<span class="keyword-tag">${kw}</span>`).join('')}</span></div>`;
+            }
+            if (data.related_metadata_list && data.related_metadata_list.length > 0) {
+                 detailsHtml += `<div class="detail-row"><span class="detail-label">Related Meta:</span> <span class="detail-value detail-tags">${data.related_metadata_list.map(m => `<span class="detail-tag subcategory">${m.split(' > ').pop()}</span>`).join('')}</span></div>`;
+            }
+             if (data.related_resources_list && data.related_resources_list.length > 0) {
+                detailsHtml += `<div class="detail-row"><span class="detail-label">Related Resources:</span> <span class="detail-value detail-tags">${data.related_resources_list.map(id => `<span class="keyword-tag">${id}</span>`).join('')}</span></div>`;
+            }
+            detailsHtml += '</div>'; 
+            
+            detailsHtml += '</div>'; // End detail-grid
+            modalDetailsContainer.innerHTML = detailsHtml;
 
-
-            detailsContainer.innerHTML = `
-                <div class="detail-grid">
-                    <div class="detail-column">
-                        <div class="detail-section">
-                            <h3>Resource Information</h3>
-                            <div class="detail-row">
-                                <div class="detail-label">Data Source ID:</div>
-                                <div class="detail-value">${resource.data_source_id}</div>
-                            </div>
-                            <div class="detail-row">
-                                <div class="detail-label">Repository:</div>
-                                <div class="detail-value">${resource.repository}</div>
-                            </div>
-                            <div class="detail-row">
-                                <div class="detail-label">Year Range:</div>
-                                <div class="detail-value">${yearDisplay}</div>
-                            </div>
-                            <div class="detail-row">
-                                <div class="detail-label">Last Updated:</div>
-                                <div class="detail-value">${resource.last_updated}</div>
-                            </div>
-                            <div class="detail-row">
-                                <div class="detail-label">Data Format:</div>
-                                <div class="detail-value">${resource.data_format || 'Not specified'}</div>
-                            </div>
-                        </div>
-
-                        <div class="detail-section">
-                            <h3>Categories</h3>
-                            <div class="detail-tags">
-                                <div class="detail-tag country">${countriesDisplayModal}</div>
-                                <div class="detail-tag domain">${domainsDisplayModal}</div>
-                                <div class="detail-tag resource-type">${resource.resource_type}</div>
-                            </div>
-                            <div class="subcategory-tags">
-                                ${resource.category ? `<div class="detail-tag category">${resource.category.replace(/_/g, ' ')}</div>` : ''}
-                                ${resource.subcategory ? `<div class="detail-tag subcategory">${resource.subcategory.replace(/_/g, ' ')}</div>` : ''}
-                                ${resource.data_type ? `<div class="detail-tag data-type">${resource.data_type.replace(/_/g, ' ')}</div>` : ''}
-                                ${resource.level5 ? `<div class="detail-tag level5">${resource.level5.replace(/_/g, ' ')}</div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="detail-column">
-                        <div class="detail-section">
-                            <h3>Description</h3>
-                            <div class="detail-description">
-                                ${descriptionHtml} <!-- Use the parsed HTML -->
-                            </div>
-                        </div>
-
-                        <div class="detail-section">
-                            <h3>Contact Information</h3>
-                            <div class="detail-contact">
-                                ${resource.contact_information || 'N/A'}
-                            </div>
-                        </div>
-
-                        <div class="detail-section">
-                            <h3>Keywords</h3>
-                            <div class="keyword-tags">
-                                ${resource.keywords ? resource.keywords.split(',').map(keyword =>
-                                    `<span class="keyword-tag">${keyword.trim()}</span>`
-                                ).join('') : 'None'}
-                            </div>
-                        </div>
-
-                        ${metadataObj && Object.keys(metadataObj).length > 0 ? `
-                        <div class="detail-section">
-                            <h3>Additional Information</h3>
-                            ${metadataObj.institution ? `
-                            <div class="detail-row">
-                                <div class="detail-label">Institution:</div>
-                                <div class="detail-value">${metadataObj.institution}</div>
-                            </div>` : ''}
-                            ${metadataObj.creator ? `
-                            <div class="detail-row">
-                                <div class="detail-label">Creator:</div>
-                                <div class="detail-value">${metadataObj.creator}</div>
-                            </div>` : ''}
-                            ${metadataObj.license ? `
-                            <div class="detail-row">
-                                <div class="detail-label">License:</div>
-                                <div class="detail-value">${metadataObj.license}</div>
-                            </div>` : ''}
-                            ${metadataObj.version ? `
-                            <div class="detail-row">
-                                <div class="detail-label">Version:</div>
-                                <div class="detail-value">${metadataObj.version}</div>
-                            </div>` : ''}
-                            ${metadataObj.geographic_coverage && Array.isArray(metadataObj.geographic_coverage) ? `
-                            <div class="detail-row">
-                                <div class="detail-label">Geo Coverage:</div>
-                                <div class="detail-value">${metadataObj.geographic_coverage.join(', ')}</div>
-                            </div>` : ''}
-                        </div>` : ''}
-                    </div>
-                </div>
-            `;
-
-            // Set resource link
-            const resourceLink = document.getElementById('resource-link');
-            if (resource.repository_url) {
-                resourceLink.href = resource.repository_url;
-                resourceLink.textContent = 'Go to Resource Repository';
+            if (data.repository_url) {
+                resourceLink.href = data.repository_url;
                 resourceLink.style.display = 'inline-block';
             } else {
-                 resourceLink.style.display = 'none';
+                resourceLink.style.display = 'none';
             }
-
-            // Show modal
-            document.getElementById('resource-modal').style.display = 'block';
         })
         .catch(error => {
-            console.error('Error fetching resource details:', error);
-            // Optionally show an error message to the user
-            alert(`Could not load details for resource ${resourceId}. ${error.message}`);
+            console.error('Error fetching resource details for modal:', error);
+            modalTitle.textContent = 'Error';
+            modalDetailsContainer.innerHTML = `<p>Could not load resource details: ${error.message}</p>`;
         });
 }
 
@@ -1830,7 +1757,7 @@ $(document).ready(function() {
 function setupAIFormListener() {
     const aiForm = document.getElementById('ai-input-form');
     if (!aiForm) {
-        console.log("AI Form not found, spinner not set up."); // Debug
+        // console.log("AI Form not found, spinner not set up."); // Debug
         return;
     }
 
@@ -1994,7 +1921,17 @@ function appendMessage(text, type, messagesContainerElement) {
     
     if (type === 'ai-message') {
         // Use marked to parse Markdown content from AI
-        let htmlContent = marked.parse(text);
+        // Ensure marked is loaded before this function is called.
+        let htmlContent = "";
+        if (typeof marked !== 'undefined') {
+            htmlContent = marked.parse(text);
+        } else {
+            console.warn("marked.js library not found. AI responses will not be rendered as Markdown.");
+            // Fallback to plain text, escaping HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = text;
+            htmlContent = tempDiv.innerHTML.replace(/\n/g, '<br>');
+        }
         messageDiv.innerHTML = htmlContent;
 
         // Find and process resource_click:// links
@@ -2005,12 +1942,14 @@ function appendMessage(text, type, messagesContainerElement) {
             if (resourceId) {
                 link.href = '#'; // Prevent default navigation
                 link.style.cursor = 'pointer';
-                link.style.textDecoration = 'underline';
-                link.style.color = 'var(--secondary-color)'; // Or your preferred link color
+                // link.style.textDecoration = 'underline'; // Markdown usually handles this
+                // link.style.color = 'var(--secondary-color)'; // Markdown might style this
+                link.classList.add('ai-resource-link'); // Add a class for potential specific styling
+
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    console.log(`Resource link clicked: ${resourceId}`);
-                    showResourceDetails(resourceId); // Assumes showResourceDetails is globally available
+                    console.log(`AI Resource link clicked: ${resourceId}`);
+                    showResourceDetails(resourceId); 
                 });
             }
         });

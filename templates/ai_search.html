@@ -145,33 +145,30 @@
         document.addEventListener('DOMContentLoaded', function() {
             // The general setupModal() is in main.js and should handle the modal on this page too.
             // setupAIChatInterface is also in main.js and will be called.
-            // No specific button to toggle chat modal here as it's a full page.
-            // If setupAIChatInterface relies on elements that were specific to the modal *container*
-            // those might need slight adjustment if IDs changed, but we kept them.
             
-            // Initialize Select2 for resource selection directly - don't rely solely on main.js
-            $('#ai-chat-resource-select').select2({
-                placeholder: 'Search and select resources by name or ID...',
-                minimumInputLength: 2,
-                allowClear: true,
-                ajax: {
-                    url: '/api/search-resources',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return { q: params.term };
-                    },
-                    processResults: function (data) {
-                        return { results: data }; // API returns {id, text}
-                    },
-                    cache: true
-                }
-            });
-
-            // Handle resource selection changes
-            $('#ai-chat-resource-select').on('change', function() {
-                console.log('Selected resources:', $(this).val());
-            });
+            // Initialize Select2 for resource selection if not already handled by main.js's setupAIChatInterface
+            // This is a fallback or explicit initialization for this page.
+            if (typeof setupAIChatInterface !== 'function' || !document.getElementById('ai-chat-resource-select')?.classList.contains('select2-hidden-accessible')) {
+                 console.log("Explicitly initializing Select2 on ai_search.html");
+                 $('#ai-chat-resource-select').select2({
+                    placeholder: 'Search and select resources by name or ID...',
+                    minimumInputLength: 2,
+                    allowClear: true,
+                    dropdownParent: $('.ai-chat-context-selection'), // Important for positioning within the chat layout
+                    ajax: {
+                        url: '/api/search-resources',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return { q: params.term };
+                        },
+                        processResults: function (data) {
+                            return { results: data }; 
+                        },
+                        cache: true
+                    }
+                });
+            }
         });
     </script>
 </body>

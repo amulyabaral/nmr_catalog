@@ -375,9 +375,9 @@ def add_pending_submission(submission_data):
                         resource_name, countries, domains, primary_hierarchy_path, year_start, year_end,
                         resource_url, contact_info, description, related_metadata, related_resources,
                         keywords, license, submitter_info
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', # Added one placeholder
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                   (
-                      submission_data.get('resource_name'), # <<< ADDED
+                      submission_data.get('resource_name'), 
                       submission_data.get('countries'),
                       submission_data.get('domains'),
                       submission_data.get('primary_hierarchy_path'),
@@ -387,7 +387,7 @@ def add_pending_submission(submission_data):
                       submission_data.get('contact_info'),
                       submission_data.get('description'),
                       submission_data.get('related_metadata'),
-                      submission_data.get('related_resources'), # <<< ADDED
+                      submission_data.get('related_resources'), 
                       submission_data.get('keywords'),
                       submission_data.get('license'),
                       submission_data.get('submitter_info')
