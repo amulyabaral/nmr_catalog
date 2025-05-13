@@ -305,12 +305,12 @@ def call_gemini_api(source_identifier, prompt_text_content=None, file_bytes=None
     --- VOCABULARY END ---
 
     **JSON Output Structure and Fields:**
-    - "resource_name": (string) The primary title or name of the resource.
-    - "countries": (list of strings) Relevant countries, selected ONLY from the 'Countries' list in the vocabulary.
-    - "domains": (list of strings) Relevant domains, selected ONLY from the 'Domains' list in the vocabulary.
-    - "primary_hierarchy": (object) The most specific classification path found in the text, matching the "Resource Hierarchy" provided. Values for levels MUST be the internal keys.
-        - "level1_resource_type": (string) e.g., "Data", "Systems". Must be an L1 key.
-        - "level2_category": (string, optional) e.g., "omics_data". Must be an L2 key under the selected L1.
+    - "resource_name": (string) The primary title or name of the resource. This is mandatory. 
+    - "countries": (list of strings) Relevant countries, selected ONLY from the 'Countries' list in the vocabulary. This is mandatory.
+    - "domains": (list of strings) Relevant domains, selected ONLY from the 'Domains' list in the vocabulary. This is mandatory.
+    - "primary_hierarchy": (object) This is mandatory. The most specific classification path found in the text, matching the "Resource Hierarchy" provided. Values for levels MUST be the internal keys. This is mandatory.
+        - "level1_resource_type": (string) e.g., "Data", "Systems". Must be an L1 key. This is mandatory.
+        - "level2_category": (string, optional) e.g., "omics_data". Must be an L2 key under the selected L1.   
         - "level3_subcategory": (string, optional) e.g., "genomic". Must be an L3 key under the selected L2.
         - "level4_data_type": (string, optional) e.g., "whole_genome_sequencing". Must be an L4 key/item.
         - "level5_item": (string, optional) e.g., "clinical_isolates". Must be an L5 key/item.
