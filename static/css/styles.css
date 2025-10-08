@@ -109,6 +109,8 @@ body {
     color: var(--text-color);
     font-size: 1.1rem;
     line-height: 1.7;
+    text-align: left;
+    margin-bottom: 2rem;
 }
 
 .main-interactive-section {
@@ -119,6 +121,12 @@ body {
     align-items: start;
     max-width: 1800px;
     margin: 0 auto;
+}
+
+.left-column-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .search-and-actions-container {
@@ -178,6 +186,7 @@ body {
     }
     .intro-text {
         font-size: 1rem;
+        text-align: center;
     }
 }
 
