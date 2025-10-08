@@ -116,17 +116,21 @@ body {
 .main-interactive-section {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    padding: 2rem;
-    align-items: start;
+    gap: 0;
+    padding: 0;
+    align-items: stretch; /* Equal heights */
     max-width: 1800px;
     margin: 0 auto;
+    min-height: 450px;
 }
 
 .left-column-container {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    padding: 3rem;
+    background: var(--gray-light);
+    height: 100%;
 }
 
 .search-and-actions-container {
@@ -161,19 +165,106 @@ body {
 #network-graph-section {
     margin: 0;
     padding: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    position: relative;
 }
 
 #network-graph-section .network-container {
-    height: 450px;
-    border: 1px solid var(--gray-medium);
-    border-radius: var(--border-radius);
-    background: #fff;
+    height: 100%;
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+/* Interaction hint animation */
+.network-interaction-hint {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 200, 83, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10;
+    animation: pulseHint 2s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.network-interaction-hint::before {
+    content: '👆';
+    font-size: 1.2rem;
+    animation: bounceIcon 1s ease-in-out infinite;
+}
+
+@keyframes pulseHint {
+    0%, 100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes bounceIcon {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+/* Network graph subtle glow effect */
+#network-graph-section::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(0, 200, 83, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: glowPulse 3s ease-in-out infinite;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes glowPulse {
+    0%, 100% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
 }
 
 /* Responsive adjustments for new layout */
 @media (max-width: 1024px) {
     .main-interactive-section {
         grid-template-columns: 1fr;
+        min-height: auto;
+    }
+    
+    .left-column-container {
+        padding: 2rem;
+    }
+    
+    #network-graph-section {
+        min-height: 400px;
     }
 }
 
@@ -187,6 +278,18 @@ body {
     .intro-text {
         font-size: 1rem;
         text-align: center;
+    }
+    
+    .network-interaction-hint {
+        bottom: 10px;
+        right: 10px;
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    #network-graph-section::after {
+        width: 150px;
+        height: 150px;
     }
 }
 
@@ -1091,15 +1194,7 @@ footer {
 
 /* Add these styles to your existing CSS file */
 
-.network-container {
-    width: 100%;
-    height: 600px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-    margin: 20px 0;
-    position: relative;
-}
+/* Removed redundant .network-container - using #network-graph-section .network-container instead */
 
 .visualization-controls {
     display: flex;
@@ -1746,47 +1841,7 @@ footer {
     }
 }
 
-/* Network Graph Section - Floating Style */
-.network-graph-section {
-    max-width: 1200px;
-    margin: 1.5rem auto 2.5rem;
-    padding: 1rem 2rem;
-    background-color: transparent; /* Transparent background */
-    border-radius: 0;
-    box-shadow: none; /* No shadow */
-}
-
-.network-graph-section h2 {
-    text-align: center;
-    margin-bottom: 0.4rem;
-    color: var(--primary-color);
-    font-size: 1.4rem;
-}
-
-.network-graph-section .section-intro {
-    text-align: center;
-    max-width: 700px;
-    margin: 0 auto 1rem;
-    color: #666;
-    font-size: 0.9rem;
-}
-
-/* Network wrapper with side legend */
-.network-wrapper {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
-}
-
-.network-container {
-    flex: 1;
-    height: 420px;
-    border: none; /* Removed border */
-    border-radius: 0; /* Removed border radius */
-    background: transparent; /* Made transparent */
-    position: relative;
-    box-shadow: none; /* Removed shadow */
-}
+/* Network wrapper with side legend - REMOVED, using main-interactive-section grid instead */
 
 .network-container .loading-indicator {
     position: absolute;

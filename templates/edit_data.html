@@ -241,6 +241,15 @@
         let resourceHierarchy = {};
         let allHierarchyNodes = []; // Flat list for related metadata selection
 
+        // Store initial form values from Jinja template for restoration
+        const initialFormValues = {
+            level1_resource_type: {{ form_data.get('level1_resource_type')|tojson|safe }},
+            level2_category: {{ form_data.get('level2_category')|tojson|safe }},
+            level3_subcategory: {{ form_data.get('level3_subcategory')|tojson|safe }},
+            level4_data_type: {{ form_data.get('level4_data_type')|tojson|safe }},
+            level5_item: {{ form_data.get('level5_item')|tojson|safe }}
+        };
+
         // Function to format display name
         function formatDisplayName(key, details) {
             if (!details) return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -499,8 +508,10 @@
                     function restoreAndPopulate(level) {
                         const selectId = `level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`;
                         const selectElement = $(`#${selectId}`);
-                        // Get initial value directly from the element (set by Jinja)
-                        const initialValue = selectElement.val(); // Read the value set by Jinja's 'selected' attribute
+                        
+                        // Get initial value from the stored form values object
+                        const fieldName = `level${level}_${level === 1 ? 'resource_type' : level === 2 ? 'category' : level === 3 ? 'subcategory' : level === 4 ? 'data_type' : 'item'}`;
+                        const initialValue = initialFormValues[fieldName];
 
                         // Populate the *current* level's dropdown first based on its parent's selection (if not level 1)
                         if (level > 1) {

@@ -1588,8 +1588,24 @@ function setupNetworkGraph() {
             // Store original colors for reset (optional, but safer)
             // We'll try resetting without storing originals first by recalculating rgba with alpha=1
 
+            // Hide interaction hint on first interaction
+            const interactionHint = document.getElementById('interaction-hint');
+            let hasInteracted = false;
+            
+            const hideHint = () => {
+                if (!hasInteracted && interactionHint) {
+                    interactionHint.style.opacity = '0';
+                    interactionHint.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        interactionHint.style.display = 'none';
+                    }, 500);
+                    hasInteracted = true;
+                }
+            };
+
             // --- Event listener for SINGLE clicking nodes (Highlighting) ---
             network.on("click", function (params) {
+                hideHint();
                 const allNodes = nodes.get({ returnType: "Object" });
                 const allEdges = edges.get({ returnType: "Object" });
                 const nodeUpdates = [];
@@ -1679,6 +1695,10 @@ function setupNetworkGraph() {
             });
             // --- END NEW Double Click Listener ---
 
+
+            // Hide hint on any interaction
+            network.on("zoom", hideHint);
+            network.on("dragStart", hideHint);
 
             // Disable physics after stabilization for static, faster graph
             network.on("stabilizationIterationsDone", function () {
