@@ -1637,9 +1637,10 @@ footer {
     height: 420px;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
-    background-color: #fafafa;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,200,83,0.05) 100%);
     position: relative;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    backdrop-filter: blur(10px);
 }
 
 .network-container .loading-indicator {
@@ -1782,12 +1783,26 @@ div.vis-tooltip {
     font-family: Inter, sans-serif;
     font-size: 13px;
     color: #333;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.95);
     border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     z-index: 10;
     pointer-events: none;
+}
+
+/* Animated network canvas for modern look */
+@keyframes networkPulse {
+    0%, 100% { 
+        opacity: 1;
+    }
+    50% { 
+        opacity: 0.98;
+    }
+}
+
+.network-container canvas {
+    animation: networkPulse 3s ease-in-out infinite;
 }
 
 /* Loading Spinner for AI Processing */
@@ -1825,6 +1840,7 @@ div.vis-tooltip {
 .ai-search-bar {
     display: flex;
     align-items: center;
+    gap: 0.5rem;
     background: #fff;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -1848,11 +1864,25 @@ div.vis-tooltip {
     border-radius: var(--border-radius);
     cursor: pointer;
     font-weight: 500;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .ai-search-bar button:hover {
     background: #1a54f7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(41, 98, 255, 0.3);
+}
+
+#expand-ai-chat-btn {
+    background: var(--gray-medium);
+    color: var(--text-color);
+}
+
+#expand-ai-chat-btn:hover {
+    background: #d0d0d0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* Two-column layout for main content */
@@ -1874,20 +1904,28 @@ div.vis-tooltip {
 
 /* AI Chat Modal Styles */
 .ai-chat-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     max-width: 700px;
-    height: 80vh;
-    display: flex;
-    flex-direction: column;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
 }
 
 .ai-chat-container {
-    flex-grow: 1;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 .ai-chat-messages {
     flex-grow: 1;
+    overflow-y: auto;
+    max-height: 50vh;
 }
 
 /* AI Chat section for homepage */
@@ -1911,15 +1949,17 @@ div.vis-tooltip {
     color: var(--primary-color);
 }
 
-/* AI Chat Modal Styles - ADAPTED for a page or keep if modal is still used elsewhere */
-.ai-chat-modal { /* This class might be repurposed or a new one used for the page */
-    display: none; /* Hidden by default if still used as a modal trigger */
-    /* Keep other modal properties if it's sometimes a modal */
-    /* For a dedicated page, these would be different: */
-    /* position: static; */
-    /* width: 100%; */
-    /* height: auto; */
-    /* background-color: transparent; */
+/* AI Chat Modal Styles */
+#ai-chat-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
 }
 
 /* Styles for the AI chat interface elements, largely reusable */

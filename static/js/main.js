@@ -1601,11 +1601,11 @@ function setupNetworkGraph() {
 
             const options = {
                 nodes: {
-                    borderWidth: 0.5,
-                    borderWidthSelected: 2,
-                    size: 15, // Smaller default node size
+                    borderWidth: 1,
+                    borderWidthSelected: 3,
+                    size: 18,
                     font: {
-                        size: 11, // Smaller font like Obsidian
+                        size: 11,
                         face: 'Inter',
                         color: '#555555',
                         strokeWidth: 0
@@ -1615,49 +1615,62 @@ function setupNetworkGraph() {
                     },
                     shadow: {
                         enabled: true,
-                        color: 'rgba(0,0,0,0.1)',
-                        size: 4,
+                        color: 'rgba(0,0,0,0.15)',
+                        size: 6,
                         x: 0,
-                        y: 1
+                        y: 2
+                    },
+                    scaling: {
+                        min: 10,
+                        max: 30,
+                        label: {
+                            enabled: true,
+                            min: 10,
+                            max: 18
+                        }
                     }
                 },
                 edges: {
-                    width: 0.5, // Thinner edges like Obsidian
+                    width: 1,
                     color: {
                         inherit: false,
-                        color: '#d0d0d0', // Lighter edge color
-                        highlight: '#999999',
-                        hover: '#b0b0b0'
+                        color: 'rgba(200, 200, 200, 0.4)',
+                        highlight: 'rgba(100, 100, 100, 0.8)',
+                        hover: 'rgba(150, 150, 150, 0.6)'
                     },
                     smooth: {
                         enabled: true,
-                        type: "continuous",
+                        type: "dynamic",
                         roundness: 0.5
                     },
-                    hoverWidth: 0.5,
-                    selectionWidth: 1
+                    hoverWidth: 1.5,
+                    selectionWidth: 2,
+                    scaling: {
+                        min: 0.5,
+                        max: 3
+                    }
                 },
                 physics: {
                     enabled: true,
                     solver: 'forceAtlas2Based',
                     forceAtlas2Based: {
-                        gravitationalConstant: -80,
-                        centralGravity: 0.005,
-                        springLength: 95,
-                        springConstant: 0.12,
-                        damping: 0.3,
-                        avoidOverlap: 0.8
+                        gravitationalConstant: -50,
+                        centralGravity: 0.01,
+                        springLength: 100,
+                        springConstant: 0.08,
+                        damping: 0.4,
+                        avoidOverlap: 0.5
                     },
                     stabilization: {
                         enabled: true,
-                        iterations: 300,
-                        updateInterval: 20,
+                        iterations: 100,
+                        updateInterval: 25,
                         onlyDynamicEdges: false,
                         fit: true
                     },
-                    maxVelocity: 35,
-                    minVelocity: 0.5,
-                    timestep: 0.35,
+                    maxVelocity: 15,
+                    minVelocity: 0.1,
+                    timestep: 0.5,
                     adaptiveTimestep: true
                 },
                 interaction: {
@@ -1773,10 +1786,9 @@ function setupNetworkGraph() {
             // --- END NEW Double Click Listener ---
 
 
-            // --- Optional: Stop physics after stabilization ---
+            // Keep physics running for a live, animated network
             network.on("stabilizationIterationsDone", function () {
-                network.setOptions( { physics: false } );
-                console.log("Network stabilized, physics turned off.");
+                console.log("Network stabilized, physics will continue running.");
             });
 
         })
@@ -2036,8 +2048,10 @@ function appendMessage(text, type, messagesContainerElement) {
 
 function setupExpandAIChatButton() {
     const expandBtn = document.getElementById('expand-ai-chat-btn');
+    const searchBtn = document.getElementById('ai-search-btn');
+    const searchInput = document.getElementById('ai-search-input');
     const aiChatModal = document.getElementById('ai-chat-modal');
-    const closeBtn = aiChatModal.querySelector('.ai-chat-close-btn');
+    const closeBtn = aiChatModal ? aiChatModal.querySelector('.ai-chat-close-btn') : null;
 
     if (expandBtn && aiChatModal && closeBtn) {
         expandBtn.addEventListener('click', () => {
@@ -2046,6 +2060,45 @@ function setupExpandAIChatButton() {
 
         closeBtn.addEventListener('click', () => {
             aiChatModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target === aiChatModal) {
+                aiChatModal.style.display = 'none';
+            }
+        });
+    }
+
+    // Handle search button click
+    if (searchBtn && searchInput && aiChatModal) {
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                // Open modal
+                aiChatModal.style.display = 'block';
+                
+                // Get the AI chat input textarea and send button
+                const aiChatInput = document.getElementById('ai-chat-input');
+                const aiChatSendBtn = document.getElementById('ai-chat-send-btn');
+                
+                if (aiChatInput && aiChatSendBtn) {
+                    // Set the query in the AI chat input
+                    aiChatInput.value = query;
+                    
+                    // Trigger the send button click
+                    setTimeout(() => {
+                        aiChatSendBtn.click();
+                    }, 100);
+                }
+            }
+        });
+
+        // Also allow Enter key to trigger search
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchBtn.click();
+            }
         });
     }
 }
