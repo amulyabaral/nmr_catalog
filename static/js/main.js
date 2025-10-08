@@ -1589,61 +1589,76 @@ function setupNetworkGraph() {
 
             const options = {
                 nodes: {
-                    borderWidth: 1,
-                    borderWidthSelected: 3, // Make selection border thicker
+                    borderWidth: 0.5,
+                    borderWidthSelected: 2,
+                    size: 15, // Smaller default node size
                     font: {
-                        size: 16, // << Increased default font size
+                        size: 11, // Smaller font like Obsidian
                         face: 'Inter',
-                        color: '#333333'
-                        // Note: Font size can still be overridden per node from app.py
+                        color: '#555555',
+                        strokeWidth: 0
                     },
                     shapeProperties: {
-                        interpolation: false // Keep shapes crisp
+                        interpolation: true
+                    },
+                    shadow: {
+                        enabled: true,
+                        color: 'rgba(0,0,0,0.1)',
+                        size: 4,
+                        x: 0,
+                        y: 1
                     }
                 },
                 edges: {
-                    width: 0.8, // Slightly thicker edges
+                    width: 0.5, // Thinner edges like Obsidian
                     color: {
                         inherit: false,
-                        color: '#cccccc', // Default edge color
-                        highlight: '#848484', // Color on selection/hover
-                        hover: '#a0a0a0'
+                        color: '#d0d0d0', // Lighter edge color
+                        highlight: '#999999',
+                        hover: '#b0b0b0'
                     },
                     smooth: {
                         enabled: true,
-                        type: "continuous" // Good default for physics
-                    }
-                    // arrows: { to: { enabled: false } } // << REMOVED ARROWS CONFIGURATION
+                        type: "continuous",
+                        roundness: 0.5
+                    },
+                    hoverWidth: 0.5,
+                    selectionWidth: 1
                 },
                 physics: {
                     enabled: true,
-                    solver: 'forceAtlas2Based', // More fluid solver
+                    solver: 'forceAtlas2Based',
                     forceAtlas2Based: {
-                        gravitationalConstant: -50,
-                        centralGravity: 0.01,
-                        springLength: 100,
-                        springConstant: 0.08,
-                        damping: 0.4,
-                        avoidOverlap: 0.5
+                        gravitationalConstant: -80,
+                        centralGravity: 0.005,
+                        springLength: 95,
+                        springConstant: 0.12,
+                        damping: 0.3,
+                        avoidOverlap: 0.8
                     },
                     stabilization: {
                         enabled: true,
-                        iterations: 500, // Reduced for faster loading
-                        updateInterval: 25,
+                        iterations: 300,
+                        updateInterval: 20,
                         onlyDynamicEdges: false,
                         fit: true
                     },
-                    maxVelocity: 50,
-                    minVelocity: 0.75,
-                    timestep: 0.5
+                    maxVelocity: 35,
+                    minVelocity: 0.5,
+                    timestep: 0.35,
+                    adaptiveTimestep: true
                 },
                 interaction: {
                     hover: true,
-                    hoverConnectedEdges: false, // Don't highlight edges just on node hover
-                    selectConnectedEdges: false, // Don't highlight edges automatically on node select (we do it manually)
-                    tooltipDelay: 200,
-                    navigationButtons: true,
-                    keyboard: true
+                    hoverConnectedEdges: true,
+                    selectConnectedEdges: false,
+                    tooltipDelay: 100,
+                    navigationButtons: false,
+                    keyboard: true,
+                    dragNodes: true,
+                    dragView: true,
+                    zoomView: true,
+                    zoomSpeed: 0.8
                 },
                 // layout: { hierarchical: { ... } } // << REMOVED HIERARCHICAL LAYOUT
             };

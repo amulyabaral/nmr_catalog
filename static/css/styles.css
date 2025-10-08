@@ -1683,11 +1683,11 @@ footer {
     }
 }
 
-/* Network Graph Section */
+/* Network Graph Section - Obsidian Style */
 .network-graph-section {
     max-width: 1200px;
-    margin: 2rem auto 3rem;
-    padding: 1.5rem 2rem;
+    margin: 1.5rem auto 2.5rem;
+    padding: 1rem 2rem;
     background-color: transparent;
     border-radius: 0;
     box-shadow: none;
@@ -1695,26 +1695,34 @@ footer {
 
 .network-graph-section h2 {
     text-align: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     color: var(--primary-color);
+    font-size: 1.4rem;
 }
 
 .network-graph-section .section-intro {
     text-align: center;
     max-width: 700px;
-    margin: 0 auto 1.5rem;
-    color: #555;
-    font-size: 0.95rem;
+    margin: 0 auto 1rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Network wrapper with side legend */
+.network-wrapper {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
 }
 
 .network-container {
-    width: 100%;
-    height: 550px;
-    border: none;
-    border-radius: 0;
-    background-color: transparent;
+    flex: 1;
+    height: 420px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background-color: #fafafa;
     position: relative;
-    box-shadow: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .network-container .loading-indicator {
@@ -1722,57 +1730,60 @@ footer {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.2rem;
-    color: #666;
+    font-size: 1rem;
+    color: #888;
 }
 
-/* Network Legend */
+/* Network Legend - Side Panel */
 .network-legend {
-    margin-top: 1rem;
-    padding: 0.8rem 1rem;
-    background-color: rgba(240, 240, 240, 0.5);
-    border-radius: var(--border-radius);
-    border: none;
-    display: flex;
-    gap: 2rem;
-    justify-content: center;
-    flex-wrap: wrap;
+    flex: 0 0 160px;
+    padding: 1rem;
+    background-color: #f8f8f8;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
-.network-legend h3 {
-    margin: 0;
-    font-size: 0.95rem;
-    width: 100%;
-    text-align: center;
-    margin-bottom: 0.5rem;
+.network-legend h4 {
+    margin: 0 0 0.8rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
 }
 
-.legend-column {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
+.legend-section {
+    margin-bottom: 1rem;
 }
 
-.legend-column strong {
-    font-size: 0.85rem;
-    margin-bottom: 0.2rem;
+.legend-section:last-child {
+    margin-bottom: 0;
+}
+
+.legend-section strong {
+    display: block;
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    margin-bottom: 0.2rem;
-    font-size: 0.8rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.75rem;
+    color: #555;
 }
 
 .legend-dot {
-    width: 15px;
-    height: 15px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    margin-right: 10px;
+    margin-right: 8px;
     display: inline-block;
     vertical-align: middle;
-    border: 1px solid rgba(0,0,0,0.1);
+    flex-shrink: 0;
 }
 
 .legend-shape {
@@ -1821,6 +1832,28 @@ footer {
     border-left: 2px solid;
     border-right: 2px solid;
     border-color: inherit;
+}
+
+/* Network Graph Responsive */
+@media (max-width: 768px) {
+    .network-wrapper {
+        flex-direction: column;
+    }
+    
+    .network-container {
+        height: 350px;
+    }
+    
+    .network-legend {
+        flex: 1;
+        width: 100%;
+    }
+    
+    .legend-section {
+        display: inline-block;
+        margin-right: 1.5rem;
+        vertical-align: top;
+    }
 }
 
 /* Ensure Vis Network Tooltip Style is present */

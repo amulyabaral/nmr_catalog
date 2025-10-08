@@ -46,41 +46,43 @@
         <section id="network-graph-section" class="network-graph-section">
             <h2>Resource Network</h2>
             <p class="section-intro">Explore the connections between resources, countries, domains, and categories. Click on a node to highlight its direct connections.</p>
-            <div id="network-graph-container" class="network-container">
-                <!-- Vis Network Graph will be rendered here -->
-                <div class="loading-indicator">Loading Network...</div>
-            </div>
-            <!-- Updated Legend -->
-            <div class="network-legend">
-                <h3>Legend</h3>
-                <div class="legend-column">
-                    <strong>Nodes:</strong>
-                    <div class="legend-item">
-                        <span class="legend-shape hexagon" style="border-color: #AAAAAA; background-color: #E0E0E0;"></span> Country
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot" style="background-color: #FFDAB9;"></span> Domain
-                    </div>
-                     <div class="legend-item">
-                        <span class="legend-dot" style="background-color: #E0E0E0; border: 2px solid #555555;"></span> Data Point
-                    </div>
+            <div class="network-wrapper">
+                <div id="network-graph-container" class="network-container">
+                    <!-- Vis Network Graph will be rendered here -->
+                    <div class="loading-indicator">Loading Network...</div>
                 </div>
-                <div class="legend-column">
-                    <strong>Category Levels:</strong>
-                    <div class="legend-item">
-                        <span class="legend-shape database" style="border-color: #87CEEB;"></span> Level 1: Resource Type
+                <!-- Legend on the side -->
+                <div class="network-legend">
+                    <h4>Legend</h4>
+                    <div class="legend-section">
+                        <strong>Nodes</strong>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #999;"></span> Country
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #FFDAB9;"></span> Domain
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #555;"></span> Data Point
+                        </div>
                     </div>
-                    <div class="legend-item">
-                        <span class="legend-dot" style="background-color: #90EE90;"></span> Level 2: Category
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot" style="background-color: #FFB6C1;"></span> Level 3: Subcategory
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot" style="background-color: #FFD700;"></span> Level 4: Data Type
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot" style="background-color: #FFA07A;"></span> Level 5: Item/Detail
+                    <div class="legend-section">
+                        <strong>Categories</strong>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #87CEEB;"></span> Resource Type
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #90EE90;"></span> Category
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #FFB6C1;"></span> Subcategory
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #FFD700;"></span> Data Type
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background-color: #FFA07A;"></span> Detail
+                        </div>
                     </div>
                 </div>
             </div>
