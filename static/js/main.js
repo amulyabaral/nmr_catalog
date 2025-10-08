@@ -328,9 +328,9 @@ function displayResults(data) {
                     <thead>
                         <tr>
                             <th>Resource</th>
+                            <th data-sort="category" class="sortable">System <span class="sort-icon">↓</span></th>
                             <th data-sort="country" class="sortable">Country <span class="sort-icon">↓</span></th>
                             <th data-sort="domain" class="sortable">Domain <span class="sort-icon">↓</span></th>
-                            <th data-sort="year-end" class="sortable">Year Range <span class="sort-icon">↓</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -343,23 +343,17 @@ function displayResults(data) {
                                 console.error('Failed to parse metadata:', e);
                             }
 
-                            // --- Create Year Range Display ---
-                            const start = resource.year_start;
-                            const end = resource.year_end;
-                            let yearDisplay = 'N/A';
-                            if (start && end) {
-                                yearDisplay = start === end ? start.toString() : `${start}-${end}`;
-                            } else if (start) {
-                                yearDisplay = `${start}-Present`; // Or handle as needed
-                            } else if (end) {
-                                yearDisplay = `Up to ${end}`; // Or handle as needed
-                            }
-                            // --- End Year Range Display ---
-
                             // --- UPDATED: Access countries_list and domains_list ---
                             const countriesDisplay = Array.isArray(resource.countries_list) ? resource.countries_list.join(', ') : 'N/A';
                             const domainsDisplay = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
                             // --- END UPDATE ---
+
+                            // Build system hierarchy display
+                            const systemParts = [];
+                            if (resource.category) systemParts.push(resource.category.replace(/_/g, ' '));
+                            if (resource.subcategory) systemParts.push(resource.subcategory.replace(/_/g, ' '));
+                            if (resource.data_type) systemParts.push(resource.data_type.replace(/_/g, ' '));
+                            const systemDisplay = systemParts.length > 0 ? systemParts.join(' → ') : 'N/A';
 
                             return `
                                 <tr class="data-row" data-id="${resource.data_source_id}"
@@ -370,16 +364,10 @@ function displayResults(data) {
                                         <a href="${resource.repository_url}" class="resource-link" target="_blank">
                                             ${metadata.title || resource.data_source_id}
                                         </a>
-                                        <div class="resource-metadata">
-                                            ${resource.category ? `<span class="metadata-item">${resource.category.replace(/_/g, ' ')}</span>` : ''}
-                                            ${resource.subcategory ? `<span class="metadata-item">${resource.subcategory.replace(/_/g, ' ')}</span>` : ''}
-                                            ${resource.data_type ? `<span class="metadata-item">${resource.data_type.replace(/_/g, ' ')}</span>` : ''}
-                                            ${resource.level5 ? `<span class="metadata-item">${resource.level5.replace(/_/g, ' ')}</span>` : ''}
-                                        </div>
                                     </td>
+                                    <td class="system-cell">${systemDisplay}</td>
                                     <td>${countriesDisplay}</td>
                                     <td>${domainsDisplay}</td>
-                                    <td data-year-end="${end || 0}">${yearDisplay}</td>
                                 </tr>
                             `;
                         }).join('')}
@@ -1628,23 +1616,26 @@ function setupNetworkGraph() {
                     // arrows: { to: { enabled: false } } // << REMOVED ARROWS CONFIGURATION
                 },
                 physics: {
-                    enabled: true, // << ENABLED PHYSICS
-                    solver: 'barnesHut', // A common physics solver
-                    barnesHut: {
-                        gravitationalConstant: -8000, // Adjust for spread
-                        centralGravity: 0.1, // Pulls nodes towards center
-                        springLength: 120, // Default edge length
-                        springConstant: 0.05,
-                        damping: 0.09,
-                        avoidOverlap: 0.1 // Try to prevent node overlap
+                    enabled: true,
+                    solver: 'forceAtlas2Based', // More fluid solver
+                    forceAtlas2Based: {
+                        gravitationalConstant: -50,
+                        centralGravity: 0.01,
+                        springLength: 100,
+                        springConstant: 0.08,
+                        damping: 0.4,
+                        avoidOverlap: 0.5
                     },
-                    stabilization: { // Use stabilization iterations
+                    stabilization: {
                         enabled: true,
-                        iterations: 1000, // Default
-                        updateInterval: 50,
+                        iterations: 500, // Reduced for faster loading
+                        updateInterval: 25,
                         onlyDynamicEdges: false,
                         fit: true
-                    }
+                    },
+                    maxVelocity: 50,
+                    minVelocity: 0.75,
+                    timestep: 0.5
                 },
                 interaction: {
                     hover: true,

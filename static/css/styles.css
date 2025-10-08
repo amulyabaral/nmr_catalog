@@ -191,9 +191,43 @@ body {
     color: white;
 }
 
-/* Data Table */
+/* Data Table - Compact styling */
 .data-table {
     overflow-x: auto;
+}
+
+.data-table-container {
+    overflow-x: auto;
+}
+
+.data-table-grid {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table-grid th,
+.data-table-grid td {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid var(--gray-medium);
+    font-size: 0.9rem;
+}
+
+.data-table-grid th {
+    background: #fafafa;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #555;
+    white-space: nowrap;
+}
+
+.data-table-grid tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.system-cell {
+    color: #666;
+    font-size: 0.85rem;
 }
 
 table {
@@ -202,7 +236,7 @@ table {
 }
 
 th, td {
-    padding: 1rem;
+    padding: 0.6rem 0.8rem;
     text-align: left;
     border-bottom: 1px solid var(--gray-medium);
 }
@@ -354,50 +388,51 @@ footer {
     padding: 1rem;
 }
 
-/* Active filters display */
+/* Active filters display - Compact */
 .active-filters {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    padding: 0.8rem;
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
+    padding: 0.5rem 0.8rem;
     background: var(--gray-light);
     border-radius: var(--border-radius);
 }
 
 .filter-label {
     font-weight: 500;
-    margin-right: 0.5rem;
+    margin-right: 0.4rem;
+    font-size: 0.85rem;
 }
 
 #active-filter-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.3rem;
 }
 
 .filter-tag {
     display: inline-flex;
     align-items: center;
     background: white;
-    padding: 0.3rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
     border: 1px solid var(--gray-medium);
 }
 
 .filter-type {
     font-weight: 500;
     color: var(--primary-color);
-    margin-right: 0.3rem;
+    margin-right: 0.25rem;
 }
 
 .remove-filter {
-    margin-left: 0.5rem;
+    margin-left: 0.4rem;
     cursor: pointer;
     font-weight: bold;
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .remove-filter:hover {
@@ -636,19 +671,19 @@ footer {
     min-height: 300px;
 }
 
-/* Results Section */
+/* Results Section - Compact */
 .results-section {
     max-width: 1200px;
-    margin: 3rem auto;
-    padding: 2.5rem;
+    margin: 2rem auto;
+    padding: 1.5rem;
     background-color: white;
     border-radius: var(--border-radius);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
 .results-count {
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
 }
 
 #results-count {
@@ -689,68 +724,69 @@ footer {
     }
 }
 
-/* Results Container with Sidebar */
+/* Results Container with Sidebar - Compact */
 .results-container {
     display: flex;
-    gap: 2.5rem;
-    margin-top: 2rem;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
 }
 
 .hierarchy-sidebar {
-    flex: 0 0 280px;
-    background: #fdfdfd;
-    padding: 1rem;
+    flex: 0 0 240px;
+    background: #fafafa;
+    padding: 0.8rem;
     border-radius: var(--border-radius);
     border: 1px solid var(--gray-medium);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-    max-height: 650px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    max-height: 600px;
     overflow-y: auto;
 }
 
 .hierarchy-sidebar h3 {
-    margin-bottom: 1rem;
-    font-size: 1.1em;
+    margin-bottom: 0.8rem;
+    font-size: 0.95em;
+    font-weight: 600;
     color: #333;
     border-bottom: 1px solid var(--gray-medium);
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
 }
 
 .hierarchy-tree {
     padding-left: 0;
 }
 
-/* Base Node Styling */
+/* Base Node Styling - Compact */
 .hierarchy-node, .hierarchy-deepnode, .hierarchy-leafnode {
-    margin-bottom: 2px;
+    margin-bottom: 1px;
     list-style: none;
 }
 
-/* Header Styling (Clickable Area) */
+/* Header Styling (Clickable Area) - Compact */
 .node-header, .deepnode-header, .leafnode-header {
     display: flex;
     align-items: center;
-    padding: 6px 8px;
-    border-radius: 4px;
+    padding: 4px 6px;
+    border-radius: 3px;
     transition: background-color 0.2s ease;
     cursor: pointer;
-    font-size: 0.9rem;
-    line-height: 1.4;
+    font-size: 0.85rem;
+    line-height: 1.3;
 }
 
 .node-header:hover, .deepnode-header:hover, .leafnode-header:hover {
     background-color: #f0f0f0;
 }
 
-/* Toggle Icon Styling */
+/* Toggle Icon Styling - Compact */
 .node-toggle, .node-toggle-placeholder {
     display: inline-block;
-    width: 18px;
-    height: 18px;
-    margin-right: 5px;
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
     text-align: center;
-    line-height: 18px;
+    line-height: 14px;
     color: #777;
-    font-size: 10px;
+    font-size: 9px;
     flex-shrink: 0;
     transition: transform 0.2s ease;
 }
@@ -765,25 +801,25 @@ footer {
     transform: rotate(90deg);
 }
 
-/* Node Name and Count */
+/* Node Name and Count - Compact */
 .node-name {
     flex-grow: 1;
-    margin-right: 5px;
+    margin-right: 4px;
 }
 
 .count {
-    font-size: 0.8em;
+    font-size: 0.75em;
     color: #666;
     background-color: #e9e9e9;
-    padding: 1px 6px;
-    border-radius: 10px;
+    padding: 1px 5px;
+    border-radius: 8px;
     white-space: nowrap;
 }
 
-/* Children Container Styling */
+/* Children Container Styling - Compact */
 .node-children {
-    margin-left: 20px;
-    padding-left: 10px;
+    margin-left: 16px;
+    padding-left: 8px;
     border-left: 1px dotted #ccc;
     display: none;
     overflow: hidden;
@@ -959,21 +995,22 @@ footer {
     }
 }
 
-/* Resource Type Sections - Add more left padding */
+/* Resource Type Sections - Compact styling */
 .resource-type-section {
     background: white;
     border-radius: var(--border-radius);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 1rem;
     overflow: hidden;
 }
 
 .resource-type-section h3 {
-    padding: 1.2rem 1.5rem;
+    padding: 0.8rem 1rem;
     background: var(--gray-light);
     margin: 0;
     border-bottom: 1px solid var(--gray-medium);
-    font-size: 1.2rem;
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 /* Rounded corners for tags and data */
@@ -1252,6 +1289,7 @@ footer {
     font-weight: 500;
     color: var(--primary-color);
     text-decoration: none;
+    font-size: 0.9rem;
 }
 
 .resource-link:hover {
@@ -1648,11 +1686,11 @@ footer {
 /* Network Graph Section */
 .network-graph-section {
     max-width: 1200px;
-    margin: 4rem auto;
-    padding: 2rem;
-    background-color: #f9f9f9;
-    border-radius: var(--border-radius);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin: 2rem auto 3rem;
+    padding: 1.5rem 2rem;
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .network-graph-section h2 {
@@ -1664,19 +1702,19 @@ footer {
 .network-graph-section .section-intro {
     text-align: center;
     max-width: 700px;
-    margin: 0 auto 2rem;
+    margin: 0 auto 1.5rem;
     color: #555;
-    font-size: 1rem;
+    font-size: 0.95rem;
 }
 
 .network-container {
     width: 100%;
-    height: 650px;
-    border: 1px solid var(--gray-medium);
-    border-radius: var(--border-radius);
-    background-color: #ffffff;
+    height: 550px;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
     position: relative;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: none;
 }
 
 .network-container .loading-indicator {
@@ -1690,24 +1728,41 @@ footer {
 
 /* Network Legend */
 .network-legend {
-    margin-top: 1.5rem;
-    padding: 1rem 1.5rem;
-    background-color: #f0f0f0;
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    background-color: rgba(240, 240, 240, 0.5);
     border-radius: var(--border-radius);
-    border: 1px solid var(--gray-medium);
+    border: none;
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .network-legend h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
+    margin: 0;
+    font-size: 0.95rem;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.legend-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.legend-column strong {
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+    font-size: 0.8rem;
 }
 
 .legend-dot {
