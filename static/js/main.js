@@ -299,103 +299,80 @@ function filterAndDisplayResults(selectedCategories) {
 }
 
 function displayResults(data) {
-    const stratifiedResults = document.getElementById('stratified-results');
-    stratifiedResults.innerHTML = '';
+    const resultsGrid = document.getElementById('results-grid');
+    resultsGrid.innerHTML = '';
 
     if (data.length === 0) {
-        stratifiedResults.innerHTML = '<p class="no-results">No resources found matching your criteria.</p>';
+        resultsGrid.innerHTML = '<p class="no-results">No resources found matching your criteria.</p>';
+        document.getElementById('results-count').textContent = 0;
+        buildResourceHierarchy([]); // Build empty hierarchy to clear it
         return;
     }
 
     // Update results count
     document.getElementById('results-count').textContent = data.length;
 
-    // Group data by resource type
-    const groupedData = groupByResourceType(data);
-
     // Build resource hierarchy in sidebar
     buildResourceHierarchy(data);
 
-    // Sort resource types to show "Systems" first, then alphabetically
-    const sortedResourceTypes = Object.entries(groupedData).sort((a, b) => {
-        const [typeA] = a;
-        const [typeB] = b;
-        
-        // Check if either is "Systems" (case-insensitive)
-        const isSystemsA = typeA.toLowerCase().includes('system');
-        const isSystemsB = typeB.toLowerCase().includes('system');
-        
-        if (isSystemsA && !isSystemsB) return -1; // Systems first
-        if (!isSystemsA && isSystemsB) return 1;  // Systems first
-        return typeA.localeCompare(typeB); // Otherwise alphabetical
+    // Create cards for each resource
+    data.forEach(resource => {
+        const card = document.createElement('div');
+        card.className = 'resource-card';
+        card.dataset.id = resource.data_source_id;
+        // Add data attributes for filtering
+        card.dataset.resourceType = resource.resource_type || '';
+        card.dataset.category = resource.category || '';
+        card.dataset.subcategory = resource.subcategory || '';
+        card.dataset.dataType = resource.data_type || '';
+
+        let metadata = {};
+        try {
+            metadata = typeof resource.metadata === 'string' ? JSON.parse(resource.metadata) : resource.metadata || {};
+        } catch(e) {
+            console.error('Failed to parse metadata:', e);
+        }
+
+        const title = metadata.title || resource.data_source_id;
+        const description = (metadata.description || resource.data_description || 'No description available.').substring(0, 120) + '...';
+        const countriesDisplay = Array.isArray(resource.countries_list) ? resource.countries_list.join(', ') : 'N/A';
+        const domainsDisplay = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
+
+        card.innerHTML = `
+            <h4>${title}</h4>
+            <p class="resource-category">${resource.resource_type.replace(/_/g, ' ')}</p>
+            <p class="resource-description">${description}</p>
+            <div class="resource-meta">
+                <span class="country">${countriesDisplay}</span>
+                <span class="domain">${domainsDisplay}</span>
+            </div>
+            <a href="#" class="resource-link" data-id="${resource.data_source_id}">View Details</a>
+        `;
+        resultsGrid.appendChild(card);
     });
 
-    // Create sections for each resource type with improved display
-    for (const [resourceType, resources] of sortedResourceTypes) {
-        const section = document.createElement('div');
-        section.className = 'resource-type-section';
-        
-        // Create data table for better organization
-        section.innerHTML = `
-            <h3>${resourceType}</h3>
-            <div class="data-table-container">
-                <table class="data-table-grid">
-                    <thead>
-                        <tr>
-                            <th>Resource</th>
-                            <th data-sort="country" class="sortable">Country <span class="sort-icon">↓</span></th>
-                            <th data-sort="domain" class="sortable">Domain <span class="sort-icon">↓</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${resources.map(resource => {
-                            // Parse metadata for additional info
-                            let metadata = {};
-                            try {
-                                metadata = typeof resource.metadata === 'string' ? JSON.parse(resource.metadata) : resource.metadata || {};
-                            } catch(e) {
-                                console.error('Failed to parse metadata:', e);
-                            }
+    // Setup click for details view on the new cards
+    setupCardClick();
+}
 
-                            // --- UPDATED: Access countries_list and domains_list ---
-                            const countriesDisplay = Array.isArray(resource.countries_list) ? resource.countries_list.join(', ') : 'N/A';
-                            const domainsDisplay = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
-                            // --- END UPDATE ---
+function setupCardClick() {
+    document.querySelectorAll('.resource-card .resource-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const resourceId = this.getAttribute('data-id');
+            showResourceDetails(resourceId);
+        });
+    });
 
-                            return `
-                                <tr class="data-row" data-id="${resource.data_source_id}"
-                                    data-category="${resource.category || ''}"
-                                    data-subcategory="${resource.subcategory || ''}"
-                                    data-data-type="${resource.data_type || ''}">
-                                    <td>
-                                        <a href="${resource.repository_url}" class="resource-link" target="_blank">
-                                            ${metadata.title || resource.data_source_id}
-                                        </a>
-                                        <div class="resource-metadata">
-                                            ${resource.category ? `<span class="metadata-item">${resource.category.replace(/_/g, ' ')}</span>` : ''}
-                                            ${resource.subcategory ? `<span class="metadata-item">${resource.subcategory.replace(/_/g, ' ')}</span>` : ''}
-                                            ${resource.data_type ? `<span class="metadata-item">${resource.data_type.replace(/_/g, ' ')}</span>` : ''}
-                                            ${resource.level5 ? `<span class="metadata-item">${resource.level5.replace(/_/g, ' ')}</span>` : ''}
-                                        </div>
-                                    </td>
-                                    <td>${countriesDisplay}</td>
-                                    <td>${domainsDisplay}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        stratifiedResults.appendChild(section);
-    }
-    
-    // Setup sorting functionality
-    setupTableSorting();
-    
-    // Setup row click for details view
-    setupRowClick();
+    document.querySelectorAll('.resource-card').forEach(card => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A') return;
+            const resourceId = this.dataset.id;
+            showResourceDetails(resourceId);
+        });
+    });
 }
 
 function showResourceDetails(resourceId) {
@@ -853,60 +830,43 @@ function getSelectedHierarchyFilters() {
 }
 
 function filterDisplayedResults(selectedFilters) {
-    const dataRows = document.querySelectorAll('.data-row');
-    let visibleRowCount = 0;
+    const resourceCards = document.querySelectorAll('.resource-card');
+    let visibleCardCount = 0;
 
     if (selectedFilters.length === 0) {
-        // No filters selected, show all rows within the initially fetched results
-        dataRows.forEach(row => {
-            row.style.display = '';
-            visibleRowCount++;
+        resourceCards.forEach(card => {
+            card.style.display = '';
+            visibleCardCount++;
         });
     } else {
-        // Apply the selected filters (currently supports single selection)
-        const filter = selectedFilters[0]; // Assuming single selection for simplicity
+        const filter = selectedFilters[0]; // Assuming single selection
 
-        dataRows.forEach(row => {
+        resourceCards.forEach(card => {
             let shouldDisplay = true;
 
             // Check against the filter's path properties
-            if (filter.resource_type && row.closest('.resource-type-section').querySelector('h3').textContent !== filter.resource_type) {
+            if (filter.resource_type && card.dataset.resourceType !== filter.resource_type) {
                 shouldDisplay = false;
             }
-            if (shouldDisplay && filter.category && row.dataset.category !== filter.category) {
+            if (shouldDisplay && filter.category && card.dataset.category !== filter.category) {
                 shouldDisplay = false;
             }
-            if (shouldDisplay && filter.subcategory && row.dataset.subcategory !== filter.subcategory) {
+            if (shouldDisplay && filter.subcategory && card.dataset.subcategory !== filter.subcategory) {
                 shouldDisplay = false;
             }
-            if (shouldDisplay && filter.data_type && row.dataset.dataType !== filter.data_type) { // Check data-data-type attribute on row
+            if (shouldDisplay && filter.data_type && card.dataset.dataType !== filter.data_type) {
                 shouldDisplay = false;
             }
-            // How to filter based on level 5 items? Requires a corresponding field in the row's data attributes.
-            // Example: if (shouldDisplay && filter.type === 'level_5_item' && row.dataset.level5Item !== filter.value) { shouldDisplay = false; }
 
-
-            // Final check: ensure the row's own type matches the filter type if it's a leaf filter
-            // This logic might be too restrictive depending on desired behavior.
-            // Example: If filtering by 'category', only show rows matching that category.
-            // If filtering by 'level_5_item', only show rows matching that specific item *and* its parents.
-            // The path check above handles the parent matching.
-
-            row.style.display = shouldDisplay ? '' : 'none';
+            card.style.display = shouldDisplay ? '' : 'none';
             if (shouldDisplay) {
-                visibleRowCount++;
+                visibleCardCount++;
             }
         });
     }
 
-    // Update section visibility
-    document.querySelectorAll('.resource-type-section').forEach(section => {
-        const visibleRows = section.querySelectorAll('.data-row:not([style*="display: none"])').length;
-        section.style.display = visibleRows > 0 ? '' : 'none';
-    });
-
     // Update count display
-    document.getElementById('results-count').textContent = visibleRowCount;
+    document.getElementById('results-count').textContent = visibleCardCount;
 }
 
 function addActiveFilter(filterType, filterValue, displayValue = null, filterInfo = null) {
@@ -1008,78 +968,12 @@ function formatFilterValue(value) {
 }
 
 function setupTableSorting() {
-    document.querySelectorAll('th.sortable').forEach(header => {
-        header.addEventListener('click', function() {
-            const sortKey = this.getAttribute('data-sort');
-            const currentDirection = this.getAttribute('data-direction') || 'desc';
-            const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
-            
-            // Update sort direction
-            this.setAttribute('data-direction', newDirection);
-            
-            // Clear other headers
-            document.querySelectorAll('th.sortable').forEach(h => {
-                if (h !== this) {
-                    h.removeAttribute('data-direction');
-                    h.classList.remove('active');
-                    h.querySelector('.sort-icon').textContent = '↓'; // Reset icon
-                }
-            });
-            
-            // Update visual indicator
-            this.classList.add('active');
-            const sortIcon = this.querySelector('.sort-icon');
-            sortIcon.textContent = newDirection === 'asc' ? '↑' : '↓';
-            
-            // Perform sorting on each table
-            document.querySelectorAll('.data-table-grid').forEach(table => {
-                const tbody = table.querySelector('tbody');
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                
-                rows.sort((a, b) => {
-                    let aValue, bValue;
-                    
-                    // --- Updated Sorting Logic ---
-                    if (sortKey === 'year-end') { // Sort by year-end
-                        aValue = parseInt(a.querySelector(`td[data-year-end]`)?.getAttribute('data-year-end') || '0');
-                        bValue = parseInt(b.querySelector(`td[data-year-end]`)?.getAttribute('data-year-end') || '0');
-                    } else {
-                        // Get cell index for other columns
-                        const cellIndex = Array.from(this.parentNode.children).indexOf(this);
-                        if (cellIndex !== -1) {
-                            aValue = a.cells[cellIndex]?.textContent.trim().toLowerCase() || '';
-                            bValue = b.cells[cellIndex]?.textContent.trim().toLowerCase() || '';
-                        } else {
-                            return 0; // Should not happen
-                        }
-                    }
-                    // --- End Updated Sorting Logic ---
-
-                    // Compare values
-                    if (aValue < bValue) return newDirection === 'asc' ? -1 : 1;
-                    if (aValue > bValue) return newDirection === 'asc' ? 1 : -1;
-                    return 0;
-                });
-                
-                // Reorder rows
-                rows.forEach(row => tbody.appendChild(row));
-            });
-        });
-    });
+    // This function is no longer needed with the card layout.
+    // Kept here in case a table view is re-introduced elsewhere.
 }
 
 function setupRowClick() {
-    document.querySelectorAll('.data-row').forEach(row => {
-        row.addEventListener('click', function(e) {
-            // Don't trigger if clicking on a link or button
-            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
-                return;
-            }
-            
-            const resourceId = this.getAttribute('data-id');
-            showResourceDetails(resourceId);
-        });
-    });
+    // This function is replaced by setupCardClick()
 }
 
 // Add display active filters function
