@@ -25,23 +25,42 @@
                 <a href="/">NoMoReAMR</a>
             </div>
             <div class="nav-links">
-                <a href="{{ url_for('ai_search') }}" class="submit-btn" style="margin-right: 1rem; background-color: var(--secondary-color);">Find with AI</a>
                 <a href="{{ url_for('add_data') }}" class="submit-btn">Submit Data</a>
             </div>
         </div>
     </nav>
 
-    <header class="hero short-hero">
-        <div class="hero-background-image"></div>
-        <div class="hero-content">
-            <p>
-                NoMoReAMR is collaborative initiative funded by NordForsk to combat antimicrobial resistance by facilitating interdisciplinary One Health research in the nordics 🇩🇰 🇫🇮 🇳🇴 🇸🇪<br><br>
-                This site is a centralized hub for information on AMR and AMU-related systems, data, entities, publications, and other key resources in the nordics for AMR surveillance and research.<br>
-            </p>
-        </div>
-    </header>
-
     <main>
+        <!-- AI Search Section -->
+        <section class="ai-explorer-page-container" style="margin-top: 80px;">
+            <div class="page-header">
+                <h1>AI Resource Explorer</h1>
+                <p>Ask questions about resources, or select specific ones to discuss their details.</p>
+            </div>
+    
+            <div class="ai-chat-container">
+                <div class="ai-chat-header">
+                    <h3>Chat with NoMoReAMR AI</h3>
+                </div>
+                <div class="ai-chat-messages">
+                    <div class="ai-message">
+                        <p>Hello! How can I help you find a resource today? You can ask me questions like "Find data on wastewater surveillance in Sweden" or select specific resources below to discuss them.</p>
+                    </div>
+                </div>
+                <div class="ai-chat-context-selection">
+                    <label for="ai-chat-resource-select">Add specific resources to our discussion:</label>
+                    <select id="ai-chat-resource-select" multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="ai-chat-input-area">
+                    <textarea id="ai-chat-input" placeholder="Ask about resources..."></textarea>
+                    <button id="ai-chat-send-btn">Send</button>
+                </div>
+                <div id="ai-chat-loading" class="ai-chat-loading-indicator" style="display: none;">
+                    <div class="spinner"></div> Thinking...
+                </div>
+            </div>
+        </section>
+
         <!-- Network Graph Section -->
         <section id="network-graph-section" class="network-graph-section">
             <h2>Resource Network</h2>

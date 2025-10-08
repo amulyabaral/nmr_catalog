@@ -1948,23 +1948,18 @@ Based on the user's query and ALL the contextual information above:
 # --- END NEW API ENDPOINT ---
 
 # --- NEW ROUTE FOR AI EXPLORER PAGE ---
-@app.route('/ai-search')
-def ai_search():
-    """Serves the dedicated AI Search page."""
-    # Pass vocabularies if needed by any components on this page, though chat primarily uses API
-    vocabularies = {
-        "main_categories": get_main_categories(),
-        "resource_type_hierarchy": get_resource_type_hierarchy()
-    }
-    return render_template('ai_search.html', vocabularies=vocabularies)
+# @app.route('/ai-search')
+# def ai_search():
+#     """Serves the dedicated AI Search page."""
+#     # Pass vocabularies if needed by any components on this page, though chat primarily uses API
+#     vocabularies = {
+#         "main_categories": get_main_categories(),
+#         "resource_type_hierarchy": get_resource_type_hierarchy()
+#     }
+#     return render_template('ai_search.html', vocabularies=vocabularies)
 # --- END NEW ROUTE ---
 
 if __name__ == '__main__':
-    if not ADMIN_PASSWORD:
-        print("Warning: ADMIN_PASSWORD environment variable not set. Admin login will not work.")
-    if not GEMINI_API_KEY: # <<< Check for Gemini key
-        print("Warning: GEMINI_API_KEY environment variable not set. AI processing will not work.")
-    # Ensure DB is initialized when running directly
-    init_db()
-    # load_initial_data() # <<< REMOVE THIS CALL
+    with app.app_context():
+        init_db()
     app.run(debug=True)
