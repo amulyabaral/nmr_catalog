@@ -315,8 +315,22 @@ function displayResults(data) {
     // Build resource hierarchy in sidebar
     buildResourceHierarchy(data);
 
+    // Sort resource types to show "Systems" first, then alphabetically
+    const sortedResourceTypes = Object.entries(groupedData).sort((a, b) => {
+        const [typeA] = a;
+        const [typeB] = b;
+        
+        // Check if either is "Systems" (case-insensitive)
+        const isSystemsA = typeA.toLowerCase().includes('system');
+        const isSystemsB = typeB.toLowerCase().includes('system');
+        
+        if (isSystemsA && !isSystemsB) return -1; // Systems first
+        if (!isSystemsA && isSystemsB) return 1;  // Systems first
+        return typeA.localeCompare(typeB); // Otherwise alphabetical
+    });
+
     // Create sections for each resource type with improved display
-    for (const [resourceType, resources] of Object.entries(groupedData)) {
+    for (const [resourceType, resources] of sortedResourceTypes) {
         const section = document.createElement('div');
         section.className = 'resource-type-section';
         
@@ -328,7 +342,6 @@ function displayResults(data) {
                     <thead>
                         <tr>
                             <th>Resource</th>
-                            <th data-sort="category" class="sortable">System <span class="sort-icon">↓</span></th>
                             <th data-sort="country" class="sortable">Country <span class="sort-icon">↓</span></th>
                             <th data-sort="domain" class="sortable">Domain <span class="sort-icon">↓</span></th>
                         </tr>
@@ -348,13 +361,6 @@ function displayResults(data) {
                             const domainsDisplay = Array.isArray(resource.domains_list) ? resource.domains_list.join(', ') : 'N/A';
                             // --- END UPDATE ---
 
-                            // Build system hierarchy display
-                            const systemParts = [];
-                            if (resource.category) systemParts.push(resource.category.replace(/_/g, ' '));
-                            if (resource.subcategory) systemParts.push(resource.subcategory.replace(/_/g, ' '));
-                            if (resource.data_type) systemParts.push(resource.data_type.replace(/_/g, ' '));
-                            const systemDisplay = systemParts.length > 0 ? systemParts.join(' → ') : 'N/A';
-
                             return `
                                 <tr class="data-row" data-id="${resource.data_source_id}"
                                     data-category="${resource.category || ''}"
@@ -364,8 +370,13 @@ function displayResults(data) {
                                         <a href="${resource.repository_url}" class="resource-link" target="_blank">
                                             ${metadata.title || resource.data_source_id}
                                         </a>
+                                        <div class="resource-metadata">
+                                            ${resource.category ? `<span class="metadata-item">${resource.category.replace(/_/g, ' ')}</span>` : ''}
+                                            ${resource.subcategory ? `<span class="metadata-item">${resource.subcategory.replace(/_/g, ' ')}</span>` : ''}
+                                            ${resource.data_type ? `<span class="metadata-item">${resource.data_type.replace(/_/g, ' ')}</span>` : ''}
+                                            ${resource.level5 ? `<span class="metadata-item">${resource.level5.replace(/_/g, ' ')}</span>` : ''}
+                                        </div>
                                     </td>
-                                    <td class="system-cell">${systemDisplay}</td>
                                     <td>${countriesDisplay}</td>
                                     <td>${domainsDisplay}</td>
                                 </tr>
