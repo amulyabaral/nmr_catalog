@@ -31,167 +31,129 @@
     </nav>
 
     <main>
-        <!-- AI Search Section -->
-        <section class="ai-explorer-page-container" style="margin-top: 80px;">
-            <div class="page-header">
-                <h1>AI Resource Explorer</h1>
-                <p>Ask questions about resources, or select specific ones to discuss their details.</p>
+        <!-- Simplified AI Search Bar -->
+        <section class="ai-search-bar-container" style="margin-top: 80px;">
+            <div class="ai-search-bar">
+                <input type="text" placeholder="e.g., Find data on wastewater surveillance in Sweden">
+                <button id="expand-ai-chat-btn">Expand</button>
             </div>
+        </section>
+
+        <div class="main-content-columns">
+            <!-- Network Graph Section -->
+            <section id="network-graph-section" class="network-graph-section">
+                <h2>Resource Network</h2>
+                <p class="section-intro">Explore the connections between resources. Double-click a resource node to see details.</p>
+                <div class="network-wrapper">
+                    <div id="network-graph-container" class="network-container">
+                        <div class="loading-indicator">Loading Network...</div>
+                    </div>
+                    <div class="network-legend">
+                        <h4>Legend</h4>
+                        <div class="legend-section">
+                            <strong>Nodes</strong>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #999;"></span> Country</div>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFDAB9;"></span> Domain</div>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #555;"></span> Data Point</div>
+                        </div>
+                        <div class="legend-section">
+                            <strong>Categories</strong>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #87CEEB;"></span> Resource Type</div>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #90EE90;"></span> Category</div>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFB6C1;"></span> Subcategory</div>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFD700;"></span> Data Type</div>
+                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFA07A;"></span> Detail</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
     
-            <div class="ai-chat-container">
-                <div class="ai-chat-header">
-                    <h3>Chat with NoMoReAMR AI</h3>
+            <!-- Browse Section -->
+            <section id="browse-section" class="browse-section">
+                <h2>Browse Resources</h2>
+                <div class="browse-tabs">
+                    <button class="browse-tab active" data-tab="country">Select Countries</button>
+                    <button class="browse-tab" data-tab="domain">Select Domains</button>
+                    <button class="browse-tab" data-tab="resource-type">By Resource Type</button>
                 </div>
-                <div class="ai-chat-messages">
-                    <div class="ai-message">
-                        <p>Hello! How can I help you find a resource today? You can ask me questions like "Find data on wastewater surveillance in Sweden" or select specific resources below to discuss them.</p>
-                    </div>
-                </div>
-                <div class="ai-chat-context-selection">
-                    <label for="ai-chat-resource-select">Add specific resources to our discussion:</label>
-                    <select id="ai-chat-resource-select" multiple="multiple" style="width: 100%;"></select>
-                </div>
-                <div class="ai-chat-input-area">
-                    <textarea id="ai-chat-input" placeholder="Ask about resources..."></textarea>
-                    <button id="ai-chat-send-btn">Send</button>
-                </div>
-                <div id="ai-chat-loading" class="ai-chat-loading-indicator" style="display: none;">
-                    <div class="spinner"></div> Thinking...
-                </div>
-            </div>
-        </section>
-
-        <!-- Network Graph Section -->
-        <section id="network-graph-section" class="network-graph-section">
-            <h2>Resource Network</h2>
-            <p class="section-intro">Explore the connections between resources, countries, domains, and categories. Click on a node to highlight its direct connections.</p>
-            <div class="network-wrapper">
-                <div id="network-graph-container" class="network-container">
-                    <!-- Vis Network Graph will be rendered here -->
-                    <div class="loading-indicator">Loading Network...</div>
-                </div>
-                <!-- Legend on the side -->
-                <div class="network-legend">
-                    <h4>Legend</h4>
-                    <div class="legend-section">
-                        <strong>Nodes</strong>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #999;"></span> Country
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #FFDAB9;"></span> Domain
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #555;"></span> Data Point
-                        </div>
-                    </div>
-                    <div class="legend-section">
-                        <strong>Categories</strong>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #87CEEB;"></span> Resource Type
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #90EE90;"></span> Category
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #FFB6C1;"></span> Subcategory
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #FFD700;"></span> Data Type
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background-color: #FFA07A;"></span> Detail
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Browse Section -->
-        <section id="browse-section" class="browse-section">
-            <h2>Browse Resources</h2>
-            <div class="browse-tabs">
-                <button class="browse-tab active" data-tab="country">Select Countries</button>
-                <button class="browse-tab" data-tab="domain">Select Domains</button>
-                <button class="browse-tab" data-tab="resource-type">By Resource Type</button>
-            </div>
-            
-            <div class="browse-content">
-                <!-- Country Tab -->
-                <div class="tab-content active" id="country-tab">
-                    <div class="category-selection">
-                        <h3>Select Countries</h3>
-                        <div class="selection-grid">
-                            {% for country in vocabularies.main_categories.Country %}
-                            <div class="selection-item">
-                                <label class="checkbox-container">
-                                    <input type="checkbox" class="category-checkbox" data-category="country" value="{{ country }}">
-                                    <span class="checkmark"></span>
-                                    {{ country }}
-                                </label>
+                
+                <div class="browse-content">
+                    <!-- Country Tab -->
+                    <div class="tab-content active" id="country-tab">
+                        <div class="category-selection">
+                            <h3>Select Countries</h3>
+                            <div class="selection-grid">
+                                {% for country in vocabularies.main_categories.Country %}
+                                <div class="selection-item">
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" class="category-checkbox" data-category="country" value="{{ country }}">
+                                        <span class="checkmark"></span>
+                                        {{ country }}
+                                    </label>
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Domain Tab -->
+                    <div class="tab-content" id="domain-tab">
+                        <div class="category-selection">
+                            <h3>Select Domains</h3>
+                            <div class="selection-grid">
+                                {% for domain in vocabularies.main_categories.Domain %}
+                                <div class="selection-item">
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" class="category-checkbox" data-category="domain" value="{{ domain }}">
+                                        <span class="checkmark"></span>
+                                        {{ domain }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Resource Type Tab -->
+                    <div class="tab-content" id="resource-type-tab">
+                        <div class="category-selection">
+                            <h3>Select Resource Types</h3>
+                            <div class="selection-grid">
+                                {% for resource_type in vocabularies.main_categories.Resource_type %}
+                                <div class="selection-item">
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" class="category-checkbox" data-category="resource-type" value="{{ resource_type }}">
+                                        <span class="checkmark"></span>
+                                        {{ resource_type }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Domain Tab -->
-                <div class="tab-content" id="domain-tab">
-                    <div class="category-selection">
-                        <h3>Select Domains</h3>
-                        <div class="selection-grid">
-                            {% for domain in vocabularies.main_categories.Domain %}
-                            <div class="selection-item">
-                                <label class="checkbox-container">
-                                    <input type="checkbox" class="category-checkbox" data-category="domain" value="{{ domain }}">
-                                    <span class="checkmark"></span>
-                                    {{ domain }}
-                                </label>
-                            </div>
-                            {% endfor %}
+                <!-- Selected Categories Display -->
+                <div class="selected-categories">
+                    <h3>Selected Categories</h3>
+                    <div class="selected-items">
+                        <div id="selected-countries" class="selected-group">
+                            <h4>Countries: <span class="count">(0)</span></h4>
+                            <div class="selected-tags"></div>
+                        </div>
+                        <div id="selected-domains" class="selected-group">
+                            <h4>Domains: <span class="count">(0)</span></h4>
+                            <div class="selected-tags"></div>
+                        </div>
+                        <div id="selected-resource-types" class="selected-group">
+                            <h4>Resource Types: <span class="count">(0)</span></h4>
+                            <div class="selected-tags"></div>
                         </div>
                     </div>
+                    <button id="explore-button" class="explore-btn" disabled>Explore Resources</button>
                 </div>
-                
-                <!-- Resource Type Tab -->
-                <div class="tab-content" id="resource-type-tab">
-                    <div class="category-selection">
-                        <h3>Select Resource Types</h3>
-                        <div class="selection-grid">
-                            {% for resource_type in vocabularies.main_categories.Resource_type %}
-                            <div class="selection-item">
-                                <label class="checkbox-container">
-                                    <input type="checkbox" class="category-checkbox" data-category="resource-type" value="{{ resource_type }}">
-                                    <span class="checkmark"></span>
-                                    {{ resource_type }}
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Selected Categories Display -->
-            <div class="selected-categories">
-                <h3>Selected Categories</h3>
-                <div class="selected-items">
-                    <div id="selected-countries" class="selected-group">
-                        <h4>Countries: <span class="count">(0)</span></h4>
-                        <div class="selected-tags"></div>
-                    </div>
-                    <div id="selected-domains" class="selected-group">
-                        <h4>Domains: <span class="count">(0)</span></h4>
-                        <div class="selected-tags"></div>
-                    </div>
-                    <div id="selected-resource-types" class="selected-group">
-                        <h4>Resource Types: <span class="count">(0)</span></h4>
-                        <div class="selected-tags"></div>
-                    </div>
-                </div>
-                <button id="explore-button" class="explore-btn" disabled>Explore Resources</button>
-            </div>
-        </section>
+            </section>
+        </div>
 
         <!-- Results Section -->
         <section class="results-section" style="display: none;">
@@ -225,6 +187,34 @@
         </section>
 
     </main>
+
+    <!-- AI Chat Modal -->
+    <div id="ai-chat-modal" class="modal">
+        <div class="modal-content ai-chat-modal-content">
+            <span class="close-modal ai-chat-close-btn">&times;</span>
+            <div class="ai-chat-container">
+                <div class="ai-chat-header">
+                    <h3>Chat with NoMoReAMR AI</h3>
+                </div>
+                <div class="ai-chat-messages">
+                    <div class="ai-message">
+                        <p>Hello! How can I help you find a resource today? You can ask me questions like "Find data on wastewater surveillance in Sweden" or select specific resources below to discuss them.</p>
+                    </div>
+                </div>
+                <div class="ai-chat-context-selection">
+                    <label for="ai-chat-resource-select">Add specific resources to our discussion:</label>
+                    <select id="ai-chat-resource-select" multiple="multiple" style="width: 100%;"></select>
+                </div>
+                <div class="ai-chat-input-area">
+                    <textarea id="ai-chat-input" placeholder="Ask about resources..."></textarea>
+                    <button id="ai-chat-send-btn">Send</button>
+                </div>
+                <div id="ai-chat-loading" class="ai-chat-loading-indicator" style="display: none;">
+                    <div class="spinner"></div> Thinking...
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Resource Details Modal -->
     <div id="resource-modal" class="modal">

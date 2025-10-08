@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupExploreButton();
     setupModal();
     setupNetworkGraph();
+    setupExpandAIChatButton(); // New function call
     
     // Sort by newest entry by default
     const yearHeader = document.querySelector('th[data-sort="year"]');
@@ -2032,3 +2033,19 @@ function appendMessage(text, type, messagesContainerElement) {
 // Ensure setupAIChatInterface is called on DOMContentLoaded,
 // it will check for necessary elements before proceeding.
 // The main DOMContentLoaded listener in main.js already calls setupAIChatInterface.
+
+function setupExpandAIChatButton() {
+    const expandBtn = document.getElementById('expand-ai-chat-btn');
+    const aiChatModal = document.getElementById('ai-chat-modal');
+    const closeBtn = aiChatModal.querySelector('.ai-chat-close-btn');
+
+    if (expandBtn && aiChatModal && closeBtn) {
+        expandBtn.addEventListener('click', () => {
+            aiChatModal.style.display = 'block';
+        });
+
+        closeBtn.addEventListener('click', () => {
+            aiChatModal.style.display = 'none';
+        });
+    }
+}

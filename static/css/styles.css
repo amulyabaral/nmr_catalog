@@ -1815,6 +1815,81 @@ div.vis-tooltip {
 
 /* ... (rest of styles) ... */
 
+/* Simplified AI Search Bar */
+.ai-search-bar-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem 2rem;
+}
+
+.ai-search-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 0.5rem;
+}
+
+.ai-search-bar input {
+    flex-grow: 1;
+    border: none;
+    outline: none;
+    padding: 0.8rem;
+    font-size: 1rem;
+    background: transparent;
+}
+
+.ai-search-bar button {
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.ai-search-bar button:hover {
+    background: #1a54f7;
+}
+
+/* Two-column layout for main content */
+.main-content-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+@media (max-width: 1200px) {
+    .main-content-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* AI Chat Modal Styles */
+.ai-chat-modal-content {
+    max-width: 700px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-chat-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-chat-messages {
+    flex-grow: 1;
+}
+
 /* AI Chat section for homepage */
 .ai-explorer-page-container {
     max-width: 900px;
