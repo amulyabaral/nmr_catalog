@@ -1663,8 +1663,8 @@ function setupNetworkGraph() {
                     },
                     stabilization: {
                         enabled: true,
-                        iterations: 100,
-                        updateInterval: 25,
+                        iterations: 150, // Increased for better initial layout
+                        updateInterval: 50,
                         onlyDynamicEdges: false,
                         fit: true
                     },
@@ -1786,9 +1786,10 @@ function setupNetworkGraph() {
             // --- END NEW Double Click Listener ---
 
 
-            // Keep physics running for a live, animated network
+            // Disable physics after stabilization for static, faster graph
             network.on("stabilizationIterationsDone", function () {
-                console.log("Network stabilized, physics will continue running.");
+                console.log("Network stabilized, disabling physics for static display.");
+                network.setOptions({ physics: { enabled: false } });
             });
 
         })

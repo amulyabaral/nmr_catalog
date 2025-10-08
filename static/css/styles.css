@@ -1600,14 +1600,14 @@ footer {
     }
 }
 
-/* Network Graph Section - Obsidian Style */
+/* Network Graph Section - Floating Style */
 .network-graph-section {
     max-width: 1200px;
     margin: 1.5rem auto 2.5rem;
     padding: 1rem 2rem;
-    background-color: transparent;
+    background-color: transparent; /* Transparent background */
     border-radius: 0;
-    box-shadow: none;
+    box-shadow: none; /* No shadow */
 }
 
 .network-graph-section h2 {
@@ -1635,12 +1635,11 @@ footer {
 .network-container {
     flex: 1;
     height: 420px;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,200,83,0.05) 100%);
+    border: none; /* Removed border */
+    border-radius: 0; /* Removed border radius */
+    background: transparent; /* Made transparent */
     position: relative;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    backdrop-filter: blur(10px);
+    box-shadow: none; /* Removed shadow */
 }
 
 .network-container .loading-indicator {
@@ -1654,6 +1653,7 @@ footer {
 
 /* Network Legend - Side Panel */
 .network-legend {
+    display: none; /* Hidden as requested */
     flex: 0 0 160px;
     padding: 1rem;
     background-color: #f8f8f8;
@@ -1762,16 +1762,7 @@ footer {
         height: 350px;
     }
     
-    .network-legend {
-        flex: 1;
-        width: 100%;
-    }
-    
-    .legend-section {
-        display: inline-block;
-        margin-right: 1.5rem;
-        vertical-align: top;
-    }
+    /* Legend remains hidden on mobile */
 }
 
 /* Ensure Vis Network Tooltip Style is present */
@@ -1791,19 +1782,8 @@ div.vis-tooltip {
     pointer-events: none;
 }
 
-/* Animated network canvas for modern look */
-@keyframes networkPulse {
-    0%, 100% { 
-        opacity: 1;
-    }
-    50% { 
-        opacity: 0.98;
-    }
-}
-
-.network-container canvas {
-    animation: networkPulse 3s ease-in-out infinite;
-}
+/* Removed animated network canvas for static graph */
+/* Animation removed for better performance and static display */
 
 /* Loading Spinner for AI Processing */
 .spinner {
