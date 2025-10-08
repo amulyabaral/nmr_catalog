@@ -1,6 +1,6 @@
 :root {
-    --primary-color: #7C4DFF;
-    --secondary-color: #6A1B9A;
+    --primary-color: #000000;
+    --secondary-color: #333333;
     --background-color: #FFFFFF;
     --surface-color: #FFFFFF;
     --text-color: #333333;
@@ -100,7 +100,7 @@ body {
 }
 
 .submit-btn-hero:hover {
-    background: #8E5CFF;
+    background: #333333;
 }
 
 .homepage-intro-section {
@@ -165,7 +165,7 @@ body {
 }
 
 .explore-section-promo .explore-resources-btn:hover {
-    background: #8E5CFF;
+    background: #333333;
     transform: translateY(-2px);
     box-shadow: var(--hover-shadow);
 }
@@ -206,7 +206,7 @@ body {
     position: absolute;
     bottom: 20px;
     right: 20px;
-    background: rgba(124, 77, 255, 0.9);
+    background: rgba(0, 0, 0, 0.9);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 20px;
@@ -254,7 +254,7 @@ body {
     left: 50%;
     width: 200px;
     height: 200px;
-    background: radial-gradient(circle, rgba(124, 77, 255, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.1) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
     animation: glowPulse 3s ease-in-out infinite;
@@ -825,7 +825,7 @@ footer {
 }
 
 .explore-btn:hover {
-    background: #8E5CFF;
+    background: #333333;
 }
 
 .explore-btn:disabled {
@@ -1013,7 +1013,7 @@ footer {
 .hierarchy-node.selected > .node-header,
 .hierarchy-deepnode.selected > .deepnode-header,
 .hierarchy-leafnode.selected > .leafnode-header {
-    background-color: rgba(124, 77, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     color: var(--primary-color);
     font-weight: 500;
 }
@@ -1021,7 +1021,7 @@ footer {
 .hierarchy-node.selected > .node-header .count,
 .hierarchy-deepnode.selected > .deepnode-header .count,
 .hierarchy-leafnode.selected > .leafnode-header .count {
-    background-color: rgba(124, 77, 255, 0.3);
+    background-color: rgba(0, 0, 0, 0.3);
     color: var(--primary-color);
 }
 
@@ -1072,7 +1072,7 @@ footer {
 }
 
 .expand-btn:hover {
-    background: #8E5CFF;
+    background: #333333;
     transform: translateY(-2px);
     box-shadow: var(--hover-shadow);
 }
@@ -1264,7 +1264,7 @@ footer {
 }
 
 .reset-btn:hover {
-    background-color: #8E5CFF;
+    background-color: #333333;
 }
 
 .network-legend {
@@ -1386,12 +1386,12 @@ footer {
 }
 
 .country {
-    background: rgba(124, 77, 255, 0.2) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
     color: var(--primary-color);
 }
 
 .domain {
-    background: rgba(106, 27, 154, 0.2) !important;
+    background: rgba(51, 51, 51, 0.2) !important;
     color: var(--secondary-color);
 }
 
@@ -1418,7 +1418,7 @@ footer {
 }
 
 .view-details-btn:hover {
-    background: #8E5CFF;
+    background: #333333;
 }
 
 /* Results Section Improvements */
@@ -1457,7 +1457,7 @@ footer {
 .hierarchy-subnode.selected > .subnode-header,
 .hierarchy-deepnode.selected > .deepnode-header,
 .hierarchy-leafnode.selected > .leafnode-header {
-    background-color: rgba(124, 77, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     color: var(--primary-color);
     font-weight: 600;
     box-shadow: var(--shadow);
@@ -1602,32 +1602,32 @@ footer {
 }
 
 .detail-tag.country {
-    background-color: rgba(124, 77, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     color: var(--primary-color);
 }
 
 .detail-tag.domain {
-    background-color: rgba(106, 27, 154, 0.2);
+    background-color: rgba(51, 51, 51, 0.2);
     color: var(--secondary-color);
 }
 
 .detail-tag.resource-type {
-    background-color: rgba(124, 77, 255, 0.15);
+    background-color: rgba(0, 0, 0, 0.15);
     color: var(--primary-color);
 }
 
 .detail-tag.category {
-    background-color: rgba(106, 27, 154, 0.15);
+    background-color: rgba(51, 51, 51, 0.15);
     color: var(--secondary-color);
 }
 
 .detail-tag.subcategory {
-    background-color: rgba(124, 77, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
     color: var(--primary-color);
 }
 
 .detail-tag.data-type {
-    background-color: rgba(106, 27, 154, 0.1);
+    background-color: rgba(51, 51, 51, 0.1);
     color: var(--secondary-color);
 }
 
@@ -1655,7 +1655,7 @@ footer {
 }
 
 .modal-link:hover {
-    background-color: #8E5CFF;
+    background-color: #333333;
     text-decoration: none;
 }
 
@@ -1784,7 +1784,7 @@ footer {
 }
 
 .expand-btn:hover {
-    background: #8E5CFF;
+    background: #333333;
     transform: translateY(-2px);
     box-shadow: var(--hover-shadow);
 }
@@ -2097,7 +2097,7 @@ div.vis-tooltip {
 }
 
 .ai-search-bar button:hover {
-    background: #8E5CFF;
+    background: #333333;
     transform: translateY(-1px);
     box-shadow: var(--hover-shadow);
 }
@@ -2352,7 +2352,7 @@ div.vis-tooltip {
 }
 
 .ai-chat-input-area button:hover {
-    background: #8E5CFF;
+    background: #333333;
 }
 
 .ai-chat-loading-indicator {

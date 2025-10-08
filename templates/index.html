@@ -20,13 +20,6 @@
 </head>
 <body>
     <main>
-        <div class="top-nav-bar">
-            <a href="/" class="logo-link">
-                <h1 class="logo-text">NoMoReAMR</h1>
-            </a>
-            <a href="{{ url_for('add_data') }}" class="submit-btn-hero">Submit Data</a>
-        </div>
-
         <section class="main-interactive-section">
             <div class="left-column-container">
                 <div class="intro-text">
@@ -40,7 +33,7 @@
                         <button id="expand-ai-chat-btn">Expand</button>
                     </div>
                     <div class="explore-section-promo">
-                        <a href="#browse-section" class="explore-resources-btn">Or, Manually Explore Resources</a>
+                        <a href="{{ url_for('add_data') }}" class="explore-resources-btn">Add Data</a>
                     </div>
                 </div>
             </div>
