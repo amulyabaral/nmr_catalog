@@ -20,151 +20,124 @@
 </head>
 <body>
     <main>
-        <section class="homepage-hero">
-            <div class="hero-main-content">
-                <div class="logo-and-submit">
-                    <a href="/" class="logo-link">
-                        <h1 class="logo-text">NoMoReAMR</h1>
-                    </a>
-                    <a href="{{ url_for('add_data') }}" class="submit-btn-hero">Submit Data</a>
-                </div>
-        
-                <div class="search-and-network-container">
-                    <div class="search-wrapper">
-                        <div class="ai-search-bar">
-                            <input type="text" id="ai-search-input" placeholder="e.g., Find data on wastewater surveillance in Sweden">
-                            <button id="ai-search-btn">Search</button>
-                            <button id="expand-ai-chat-btn">Expand</button>
-                        </div>
-                    </div>
-                    <div class="resource-network-promo">
-                        <span class="promo-title">Resource Network</span>
-                        <p class="promo-description">Explore connections between resources. Double-click a node for details.</p>
-                        <a href="#network-graph-section" class="promo-link">View Network</a>
-                    </div>
-                </div>
-        
-                <div class="explore-section-promo">
-                    <a href="#browse-section" class="explore-resources-btn">Or, Explore All Resources</a>
-                </div>
+        <div class="top-nav-bar">
+            <a href="/" class="logo-link">
+                <h1 class="logo-text">NoMoReAMR</h1>
+            </a>
+            <a href="{{ url_for('add_data') }}" class="submit-btn-hero">Submit Data</a>
+        </div>
+
+        <section class="homepage-intro-section">
+            <div class="intro-text">
+                <p>NoMoReAMR is a collaborative initiative funded by NordForsk to combat antimicrobial resistance by facilitating interdisciplinary One Health research in the Nordics 🇩🇰 🇫🇮 🇳🇴 🇸🇪.</p>
+                <p>This site is a centralized hub for information on AMR and AMU-related systems, data, entities, publications, and other key resources in the Nordics for AMR surveillance and research.</p>
             </div>
         </section>
 
-        <div class="main-content-columns">
-            <!-- Network Graph Section -->
+        <section class="main-interactive-section">
+            <div class="search-and-actions-container">
+                <div class="ai-search-bar">
+                    <input type="text" id="ai-search-input" placeholder="e.g., Find data on wastewater surveillance in Sweden">
+                    <button id="ai-search-btn">Search</button>
+                    <button id="expand-ai-chat-btn">Expand</button>
+                </div>
+                <div class="explore-section-promo">
+                    <a href="#browse-section" class="explore-resources-btn">Or, Manually Explore Resources</a>
+                </div>
+            </div>
+            
             <section id="network-graph-section" class="network-graph-section">
-                <h2>Resource Network</h2>
-                <p class="section-intro">Explore the connections between resources. Double-click a resource node to see details.</p>
-                <div class="network-wrapper">
-                    <div id="network-graph-container" class="network-container">
-                        <div class="loading-indicator">Loading Network...</div>
-                    </div>
-                    <div class="network-legend">
-                        <h4>Legend</h4>
-                        <div class="legend-section">
-                            <strong>Nodes</strong>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #999;"></span> Country</div>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFDAB9;"></span> Domain</div>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #E0E0E0; border: 1px solid #555;"></span> Data Point</div>
-                        </div>
-                        <div class="legend-section">
-                            <strong>Categories</strong>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #87CEEB;"></span> Resource Type</div>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #90EE90;"></span> Category</div>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFB6C1;"></span> Subcategory</div>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFD700;"></span> Data Type</div>
-                            <div class="legend-item"><span class="legend-dot" style="background-color: #FFA07A;"></span> Detail</div>
-                        </div>
-                    </div>
+                <div id="network-graph-container" class="network-container">
+                    <div class="loading-indicator">Loading Network...</div>
                 </div>
             </section>
-    
-            <!-- Browse Section -->
-            <section id="browse-section" class="browse-section">
-                <h2>Browse Resources</h2>
-                <div class="browse-tabs">
-                    <button class="browse-tab active" data-tab="country">Select Countries</button>
-                    <button class="browse-tab" data-tab="domain">Select Domains</button>
-                    <button class="browse-tab" data-tab="resource-type">By Resource Type</button>
-                </div>
-                
-                <div class="browse-content">
-                    <!-- Country Tab -->
-                    <div class="tab-content active" id="country-tab">
-                        <div class="category-selection">
-                            <h3>Select Countries</h3>
-                            <div class="selection-grid">
-                                {% for country in vocabularies.main_categories.Country %}
-                                <div class="selection-item">
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" class="category-checkbox" data-category="country" value="{{ country }}">
-                                        <span class="checkmark"></span>
-                                        {{ country }}
-                                    </label>
-                                </div>
-                                {% endfor %}
+        </section>
+
+        <!-- Browse Section -->
+        <section id="browse-section" class="browse-section">
+            <h2>Browse Resources</h2>
+            <div class="browse-tabs">
+                <button class="browse-tab active" data-tab="country">Select Countries</button>
+                <button class="browse-tab" data-tab="domain">Select Domains</button>
+                <button class="browse-tab" data-tab="resource-type">By Resource Type</button>
+            </div>
+            
+            <div class="browse-content">
+                <!-- Country Tab -->
+                <div class="tab-content active" id="country-tab">
+                    <div class="category-selection">
+                        <h3>Select Countries</h3>
+                        <div class="selection-grid">
+                            {% for country in vocabularies.main_categories.Country %}
+                            <div class="selection-item">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" class="category-checkbox" data-category="country" value="{{ country }}">
+                                    <span class="checkmark"></span>
+                                    {{ country }}
+                                </label>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Domain Tab -->
-                    <div class="tab-content" id="domain-tab">
-                        <div class="category-selection">
-                            <h3>Select Domains</h3>
-                            <div class="selection-grid">
-                                {% for domain in vocabularies.main_categories.Domain %}
-                                <div class="selection-item">
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" class="category-checkbox" data-category="domain" value="{{ domain }}">
-                                        <span class="checkmark"></span>
-                                        {{ domain }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Resource Type Tab -->
-                    <div class="tab-content" id="resource-type-tab">
-                        <div class="category-selection">
-                            <h3>Select Resource Types</h3>
-                            <div class="selection-grid">
-                                {% for resource_type in vocabularies.main_categories.Resource_type %}
-                                <div class="selection-item">
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" class="category-checkbox" data-category="resource-type" value="{{ resource_type }}">
-                                        <span class="checkmark"></span>
-                                        {{ resource_type }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
                 
-                <!-- Selected Categories Display -->
-                <div class="selected-categories">
-                    <h3>Selected Categories</h3>
-                    <div class="selected-items">
-                        <div id="selected-countries" class="selected-group">
-                            <h4>Countries: <span class="count">(0)</span></h4>
-                            <div class="selected-tags"></div>
-                        </div>
-                        <div id="selected-domains" class="selected-group">
-                            <h4>Domains: <span class="count">(0)</span></h4>
-                            <div class="selected-tags"></div>
-                        </div>
-                        <div id="selected-resource-types" class="selected-group">
-                            <h4>Resource Types: <span class="count">(0)</span></h4>
-                            <div class="selected-tags"></div>
+                <!-- Domain Tab -->
+                <div class="tab-content" id="domain-tab">
+                    <div class="category-selection">
+                        <h3>Select Domains</h3>
+                        <div class="selection-grid">
+                            {% for domain in vocabularies.main_categories.Domain %}
+                            <div class="selection-item">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" class="category-checkbox" data-category="domain" value="{{ domain }}">
+                                    <span class="checkmark"></span>
+                                    {{ domain }}
+                                </label>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
-                    <button id="explore-button" class="explore-btn" disabled>Explore Resources</button>
                 </div>
-            </section>
-        </div>
+                
+                <!-- Resource Type Tab -->
+                <div class="tab-content" id="resource-type-tab">
+                    <div class="category-selection">
+                        <h3>Select Resource Types</h3>
+                        <div class="selection-grid">
+                            {% for resource_type in vocabularies.main_categories.Resource_type %}
+                            <div class="selection-item">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" class="category-checkbox" data-category="resource-type" value="{{ resource_type }}">
+                                    <span class="checkmark"></span>
+                                    {{ resource_type }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selected Categories Display -->
+            <div class="selected-categories">
+                <h3>Selected Categories</h3>
+                <div class="selected-items">
+                    <div id="selected-countries" class="selected-group">
+                        <h4>Countries: <span class="count">(0)</span></h4>
+                        <div class="selected-tags"></div>
+                    </div>
+                    <div id="selected-domains" class="selected-group">
+                        <h4>Domains: <span class="count">(0)</span></h4>
+                        <div class="selected-tags"></div>
+                    </div>
+                    <div id="selected-resource-types" class="selected-group">
+                        <h4>Resource Types: <span class="count">(0)</span></h4>
+                        <div class="selected-tags"></div>
+                    </div>
+                </div>
+                <button id="explore-button" class="explore-btn" disabled>Explore Resources</button>
+            </div>
+        </section>
 
         <!-- Results Section -->
         <section class="results-section" style="display: none;">
