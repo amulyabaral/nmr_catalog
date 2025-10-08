@@ -1,17 +1,17 @@
 :root {
     --primary-color: #7C4DFF;
     --secondary-color: #6A1B9A;
-    --background-color: #1A1A1A;
-    --surface-color: #2D2D2D;
-    --text-color: #E0E0E0;
-    --text-secondary: #B0B0B0;
-    --gray-light: #3A3A3A;
-    --gray-medium: #4A4A4A;
-    --border-color: #555555;
+    --background-color: #FFFFFF;
+    --surface-color: #FFFFFF;
+    --text-color: #333333;
+    --text-secondary: #666666;
+    --gray-light: #F5F5F5;
+    --gray-medium: #E0E0E0;
+    --border-color: #DDDDDD;
     --border-radius: 8px;
     --transition: all 0.3s ease;
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 * {
@@ -105,8 +105,10 @@ body {
 
 .homepage-intro-section {
     padding: 1rem 2rem 0.5rem;
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     text-align: center;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .intro-text {
@@ -125,7 +127,7 @@ body {
     gap: 0;
     padding: 0;
     align-items: stretch; /* Equal heights */
-    max-width: 1800px;
+    max-width: 1200px;
     margin: 0 auto;
     height: 300px; /* Reduced height */
 }
@@ -135,7 +137,7 @@ body {
     flex-direction: column;
     justify-content: center;
     padding: 2rem;
-    background: var(--surface-color);
+    background: var(--background-color);
     height: 100%;
 }
 
@@ -322,12 +324,13 @@ body {
 }
 
 .category-card {
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--border-radius);
     padding: 1.5rem;
     box-shadow: var(--shadow);
     position: relative;
     transition: var(--transition);
+    border: 1px solid var(--border-color);
 }
 
 .category-card:hover {
@@ -475,13 +478,14 @@ footer {
 }
 
 .country-card {
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--border-radius);
     padding: 1.5rem;
     text-align: center;
     box-shadow: var(--shadow);
     transition: var(--transition);
     cursor: pointer;
+    border: 1px solid var(--border-color);
 }
 
 .country-card:hover {
@@ -545,7 +549,7 @@ footer {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    background: var(--surface-color);
+    background: var(--background-color);
 }
 
 .toggle-icon {
@@ -565,8 +569,9 @@ footer {
     gap: 0.4rem;
     margin-bottom: 0.8rem;
     padding: 0.5rem 0.8rem;
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
 }
 
 .filter-label {
@@ -629,9 +634,9 @@ footer {
 /* Browse Section Styles */
 .browse-section {
     max-width: 1200px;
-    margin: 1rem auto;
+    margin: 2rem auto;
     padding: 1rem 2rem;
-    background-color: transparent;
+    background-color: var(--background-color);
     border-radius: 0;
 }
 
@@ -687,10 +692,11 @@ footer {
 }
 
 .selection-item {
-    background: var(--surface-color);
+    background: var(--background-color);
     padding: 1rem;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
 }
 
 /* Checkbox styling */
@@ -752,11 +758,12 @@ footer {
 
 /* Selected Categories */
 .selected-categories {
-    background: var(--surface-color);
+    background: var(--background-color);
     padding: 1.5rem;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     margin-top: 1rem;
+    border: 1px solid var(--border-color);
 }
 
 .selected-group {
@@ -835,19 +842,20 @@ footer {
 
 .hierarchy-visualization {
     margin-top: 1rem;
-    background: var(--surface-color);
+    background: var(--background-color);
     padding: 1.5rem;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     min-height: 300px;
+    border: 1px solid var(--border-color);
 }
 
 /* Results Section - Compact */
 .results-section {
     max-width: 1200px;
-    margin: 1rem auto;
+    margin: 2rem auto;
     padding: 1rem 2rem;
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
 }
@@ -904,7 +912,7 @@ footer {
 
 .hierarchy-sidebar {
     flex: 0 0 240px;
-    background: var(--surface-color);
+    background: var(--background-color);
     padding: 0.8rem;
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
@@ -1168,11 +1176,12 @@ footer {
 
 /* Resource Type Sections - Compact styling */
 .resource-type-section {
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     margin-bottom: 1rem;
     overflow: hidden;
+    border: 1px solid var(--border-color);
 }
 
 .resource-type-section h3 {
@@ -1226,8 +1235,9 @@ footer {
     gap: 15px;
     margin-bottom: 15px;
     padding: 10px;
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     border-radius: 8px;
+    border: 1px solid var(--border-color);
 }
 
 .filter-group, .layout-group {
@@ -1260,8 +1270,9 @@ footer {
 .network-legend {
     margin-top: 20px;
     padding: 15px;
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     border-radius: 8px;
+    border: 1px solid var(--border-color);
 }
 
 .network-legend h3 {
@@ -1331,12 +1342,13 @@ footer {
 
 /* Enhanced Resource Card Styling */
 .resource-card {
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--border-radius);
     padding: 1.5rem;
     box-shadow: var(--shadow);
     transition: none;
     margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
 }
 
 .resource-card:hover {
@@ -1412,9 +1424,9 @@ footer {
 /* Results Section Improvements */
 .results-section {
     max-width: 1200px;
-    margin: 1rem auto;
+    margin: 2rem auto;
     padding: 1rem 2rem;
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
 }
@@ -1498,7 +1510,7 @@ footer {
 }
 
 .modal-content {
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     margin: 5% auto;
     padding: 25px;
     border-radius: var(--border-radius);
@@ -1508,6 +1520,7 @@ footer {
     max-height: 85vh;
     overflow-y: auto;
     position: relative;
+    border: 1px solid var(--border-color);
 }
 
 .close-modal {
@@ -1671,8 +1684,9 @@ footer {
 /* Visual Explorer Section */
 .visual-explorer {
     max-width: 1200px;
-    margin: 1rem auto;
+    margin: 2rem auto;
     padding: 0 2rem;
+    background-color: var(--background-color);
 }
 
 .section-intro {
@@ -1691,13 +1705,14 @@ footer {
 }
 
 .explorer-card {
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     padding: 1.5rem;
     transition: none;
     position: relative;
     overflow: hidden;
+    border: 1px solid var(--border-color);
 }
 
 .explorer-card:hover {
@@ -2052,10 +2067,11 @@ div.vis-tooltip {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     padding: 0.5rem;
+    border: 1px solid var(--border-color);
 }
 
 .ai-search-bar input {
@@ -2116,7 +2132,7 @@ div.vis-tooltip {
 
 /* AI Chat Modal Styles */
 .ai-chat-modal-content {
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     margin: 5% auto;
     padding: 25px;
     border-radius: var(--border-radius);
@@ -2126,6 +2142,7 @@ div.vis-tooltip {
     max-height: 85vh;
     overflow-y: auto;
     position: relative;
+    border: 1px solid var(--border-color);
 }
 
 .ai-chat-container {
@@ -2145,7 +2162,7 @@ div.vis-tooltip {
     max-width: 900px;
     margin: 1rem auto;
     padding: 1rem 2rem;
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     display: flex;
@@ -2176,7 +2193,7 @@ div.vis-tooltip {
 
 /* Styles for the AI chat interface elements, largely reusable */
 .ai-chat-container {
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     /* margin: auto; */ /* Centering for modal */
     padding: 20px;
     border-radius: var(--border-radius);
@@ -2266,8 +2283,9 @@ div.vis-tooltip {
 .ai-chat-context-selection {
     margin-bottom: 15px;
     padding: 10px;
-    background-color: var(--gray-light);
+    background-color: var(--background-color);
     border-radius: 4px;
+    border: 1px solid var(--border-color);
 }
 .ai-chat-context-selection label {
     display: block;
@@ -2280,12 +2298,12 @@ div.vis-tooltip {
 .ai-chat-context-selection .select2-container .select2-selection--multiple {
     border: 1px solid var(--border-color) !important;
     min-height: 38px;
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
 }
 /* Ensure Select2 dropdown options are visible */
 .select2-container--default .select2-results__option {
     color: var(--text-color); /* Ensure text is visible */
-    background-color: var(--surface-color); /* Ensure background is plain white */
+    background-color: var(--background-color); /* Ensure background is plain white */
 }
 .select2-container--default .select2-results__option--highlighted[aria-selected] {
     background-color: var(--primary-color); /* Highlight color */
@@ -2294,7 +2312,7 @@ div.vis-tooltip {
 .select2-dropdown {
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow);
-    background-color: var(--surface-color); /* Ensure dropdown background is white */
+    background-color: var(--background-color); /* Ensure dropdown background is white */
     z-index: 2050; /* Ensure it's above other elements */
 }
 
@@ -2316,7 +2334,7 @@ div.vis-tooltip {
     min-height: 50px; /* Minimum height */
     max-height: 120px; /* Maximum height before scroll */
     overflow-y: auto; /* Add scroll if content exceeds max-height */
-    background-color: var(--surface-color);
+    background-color: var(--background-color);
     color: var(--text-color);
 }
 
